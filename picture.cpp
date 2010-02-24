@@ -30,6 +30,8 @@
 #include <cstring>
 #include <fstream>
 #include "picture.h"
+#include "woba.h"
+
 using namespace std;
 
 int __bitmap_row_width(int width, int height, int depth)
@@ -181,22 +183,22 @@ unsigned int picture::maskcoordbitmask(int x, int y)
 
 
 
-void picture::memcopyin(char * src, int start, int count)
+void picture::memcopyin(const char * src, int start, int count)
 {
 	memcpy(bitmap + start, src, count);
 }
 
-void picture::memcopyin(char * src, int x, int y, int count)
+void picture::memcopyin(const char * src, int x, int y, int count)
 {
 	memcpy(bitmap + coordbyteoffset(x,y), src, count);
 }
 
-void picture::maskmemcopyin(char * src, int start, int count)
+void picture::maskmemcopyin(const char * src, int start, int count)
 {
 	memcpy(mask + start, src, count);
 }
 
-void picture::maskmemcopyin(char * src, int x, int y, int count)
+void picture::maskmemcopyin(const char * src, int x, int y, int count)
 {
 	memcpy(mask + maskcoordbyteoffset(x,y), src, count);
 }
@@ -221,6 +223,28 @@ void picture::maskmemcopyout(char * dest, int start, int count)
 void picture::maskmemcopyout(char * dest, int x, int y, int count)
 {
 	memcpy(dest, mask + maskcoordbyteoffset(x,y), count);
+}
+
+
+
+void picture::memcopyout(CBuf& dest, int start, int count)
+{
+	memcpy(dest.buf(0,count), bitmap + start, count);
+}
+
+void picture::memcopyout(CBuf& dest, int x, int y, int count)
+{
+	memcpy(dest.buf(0,count), bitmap + coordbyteoffset(x,y), count);
+}
+
+void picture::maskmemcopyout(CBuf& dest, int start, int count)
+{
+	memcpy(dest.buf(0,count), mask + start, count);
+}
+
+void picture::maskmemcopyout(CBuf& dest, int x, int y, int count)
+{
+	memcpy(dest.buf(0,count), mask + maskcoordbyteoffset(x,y), count);
 }
 
 

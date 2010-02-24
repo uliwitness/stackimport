@@ -34,6 +34,8 @@
 #include <fstream>
 using namespace std;
 
+class CBuf;
+
 int __bitmap_row_width(int width, int height, int depth);
 int __bitmap_size(int width, int height, int depth);
 unsigned int __pow2(int p);
@@ -60,15 +62,20 @@ class picture
 	int maskcoordbyteoffset(int, int);
 	unsigned int maskcoordbitmask(int, int);
 	
-	void memcopyin(char *, int, int);
-	void memcopyin(char *, int, int, int);
-	void maskmemcopyin(char *, int, int);
-	void maskmemcopyin(char *, int, int, int);
+	void memcopyin(const char *, int, int);
+	void memcopyin(const char *, int, int, int);
+	void maskmemcopyin(const char *, int, int);
+	void maskmemcopyin(const char *, int, int, int);
 	
-	void memcopyout(char *, int, int);
-	void memcopyout(char *, int, int, int);
-	void maskmemcopyout(char *, int, int);
-	void maskmemcopyout(char *, int, int, int);
+	void memcopyout(char * dest, int start, int count);
+	void memcopyout(char * dest, int x, int y, int count);
+	void maskmemcopyout(char * dest, int start, int count);
+	void maskmemcopyout(char * dest, int x, int y, int count);
+
+	void memcopyout(CBuf& dest, int start, int count);
+	void memcopyout(CBuf& dest, int x, int y, int count);
+	void maskmemcopyout(CBuf& dest, int start, int count);
+	void maskmemcopyout(CBuf& dest, int x, int y, int count);
 	
 	void memfill(char, int, int);
 	void memfill(char, int, int, int);
