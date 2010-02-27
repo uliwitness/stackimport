@@ -5,7 +5,12 @@ int main( int argc, char * const argv[] )
 {
     CStackFile		theStack;
 	
-	theStack.LoadFile( "/Users/uli/GIT/uli/stackimport/Art Bits.stak" );
+	if( argc < 2 )
+		return 2;
+	
+	const char*	fpath = argv[1];
+	if( !theStack.LoadFile( fpath ) )
+		return 3;
 	
     return 0;
 }
