@@ -454,7 +454,7 @@ void picture::writefile(char * fn)
 
 void picture::writebitmaptopbm(char * fn)
 {
-	fstream fp(fn, ios::out|ios::binary|ios::app);
+	fstream fp(fn, ios::out|ios::binary|ios::trunc);
 	char		str[256];
 	
 	// Write PBM Header:
@@ -468,7 +468,7 @@ void picture::writebitmaptopbm(char * fn)
 
 void picture::writemasktopbm(char * fn)
 {
-	fstream fp(fn, ios::out|ios::binary|ios::app);
+	fstream fp(fn, ios::out|ios::binary|ios::trunc);
 	char		str[256];
 	
 	// Write PBM Header:
