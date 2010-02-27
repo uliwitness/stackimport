@@ -15,6 +15,63 @@
 #include "EndianStuff.h"
 
 
+// Table of C-strings for converting the non-ASCII MacRoman characters (above 127)
+//	into the requisite UTF8 byte sequences:
+unsigned char	sMacRomanToUTF8Table[128][5] =
+{
+	{ 0xc3, 0x84, 0x00, 0x00 }, { 0xc3, 0x85, 0x00, 0x00 }, { 0xc3, 0x87, 0x00, 0x00 }, { 0xc3, 0x89, 0x00, 0x00 },
+	{ 0xc3, 0x91, 0x00, 0x00 }, { 0xc3, 0x96, 0x00, 0x00 }, { 0xc3, 0x9c, 0x00, 0x00 }, { 0xc3, 0xa1, 0x00, 0x00 },
+	{ 0xc3, 0xa0, 0x00, 0x00 }, { 0xc3, 0xa2, 0x00, 0x00 }, { 0xc3, 0xa4, 0x00, 0x00 }, { 0xc3, 0xa3, 0x00, 0x00 },
+	{ 0xc3, 0xa5, 0x00, 0x00 }, { 0xc3, 0xa7, 0x00, 0x00 }, { 0xc3, 0xa9, 0x00, 0x00 }, { 0xc3, 0xa8, 0x00, 0x00 },
+	{ 0xc3, 0xaa, 0x00, 0x00 }, { 0xc3, 0xab, 0x00, 0x00 }, { 0xc3, 0xad, 0x00, 0x00 }, { 0xc3, 0xac, 0x00, 0x00 },
+	{ 0xc3, 0xae, 0x00, 0x00 }, { 0xc3, 0xaf, 0x00, 0x00 }, { 0xc3, 0xb1, 0x00, 0x00 }, { 0xc3, 0xb3, 0x00, 0x00 },
+	{ 0xc3, 0xb2, 0x00, 0x00 }, { 0xc3, 0xb4, 0x00, 0x00 }, { 0xc3, 0xb6, 0x00, 0x00 }, { 0xc3, 0xb5, 0x00, 0x00 },
+	{ 0xc3, 0xba, 0x00, 0x00 }, { 0xc3, 0xb9, 0x00, 0x00 }, { 0xc3, 0xbb, 0x00, 0x00 }, { 0xc3, 0xbc, 0x00, 0x00 },
+	{ 0xe2, 0x80, 0xa0, 0x00 }, { 0xc2, 0xb0, 0x00, 0x00 }, { 0xc2, 0xa2, 0x00, 0x00 }, { 0xc2, 0xa3, 0x00, 0x00 },
+	{ 0xc2, 0xa7, 0x00, 0x00 }, { 0xe2, 0x80, 0xa2, 0x00 }, { 0xc2, 0xb6, 0x00, 0x00 }, { 0xc3, 0x9f, 0x00, 0x00 },
+	{ 0xc2, 0xae, 0x00, 0x00 }, { 0xc2, 0xa9, 0x00, 0x00 }, { 0xe2, 0x84, 0xa2, 0x00 }, { 0xc2, 0xb4, 0x00, 0x00 },
+	{ 0xc2, 0xa8, 0x00, 0x00 }, { 0xe2, 0x89, 0xa0, 0x00 }, { 0xc3, 0x86, 0x00, 0x00 }, { 0xc3, 0x98, 0x00, 0x00 },
+	{ 0xe2, 0x88, 0x9e, 0x00 }, { 0xc2, 0xb1, 0x00, 0x00 }, { 0xe2, 0x89, 0xa4, 0x00 }, { 0xe2, 0x89, 0xa5, 0x00 },
+	{ 0xc2, 0xa5, 0x00, 0x00 }, { 0xc2, 0xb5, 0x00, 0x00 }, { 0xe2, 0x88, 0x82, 0x00 }, { 0xe2, 0x88, 0x91, 0x00 },
+	{ 0xe2, 0x88, 0x8f, 0x00 }, { 0xcf, 0x80, 0x00, 0x00 }, { 0xe2, 0x88, 0xab, 0x00 }, { 0xc2, 0xaa, 0x00, 0x00 },
+	{ 0xc2, 0xba, 0x00, 0x00 }, { 0xce, 0xa9, 0x00, 0x00 }, { 0xc3, 0xa6, 0x00, 0x00 }, { 0xc3, 0xb8, 0x00, 0x00 },
+	{ 0xc2, 0xbf, 0x00, 0x00 }, { 0xc2, 0xa1, 0x00, 0x00 }, { 0xc2, 0xac, 0x00, 0x00 }, { 0xe2, 0x88, 0x9a, 0x00 },
+	{ 0xc6, 0x92, 0x00, 0x00 }, { 0xe2, 0x89, 0x88, 0x00 }, { 0xe2, 0x88, 0x86, 0x00 }, { 0xc2, 0xab, 0x00, 0x00 },
+	{ 0xc2, 0xbb, 0x00, 0x00 }, { 0xe2, 0x80, 0xa6, 0x00 }, { 0xc2, 0xa0, 0x00, 0x00 }, { 0xc3, 0x80, 0x00, 0x00 },
+	{ 0xc3, 0x83, 0x00, 0x00 }, { 0xc3, 0x95, 0x00, 0x00 }, { 0xc5, 0x92, 0x00, 0x00 }, { 0xc5, 0x93, 0x00, 0x00 },
+	{ 0xe2, 0x80, 0x93, 0x00 }, { 0xe2, 0x80, 0x94, 0x00 }, { 0xe2, 0x80, 0x9c, 0x00 }, { 0xe2, 0x80, 0x9d, 0x00 },
+	{ 0xe2, 0x80, 0x98, 0x00 }, { 0xe2, 0x80, 0x99, 0x00 }, { 0xc3, 0xb7, 0x00, 0x00 }, { 0xe2, 0x97, 0x8a, 0x00 },
+	{ 0xc3, 0xbf, 0x00, 0x00 }, { 0xc5, 0xb8, 0x00, 0x00 }, { 0xe2, 0x81, 0x84, 0x00 }, { 0xe2, 0x82, 0xac, 0x00 },
+	{ 0xe2, 0x80, 0xb9, 0x00 }, { 0xe2, 0x80, 0xba, 0x00 }, { 0xef, 0xac, 0x81, 0x00 }, { 0xef, 0xac, 0x82, 0x00 },
+	{ 0xe2, 0x80, 0xa1, 0x00 }, { 0xc2, 0xb7, 0x00, 0x00 }, { 0xe2, 0x80, 0x9a, 0x00 }, { 0xe2, 0x80, 0x9e, 0x00 },
+	{ 0xe2, 0x80, 0xb0, 0x00 }, { 0xc3, 0x82, 0x00, 0x00 }, { 0xc3, 0x8a, 0x00, 0x00 }, { 0xc3, 0x81, 0x00, 0x00 },
+	{ 0xc3, 0x8b, 0x00, 0x00 }, { 0xc3, 0x88, 0x00, 0x00 }, { 0xc3, 0x8d, 0x00, 0x00 }, { 0xc3, 0x8e, 0x00, 0x00 },
+	{ 0xc3, 0x8f, 0x00, 0x00 }, { 0xc3, 0x8c, 0x00, 0x00 }, { 0xc3, 0x93, 0x00, 0x00 }, { 0xc3, 0x94, 0x00, 0x00 },
+	{ 0xef, 0xa3, 0xbf, 0x00 }, { 0xc3, 0x92, 0x00, 0x00 }, { 0xc3, 0x9a, 0x00, 0x00 }, { 0xc3, 0x9b, 0x00, 0x00 },
+	{ 0xc3, 0x99, 0x00, 0x00 }, { 0xc4, 0xb1, 0x00, 0x00 }, { 0xcb, 0x86, 0x00, 0x00 }, { 0xcb, 0x9c, 0x00, 0x00 },
+	{ 0xc2, 0xaf, 0x00, 0x00 }, { 0xcb, 0x98, 0x00, 0x00 }, { 0xcb, 0x99, 0x00, 0x00 }, { 0xcb, 0x9a, 0x00, 0x00 },
+	{ 0xc2, 0xb8, 0x00, 0x00 }, { 0xcb, 0x9d, 0x00, 0x00 }, { 0xcb, 0x9b, 0x00, 0x00 }, { 0xcb, 0x87, 0x00, 0x00 }
+};
+
+
+const unsigned char*	UniCharFromMacRoman( unsigned char c )
+{
+	if( c >= 128 )
+		return sMacRomanToUTF8Table[ c -128 ];
+	else if( c == 0x11 )
+	{
+		static unsigned char	commandKey[4] = { 0xe2, 0x8c, 0x98, 0 };	// Unicode 0x2318
+		return commandKey;
+	}
+	else
+	{
+		static unsigned char	asciiStr[2] = { 0, 0 };
+		asciiStr[0] = c;
+		return asciiStr;
+	}
+}
+
+
 void	NumVersionToStr( char numVersion[4], char outStr[16] )
 {
 	char	theCh = 'v';
@@ -47,6 +104,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 	std::ifstream		theFile( fpath.c_str() );
 	if( !theFile.is_open() )
 		return false;
+	
+	printf( "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n<!DOCTYPE stackfile PUBLIC \"-//Apple, Inc.//DTD stackfile V 2.0//EN\" \"\" >\n<stackfile>\n" );
 	
 	// Read block header:
 	char		vBlockType[5] = { 0 };
@@ -126,16 +185,16 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			char			pattern[8] = { 0 };
 			int				offs = 0x2b4;
 //			printf("----------\n");
-			for( int x = 0; x < 40; x++ )
+			for( int n = 0; n < 40; n++ )
 			{
 				memmove( pattern, blockData.buf( offs, 8 ), 8 );
 				char		fname[256] = { 0 };
-				sprintf( fname, "PAT_%u.pbm", x +1 );
+				sprintf( fname, "PAT_%u.pbm", n +1 );
 				picture		thePicture( 8, 8, 1, false );
 				thePicture.memcopyin( pattern, 0, 8 );
 				thePicture.writebitmaptopbm( fname );
 				offs += 8;
-				printf("\t<pattern>PAT_%u.pbm</pattern>\n", x+1);
+				printf("\t<pattern>PAT_%u.pbm</pattern>\n", n+1);
 //				for( int y = 0; y < 8; y++ )
 //				{
 //					if( pattern[y] & (1 << 0) ) printf( "|X" ); else printf("| ");
@@ -158,8 +217,10 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					printf( "&lt;" );
 				else if( currCh == '>' )
 					printf( "&gt;" );
+				else if( currCh == '&' )
+					printf( "&amp;" );
 				else
-					printf( "%c", currCh );
+					printf( "%s", UniCharFromMacRoman(currCh) );
 			}
 			printf( "</script>\n" );
 			printf( "</stack>\n" );
@@ -179,9 +240,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			printf( "\t<dontSearch> %s </dontSearch>\n", (flags & (1 << 11)) ? "<true />" : "<false />" );
 			int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( 0x18 ));
 			int16_t	numContents = BIG_ENDIAN_16(blockData.int16at( 0x20 ));
-			printf( "\t<parts count=%d>\n", numParts );
+			printf( "\t<parts count=\"%d\">\n", numParts );
 			size_t	currOffsIntoData = 38;
-			for( int x = 0; x < numParts; x++ )
+			for( int n = 0; n < numParts; n++ )
 			{
 				int16_t	partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
 				
@@ -260,8 +321,10 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 						printf( "&lt;" );
 					else if( currCh == '>' )
 						printf( "&gt;" );
+					else if( currCh == '&' )
+						printf( "&amp;" );
 					else
-						printf( "%c", currCh );
+						printf( "%s", UniCharFromMacRoman(currCh) );
 				}
 				printf( "</name>\n" );
 				
@@ -274,8 +337,10 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 						printf( "&lt;" );
 					else if( currCh == '>' )
 						printf( "&gt;" );
+					else if( currCh == '&' )
+						printf( "&amp;" );
 					else
-						printf( "%c", currCh );
+						printf( "%s", UniCharFromMacRoman(currCh) );
 				}
 				printf( "</script>\n" );
 				
@@ -286,12 +351,18 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			}
 			printf( "\t</parts>\n" );
 
-			printf( "\t<contents count=%d>\n", numContents );
-			for( int x = 0; x < numContents; x++ )
+			printf( "\t<contents count=\"%d\">\n", numContents );
+			for( int n = 0; n < numContents; n++ )
 			{
 				int16_t		partID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
 				int16_t		partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +2 ));
 				printf( "\t\t<content>\n" );
+				
+//				CBuf		partData( partLength );
+//				partData.memcpy( 0, blockData, currOffsIntoData +4, partLength );
+//				char		fname[256] = { 0 };
+//				snprintf( fname, sizeof(fname), "part_contents_BKGD_%d_%d.data", vBlockID, partID );
+//				partData.tofile( fname );
 				
 				CBuf		theText, theStyles;
 				if( partID < 0 )	// It's a card part's contents:
@@ -300,12 +371,12 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					printf( "\t\t\t<layer>card</layer>\n", partID );
 					printf( "\t\t\t<id>%d</id>\n", partID );
 					
-					int16_t	stylesLength = blockData.int16at( currOffsIntoData +4 );
-					if( stylesLength < 0 )
+					uint16_t	stylesLength = BIG_ENDIAN_16(blockData.uint16at( currOffsIntoData +4 ));
+					if( stylesLength > 32767 )
 					{
-						stylesLength = -stylesLength;
+						stylesLength = stylesLength -32767;
 						theStyles.resize( stylesLength );
-						theStyles.memcpy( 0, blockData, currOffsIntoData +5, partLength -stylesLength );
+						theStyles.memcpy( 0, blockData, currOffsIntoData +5, stylesLength );
 					}
 					else
 						stylesLength = 0;
@@ -318,23 +389,37 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					printf( "\t\t\t<layer>background</layer>\n", partID );
 					printf( "\t\t\t<id>%d</id>\n", partID );
 					
-					int16_t	stylesLength = blockData.int16at( currOffsIntoData +4 );
-					if( stylesLength < 0 )
+					uint16_t	stylesLength = BIG_ENDIAN_16(blockData.uint16at( currOffsIntoData +4 ));
+					if( stylesLength > 32767 )
 					{
-						stylesLength = -stylesLength;
+						stylesLength = stylesLength -32767;
 						theStyles.resize( stylesLength );
-						theStyles.memcpy( 0, blockData, currOffsIntoData +5, partLength -stylesLength );
+						theStyles.memcpy( 0, blockData, currOffsIntoData +6, stylesLength );
 					}
 					else
 						stylesLength = 0;
 					theText.resize( partLength -stylesLength );
-					theText.memcpy( 0, blockData, currOffsIntoData +5 +stylesLength, partLength -1 -stylesLength );
+					theText.memcpy( 0, blockData, currOffsIntoData +4 +stylesLength, partLength -stylesLength );
 					theText[theText.size()-1] = 0;
 				}
 				
-				printf( "\t\t\t<text>%s</text>\n", theText.buf() );
+				printf( "\t\t\t<text>" );
+				size_t	numChars = theText.size();
+				for( int x = 0; x < numChars; x++ )
+				{
+					char currCh = theText[x];
+					if( currCh == '<' )
+						printf( "&lt;" );
+					else if( currCh == '>' )
+						printf( "&gt;" );
+					else if( currCh == '&' )
+						printf( "&amp;" );
+					else
+						printf( "%s", UniCharFromMacRoman(currCh) );
+				}
+				printf( "</text>\n" );
 				if( theStyles.size() > 0 )
-					printf( "\t\t\t<style-runs>%s</style-runs>\n", theStyles.buf() );
+					printf( "\t\t\t<style-runs>%s]]></style-runs>\n", theStyles.buf() );
 				
 				currOffsIntoData += partLength +4 +(partLength % 2);	// Align on even byte.
 				
@@ -351,8 +436,10 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					printf( "&lt;" );
 				else if( currCh == '>' )
 					printf( "&gt;" );
+				else if( currCh == '&' )
+					printf( "&amp;" );
 				else
-					printf( "%c", currCh );
+					printf( "%s", UniCharFromMacRoman(currCh) );
 			}
 			printf( "</name>\n" );
 			
@@ -365,8 +452,10 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					printf( "&lt;" );
 				else if( currCh == '>' )
 					printf( "&gt;" );
+				else if( currCh == '&' )
+					printf( "&amp;" );
 				else
-					printf( "%c", currCh );
+					printf( "%s", UniCharFromMacRoman(currCh) );
 			}
 			printf( "</script>\n" );
 
@@ -389,9 +478,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			printf( "\t<owner>%d</owner>\n", owner );
 			int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( 0x20 -4 ));
 			int16_t	numContents = BIG_ENDIAN_16(blockData.int16at( 0x28 -4 ));
-			printf( "\t<parts count=%d>\n", numParts );
+			printf( "\t<parts count=\"%d\">\n", numParts );
 			size_t	currOffsIntoData = 0x2E -4;
-			for( int x = 0; x < numParts; x++ )
+			for( int n = 0; n < numParts; n++ )
 			{
 				int16_t	partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
 				
@@ -470,8 +559,10 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 						printf( "&lt;" );
 					else if( currCh == '>' )
 						printf( "&gt;" );
+					else if( currCh == '&' )
+						printf( "&amp;" );
 					else
-						printf( "%c", currCh );
+						printf( "%s", UniCharFromMacRoman(currCh) );
 				}
 				printf( "</name>\n" );
 				
@@ -484,8 +575,10 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 						printf( "&lt;" );
 					else if( currCh == '>' )
 						printf( "&gt;" );
+					else if( currCh == '&' )
+						printf( "&amp;" );
 					else
-						printf( "%c", currCh );
+						printf( "%s", UniCharFromMacRoman(currCh) );
 				}
 				printf( "</script>\n" );
 				
@@ -496,11 +589,18 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			}
 			printf( "\t</parts>\n" );
 
-			printf( "\t<contents count=%d>\n", numContents );
-			for( int x = 0; x < numContents; x++ )
+			printf( "\t<contents count=\"%d\">\n", numContents );
+			for( int n = 0; n < numContents; n++ )
 			{
 				int16_t		partID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
 				int16_t		partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +2 ));
+				
+				CBuf		partData( partLength );
+				partData.memcpy( 0, blockData, currOffsIntoData +4, partLength );
+				char		fname[256] = { 0 };
+				snprintf( fname, sizeof(fname), "part_contents_CARD_%d_%d.data", vBlockID, partID );
+				partData.tofile( fname );
+				
 				printf( "\t\t<content>\n" );
 				
 				CBuf		theText, theStyles;
@@ -510,39 +610,53 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					printf( "\t\t\t<layer>card</layer>\n", partID );
 					printf( "\t\t\t<id>%d</id>\n", partID );
 					
-					int16_t	stylesLength = blockData.int16at( currOffsIntoData +4 );
-					if( stylesLength < 0 )
+					uint16_t	stylesLength = BIG_ENDIAN_16(blockData.uint16at( currOffsIntoData +4 ));
+					if( stylesLength > 32767 )
 					{
-						stylesLength = -stylesLength;
+						stylesLength = stylesLength -32767;
 						theStyles.resize( stylesLength );
-						theStyles.memcpy( 0, blockData, currOffsIntoData +5, partLength -stylesLength );
+						theStyles.memcpy( 0, blockData, currOffsIntoData +6, stylesLength );
 					}
 					else
 						stylesLength = 0;
 					theText.resize( partLength -stylesLength );
-					theText.memcpy( 0, blockData, currOffsIntoData +5 +stylesLength, partLength -1 -stylesLength );
+					theText.memcpy( 0, blockData, currOffsIntoData +4 +stylesLength, partLength -stylesLength );
 					theText[theText.size()-1] = 0;
 				}
 				else	// It's a bg part's contents:
 				{
-					printf( "\t\t\t<layer>background</layer>\n", partID );
+					printf( "\t\t\t<layer>background</layer>\n" );
 					printf( "\t\t\t<id>%d</id>\n", partID );
 					
-					int16_t	stylesLength = blockData.int16at( currOffsIntoData +4 );
-					if( stylesLength < 0 )
+					uint16_t	stylesLength = BIG_ENDIAN_16(blockData.uint16at( currOffsIntoData +4 ));
+					if( stylesLength > 32767 )
 					{
-						stylesLength = -stylesLength;
+						stylesLength = stylesLength -32767;
 						theStyles.resize( stylesLength );
-						theStyles.memcpy( 0, blockData, currOffsIntoData +5, partLength -stylesLength );
+						theStyles.memcpy( 0, blockData, currOffsIntoData +6, stylesLength );
 					}
 					else
 						stylesLength = 0;
 					theText.resize( partLength -stylesLength );
-					theText.memcpy( 0, blockData, currOffsIntoData +5 +stylesLength, partLength -1 -stylesLength );
+					theText.memcpy( 0, blockData, currOffsIntoData +4 +stylesLength, partLength -stylesLength );
 					theText[theText.size()-1] = 0;
 				}
 				
-				printf( "\t\t\t<text>%s</text>\n", theText.buf() );
+				printf( "\t\t\t<text>" );
+				size_t	numChars = theText.size();
+				for( int x = 0; x < numChars; x++ )
+				{
+					char currCh = theText[x];
+					if( currCh == '<' )
+						printf( "&lt;" );
+					else if( currCh == '>' )
+						printf( "&gt;" );
+					else if( currCh == '&' )
+						printf( "&amp;" );
+					else
+						printf( "%s", UniCharFromMacRoman(currCh) );
+				}
+				printf( "</text>\n" );
 				if( theStyles.size() > 0 )
 					printf( "\t\t\t<style-runs>%s</style-runs>\n", theStyles.buf() );
 				
@@ -560,10 +674,10 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
 			int16_t	numFonts = BIG_ENDIAN_16(blockData.int16at( 6 ));
-			printf( "<fonts count=%d>\n", numFonts );
+			printf( "<fonts count=\"%d\">\n", numFonts );
 			size_t	currOffsIntoData = 8;
 			currOffsIntoData += 4;	// Reserved?
-			for( int x = 0; x < numFonts; x++ )
+			for( int n = 0; n < numFonts; n++ )
 			{
 				printf( "\t<font>\n" );
 				int16_t	fontID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
@@ -578,8 +692,10 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 						printf( "&lt;" );
 					else if( currCh == '>' )
 						printf( "&gt;" );
+					else if( currCh == '&' )
+						printf( "&amp;" );
 					else
-						printf( "%c", currCh );
+						printf( "%s", UniCharFromMacRoman(currCh) );
 				}
 				printf( "</name>\n" );
 			
@@ -596,6 +712,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			theFile.ignore( vBlockSize -12 );	// Skip rest of block data.
 		}
 	}
+	
+	printf( "</stackfile>\n" );
 	
 	return true;
 }
