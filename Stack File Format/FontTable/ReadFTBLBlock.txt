@@ -1,0 +1,2 @@
+Sub readFTBLBlock( s as string )
+  dim i,L as integer  dim d as string  dim NumFonts as integer  dim n as string  NumFonts=wasc(midb(s,&HA+1,2))  d=midb(s,&H10+1)  for i=0 to NumFonts    FontIds.append wasc(leftb(d,2))    n=midb(d,3)    n=leftb(n,instrb(n,chrb(0))-1)    FontNames.append n    L=lenb(n)+2    if (L mod 2)=1 then      L=L+1    end if    d=midb(d,L+1)  next

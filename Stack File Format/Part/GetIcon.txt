@@ -1,0 +1,2 @@
+Sub GetIcon() as picture
+  if IconPict<>nil then    return IconPict  elseif Icon=-1 then    return app.ResourceFork.GetNamedPicture(Name)  elseif Icon<>0 then    return app.ResourceFork.GetCicn(Icon)  end if

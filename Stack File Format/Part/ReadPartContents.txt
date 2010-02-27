@@ -1,0 +1,2 @@
+Sub ReadPartContents( s as string )
+  dim i as integer  i=wasc(leftb(s,2))  if i>32767 then    i=i-32768    Contents=midb(s,i+1)    ContentsStyleData=TranslateStyleData(midb(s,3,i-2))  else    Contents=midb(s,2)    ContentsStyleData=""  end if
