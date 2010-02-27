@@ -279,7 +279,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				
 				printf( "\t\t</part>\n" );
 				
-				currOffsIntoData += partLength +(partLength % 2);	// Align on even byte.
+				currOffsIntoData += partLength;
+				currOffsIntoData += (currOffsIntoData % 2);	// Align on even byte.
 			}
 			printf( "\t</parts>\n" );
 
@@ -314,6 +315,34 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				printf( "\t\t</content>\n" );
 			}
 			printf( "\t</contents>\n" );
+			
+			int x = 0, startOffs = currOffsIntoData;
+			printf( "\t<name>" );
+			for( x = startOffs; blockData[x] != 0; x++ )
+			{
+				char currCh = blockData[x];
+				if( currCh == '<' )
+					printf( "&lt;" );
+				else if( currCh == '>' )
+					printf( "&gt;" );
+				else
+					printf( "%c", currCh );
+			}
+			printf( "</name>\n" );
+			
+			startOffs = x +1;
+			printf( "\t<script>" );
+			for( x = startOffs; blockData[x] != 0; x++ )
+			{
+				char currCh = blockData[x];
+				if( currCh == '<' )
+					printf( "&lt;" );
+				else if( currCh == '>' )
+					printf( "&gt;" );
+				else
+					printf( "%c", currCh );
+			}
+			printf( "</script>\n" );
 
 			printf( "</background>\n" );
 		}
@@ -330,10 +359,10 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			printf( "\t<dontSearch> %s </dontSearch>\n", (flags & (1 << 11)) ? "<true />" : "<false />" );
 			int16_t	owner = BIG_ENDIAN_16(blockData.int16at( 0x1E -4 ));
 			printf( "\t<owner>%d</owner>\n", owner );
-			int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( 0x18 ));
-			int16_t	numContents = BIG_ENDIAN_16(blockData.int16at( 0x20 ));
+			int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( 0x20 -4 ));
+			int16_t	numContents = BIG_ENDIAN_16(blockData.int16at( 0x28 -4 ));
 			printf( "\t<parts count=%d>\n", numParts );
-			size_t	currOffsIntoData = 0x2E;
+			size_t	currOffsIntoData = 0x2E -4;
 			for( int x = 0; x < numParts; x++ )
 			{
 				int16_t	partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
@@ -434,7 +463,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				
 				printf( "\t\t</part>\n" );
 				
-				currOffsIntoData += partLength +(partLength % 2);	// Align on even byte.
+				currOffsIntoData += partLength;
+				currOffsIntoData += (currOffsIntoData % 2);	// Align on even byte.
 			}
 			printf( "\t</parts>\n" );
 
@@ -443,28 +473,52 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			{
 				int16_t		partID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
 				int16_t		partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +2 ));
-				int16_t		textLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +4 ));
 				printf( "\t\t<content>\n" );
-				printf( "\t\t\t<id>%d</id>\n", partID );
 				
 				CBuf		theText, theStyles;
-				if( textLength < 0 )
+				if( partID < 0 )	// It's a card part's contents:
 				{
-					textLength = -textLength;
-					theText.resize( textLength );
-					theText.memcpy( 0, blockData, currOffsIntoData +textLength, partLength -currOffsIntoData +textLength );
-					theStyles.memcpy( 0, blockData, currOffsIntoData +6, textLength -6 );
+					partID = -partID;
+					printf( "\t\t\t<layer>card</layer>\n", partID );
+					printf( "\t\t\t<id>%d</id>\n", partID );
+					
+					int16_t	stylesLength = blockData.int16at( currOffsIntoData +4 );
+					if( stylesLength < 0 )
+					{
+						stylesLength = -stylesLength;
+						theStyles.resize( stylesLength );
+						theStyles.memcpy( 0, blockData, currOffsIntoData +5, partLength -stylesLength );
+					}
+					else
+						stylesLength = 0;
+					theText.resize( partLength -stylesLength );
+					theText.memcpy( 0, blockData, currOffsIntoData +5 +stylesLength, partLength -1 -stylesLength );
+					theText[theText.size()-1] = 0;
 				}
-				else
+				else	// It's a bg part's contents:
 				{
-					theText.resize( partLength -6 );
-					theText.memcpy( 0, blockData, currOffsIntoData +6, partLength -6 );
+					printf( "\t\t\t<layer>background</layer>\n", partID );
+					printf( "\t\t\t<id>%d</id>\n", partID );
+					
+					int16_t	stylesLength = blockData.int16at( currOffsIntoData +4 );
+					if( stylesLength < 0 )
+					{
+						stylesLength = -stylesLength;
+						theStyles.resize( stylesLength );
+						theStyles.memcpy( 0, blockData, currOffsIntoData +5, partLength -stylesLength );
+					}
+					else
+						stylesLength = 0;
+					theText.resize( partLength -stylesLength );
+					theText.memcpy( 0, blockData, currOffsIntoData +5 +stylesLength, partLength -1 -stylesLength );
+					theText[theText.size()-1] = 0;
 				}
 				
 				printf( "\t\t\t<text>%s</text>\n", theText.buf() );
-				printf( "\t\t\t<styles>%s</styles>\n", theStyles.buf() );
+				if( theStyles.size() > 0 )
+					printf( "\t\t\t<style-runs>%s</style-runs>\n", theStyles.buf() );
 				
-				currOffsIntoData += partLength -2 +(partLength % 2);	// Align on even byte.
+				currOffsIntoData += partLength +4 +(partLength % 2);	// Align on even byte.
 				
 				printf( "\t\t</content>\n" );
 			}
