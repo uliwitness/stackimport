@@ -97,11 +97,11 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			int16_t	userLevel = BIG_ENDIAN_16(blockData.int16at( 60 ));
 			printf( "\t<userLevel>%d</userLevel>\n", userLevel );
 			int16_t	flags = BIG_ENDIAN_16(blockData.int16at( 64 ));
-			printf( "\t<cantModify>%s</cantModify>\n", (flags & (1 << 15)) ? "<true />" : "<false />" );
-			printf( "\t<cantDelete>%s</cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
-			printf( "\t<privateAccess>%s</privateAccess>\n", (flags & (1 << 13)) ? "<true />" : "<false />" );
-			printf( "\t<cantAbort>%s</cantAbort>\n", (flags & (1 << 11)) ? "<true />" : "<false />" );
-			printf( "\t<cantPeek>%s</cantPeek>\n", (flags & (1 << 10)) ? "<true />" : "<false />" );
+			printf( "\t<cantModify> %s </cantModify>\n", (flags & (1 << 15)) ? "<true />" : "<false />" );
+			printf( "\t<cantDelete> %s </cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
+			printf( "\t<privateAccess> %s </privateAccess>\n", (flags & (1 << 13)) ? "<true />" : "<false />" );
+			printf( "\t<cantAbort> %s </cantAbort>\n", (flags & (1 << 11)) ? "<true />" : "<false />" );
+			printf( "\t<cantPeek> %s </cantPeek>\n", (flags & (1 << 10)) ? "<true />" : "<false />" );
 			char		versStr[16] = { 0 };
 			int32_t	version0 = blockData.int32at( 84 );
 			NumVersionToStr( (char*) &version0, versStr );
@@ -172,9 +172,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
 			int16_t	flags = BIG_ENDIAN_16(blockData.int16at( 0x0C -4 ));
-			printf( "\t<cantDelete>%s</cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
-			printf( "\t<showPict>%s</showPict>\n", (flags & (1 << 13)) ? "<false />" : "<true />" );	// showPict is stored reversed.
-			printf( "\t<dontSearch>%s</dontSearch>\n", (flags & (1 << 11)) ? "<true />" : "<false />" );
+			printf( "\t<cantDelete> %s g</cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
+			printf( "\t<showPict> %s </showPict>\n", (flags & (1 << 13)) ? "<false />" : "<true />" );	// showPict is stored reversed.
+			printf( "\t<dontSearch> %s </dontSearch>\n", (flags & (1 << 11)) ? "<true />" : "<false />" );
 			int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( 0x18 ));
 			int16_t	numContents = BIG_ENDIAN_16(blockData.int16at( 0x20 ));
 			printf( "\t<parts count=%d>\n", numParts );
@@ -188,15 +188,15 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				printf( "\t\t\t<id>%d</id>\n", partID );
 				int16_t	flagsAndType = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +4 ));
 				int16_t	partType = flagsAndType >> 8;
-				printf( "\t\t\t<type>%d</type>\n", partType );
-				printf( "\t\t\t<visible>%s</visible>\n", (flagsAndType & (1 << 7)) ? "<false />" : "<true />" );
-				printf( "\t\t\t<dontWrap>%s</dontWrap>\n", (flagsAndType & (1 << 5)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<dontSearch>%s</dontSearch>\n", (flagsAndType & (1 << 4)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<sharedText>%s</sharedText>\n", (flagsAndType & (1 << 3)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<fixedLineHeight>%s</fixedLineHeight>\n", (flagsAndType & (1 << 2)) ? "<false />" : "<true />" );
-				printf( "\t\t\t<autoTab>%s</autoTab>\n", (flagsAndType & (1 << 1)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<enabled>%s</enabled>\n", (flagsAndType & (1 << 0)) ? "<false />" : "<true />" );		// +++ WTF???
-				printf( "\t\t\t<lockText>%s</lockText>\n", (flagsAndType & (1 << 0)) ? "<true />" : "<false />" );	// +++ WTF???
+				printf( "\t\t\t<type>%s</type>\n", partType == 1 ? "button" : "field" );
+				printf( "\t\t\t<visible> %s </visible>\n", (flagsAndType & (1 << 7)) ? "<false />" : "<true />" );
+				printf( "\t\t\t<dontWrap> %s </dontWrap>\n", (flagsAndType & (1 << 5)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<dontSearch> %s </dontSearch>\n", (flagsAndType & (1 << 4)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<sharedText> %s </sharedText>\n", (flagsAndType & (1 << 3)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<fixedLineHeight> %s </fixedLineHeight>\n", (flagsAndType & (1 << 2)) ? "<false />" : "<true />" );
+				printf( "\t\t\t<autoTab> %s </autoTab>\n", (flagsAndType & (1 << 1)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<enabled> %s </enabled>\n", (flagsAndType & (1 << 0)) ? "<false />" : "<true />" );		// +++ WTF???
+				printf( "\t\t\t<lockText> %s </lockText>\n", (flagsAndType & (1 << 0)) ? "<true />" : "<false />" );	// +++ WTF???
 				printf( "\t\t\t<rect>\n\t\t\t\t<left>%d</left>\n\t\t\t\t<top>%d</top>\n\t\t\t\t<right>%d</right>\n\t\t\t\t<bottom>%d</bottom>\n\t\t\t</rect>\n", BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +8 )),
 							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +6 )), BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +12 )),
 							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +10 )) );
@@ -204,14 +204,14 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				int8_t	styleFromLowNibble = moreFlags & 15;
 				printf( "\t\t\t<style>%d</style>\n", styleFromLowNibble );
 				moreFlags = moreFlags >> 8;
-				printf( "\t\t\t<showName>%s</showName>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<autoSelect>%s</autoSelect>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<highlight>%s</highlight>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<showLines>%s</showLines>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<autoHighlight>%s</autoHighlight>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<wideMargins>%s</wideMargins>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<sharedHighlight>%s</sharedHighlight>\n", (moreFlags & (1 << 4)) ? "<false />" : "<true />" );
-				printf( "\t\t\t<multipleLines>%s</multipleLines>\n", (moreFlags & (1 << 4)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<showName> %s </showName>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<autoSelect> %s </autoSelect>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<highlight> %s </highlight>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<showLines> %s </showLines>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<wideMargins> %s </wideMargins>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<sharedHighlight> %s </sharedHighlight>\n", (moreFlags & (1 << 4)) ? "<false />" : "<true />" );
+				printf( "\t\t\t<multipleLines> %s </multipleLines>\n", (moreFlags & (1 << 4)) ? "<true />" : "<false />" );
 				int8_t	family = moreFlags & 15;
 				printf( "\t\t\t<family>%d</family>\n", family );
 				int16_t	titleWidth = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +16 ));
@@ -325,9 +325,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
 			int16_t	flags = BIG_ENDIAN_16(blockData.int16at( 0x0C -4 ));
-			printf( "\t<cantDelete>%s</cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
-			printf( "\t<showPict>%s</showPict>\n", (flags & (1 << 13)) ? "<false />" : "<true />" );	// showPict is stored reversed.
-			printf( "\t<dontSearch>%s</dontSearch>\n", (flags & (1 << 11)) ? "<true />" : "<false />" );
+			printf( "\t<cantDelete> %s </cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
+			printf( "\t<showPict> %s </showPict>\n", (flags & (1 << 13)) ? "<false />" : "<true />" );	// showPict is stored reversed.
+			printf( "\t<dontSearch> %s </dontSearch>\n", (flags & (1 << 11)) ? "<true />" : "<false />" );
 			int16_t	owner = BIG_ENDIAN_16(blockData.int16at( 0x1E -4 ));
 			printf( "\t<owner>%d</owner>\n", owner );
 			int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( 0x18 ));
@@ -343,15 +343,15 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				printf( "\t\t\t<id>%d</id>\n", partID );
 				int16_t	flagsAndType = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +4 ));
 				int16_t	partType = flagsAndType >> 8;
-				printf( "\t\t\t<type>%d</type>\n", partType );
-				printf( "\t\t\t<visible>%s</visible>\n", (flagsAndType & (1 << 7)) ? "<false />" : "<true />" );
-				printf( "\t\t\t<dontWrap>%s</dontWrap>\n", (flagsAndType & (1 << 5)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<dontSearch>%s</dontSearch>\n", (flagsAndType & (1 << 4)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<sharedText>%s</sharedText>\n", (flagsAndType & (1 << 3)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<fixedLineHeight>%s</fixedLineHeight>\n", (flagsAndType & (1 << 2)) ? "<false />" : "<true />" );
-				printf( "\t\t\t<autoTab>%s</autoTab>\n", (flagsAndType & (1 << 1)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<enabled>%s</enabled>\n", (flagsAndType & (1 << 0)) ? "<false />" : "<true />" );		// +++ WTF???
-				printf( "\t\t\t<lockText>%s</lockText>\n", (flagsAndType & (1 << 0)) ? "<true />" : "<false />" );	// +++ WTF???
+				printf( "\t\t\t<type>%s</type>\n", partType == 1 ? "button" : "field" );
+				printf( "\t\t\t<visible> %s </visible>\n", (flagsAndType & (1 << 7)) ? "<false />" : "<true />" );
+				printf( "\t\t\t<dontWrap> %s </dontWrap>\n", (flagsAndType & (1 << 5)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<dontSearch> %s </dontSearch>\n", (flagsAndType & (1 << 4)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<sharedText> %s </sharedText>\n", (flagsAndType & (1 << 3)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<fixedLineHeight> %s </fixedLineHeight>\n", (flagsAndType & (1 << 2)) ? "<false />" : "<true />" );
+				printf( "\t\t\t<autoTab> %s </autoTab>\n", (flagsAndType & (1 << 1)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<enabled> %s </enabled>\n", (flagsAndType & (1 << 0)) ? "<false />" : "<true />" );		// +++ WTF???
+				printf( "\t\t\t<lockText> %s </lockText>\n", (flagsAndType & (1 << 0)) ? "<true />" : "<false />" );	// +++ WTF???
 				printf( "\t\t\t<rect>\n\t\t\t\t<left>%d</left>\n\t\t\t\t<top>%d</top>\n\t\t\t\t<right>%d</right>\n\t\t\t\t<bottom>%d</bottom>\n\t\t\t</rect>\n", BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +8 )),
 							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +6 )), BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +12 )),
 							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +10 )) );
@@ -359,14 +359,14 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				int8_t	styleFromLowNibble = moreFlags & 15;
 				printf( "\t\t\t<style>%d</style>\n", styleFromLowNibble );
 				moreFlags = moreFlags >> 8;
-				printf( "\t\t\t<showName>%s</showName>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<autoSelect>%s</autoSelect>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<highlight>%s</highlight>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<showLines>%s</showLines>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<autoHighlight>%s</autoHighlight>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<wideMargins>%s</wideMargins>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
-				printf( "\t\t\t<sharedHighlight>%s</sharedHighlight>\n", (moreFlags & (1 << 4)) ? "<false />" : "<true />" );
-				printf( "\t\t\t<multipleLines>%s</multipleLines>\n", (moreFlags & (1 << 4)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<showName> %s </showName>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<autoSelect> %s </autoSelect>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<highlight> %s </highlight>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<showLines> %s </showLines>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<wideMargins> %s </wideMargins>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<sharedHighlight> %s </sharedHighlight>\n", (moreFlags & (1 << 4)) ? "<false />" : "<true />" );
+				printf( "\t\t\t<multipleLines> %s </multipleLines>\n", (moreFlags & (1 << 4)) ? "<true />" : "<false />" );
 				int8_t	family = moreFlags & 15;
 				printf( "\t\t\t<family>%d</family>\n", family );
 				int16_t	titleWidth = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +16 ));
