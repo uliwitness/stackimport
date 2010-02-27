@@ -71,6 +71,11 @@ public:
 	
 	int16_t		int16at( size_t offs ) const	{ int16_t* theBuf = (int16_t*) buf(offs,sizeof(int16_t)); return *theBuf; };
 	int32_t		int32at( size_t offs ) const	{ int32_t* theBuf = (int32_t*) buf(offs,sizeof(int32_t)); return *theBuf; };
+
+	uint16_t	uint16at( size_t offs ) const	{ uint16_t* theBuf = (uint16_t*) buf(offs,sizeof(uint16_t)); return *theBuf; };
+	uint32_t	uint32at( size_t offs ) const	{ uint32_t* theBuf = (uint32_t*) buf(offs,sizeof(uint32_t)); return *theBuf; };
+	
+	void		tofile( const std::string& fpath );
 	
 protected:
 	char*		mBuffer;

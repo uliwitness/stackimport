@@ -153,6 +153,14 @@ void	CBuf::shiftnstr( size_t dstOffs, int amount, int shiftAmount )
 }
 
 
+void	CBuf::tofile( const std::string& fpath )
+{
+	FILE*	theFile = fopen( fpath.c_str(), "w" );
+	fwrite( mBuffer, 1, mSize, theFile );
+	fclose(theFile);
+}
+
+
 using namespace std;
 
 
