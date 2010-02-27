@@ -87,6 +87,8 @@ void	CBuf::memcpy( size_t toOffs, const char* fromPtr, size_t fromOffs, size_t a
 
 void	CBuf::memcpy( size_t toOffs, const CBuf& fromPtr, size_t fromOffs, size_t amount )
 {
+	if( amount == SIZE_MAX )
+		amount = fromPtr.size() -fromOffs;
 	memcpy( toOffs, fromPtr.buf(fromOffs,amount), 0, amount );
 }
 

@@ -54,7 +54,7 @@ public:
 	void		resize( size_t inSize );
 	
 	void		memcpy( size_t toOffs, const char* fromPtr, size_t fromOffs, size_t amount );
-	void		memcpy( size_t toOffs, const CBuf& fromPtr, size_t fromOffs, size_t amount );
+	void		memcpy( size_t toOffs, const CBuf& fromPtr, size_t fromOffs = 0, size_t amount = SIZE_MAX );
 	
 	const char	operator [] ( int idx ) const;
 	char&		operator [] ( int idx );
