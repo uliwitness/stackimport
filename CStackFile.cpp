@@ -171,6 +171,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			printf( "\t<id>%d</id>\n", vBlockID );
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
+			int32_t	bitmapID = BIG_ENDIAN_32(blockData.int32at( 4 ));
+			printf( "\t<bitmap>%d</bitmap>\n", bitmapID );
 			int16_t	flags = BIG_ENDIAN_16(blockData.int16at( 0x0C -4 ));
 			printf( "\t<cantDelete> %s g</cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
 			printf( "\t<showPict> %s </showPict>\n", (flags & (1 << 13)) ? "<false />" : "<true />" );	// showPict is stored reversed.
@@ -289,28 +291,52 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			{
 				int16_t		partID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
 				int16_t		partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +2 ));
-				int16_t		textLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +4 ));
 				printf( "\t\t<content>\n" );
-				printf( "\t\t\t<id>%d</id>\n", partID );
 				
 				CBuf		theText, theStyles;
-				if( textLength < 0 )
+				if( partID < 0 )	// It's a card part's contents:
 				{
-					textLength = -textLength;
-					theText.resize( textLength );
-					theText.memcpy( 0, blockData, currOffsIntoData +textLength, partLength -currOffsIntoData +textLength );
-					theStyles.memcpy( 0, blockData, currOffsIntoData +6, textLength -6 );
+					partID = -partID;
+					printf( "\t\t\t<layer>card</layer>\n", partID );
+					printf( "\t\t\t<id>%d</id>\n", partID );
+					
+					int16_t	stylesLength = blockData.int16at( currOffsIntoData +4 );
+					if( stylesLength < 0 )
+					{
+						stylesLength = -stylesLength;
+						theStyles.resize( stylesLength );
+						theStyles.memcpy( 0, blockData, currOffsIntoData +5, partLength -stylesLength );
+					}
+					else
+						stylesLength = 0;
+					theText.resize( partLength -stylesLength );
+					theText.memcpy( 0, blockData, currOffsIntoData +5 +stylesLength, partLength -1 -stylesLength );
+					theText[theText.size()-1] = 0;
 				}
-				else
+				else	// It's a bg part's contents:
 				{
-					theText.resize( partLength -6 );
-					theText.memcpy( 0, blockData, currOffsIntoData +6, partLength -6 );
+					printf( "\t\t\t<layer>background</layer>\n", partID );
+					printf( "\t\t\t<id>%d</id>\n", partID );
+					
+					int16_t	stylesLength = blockData.int16at( currOffsIntoData +4 );
+					if( stylesLength < 0 )
+					{
+						stylesLength = -stylesLength;
+						theStyles.resize( stylesLength );
+						theStyles.memcpy( 0, blockData, currOffsIntoData +5, partLength -stylesLength );
+					}
+					else
+						stylesLength = 0;
+					theText.resize( partLength -stylesLength );
+					theText.memcpy( 0, blockData, currOffsIntoData +5 +stylesLength, partLength -1 -stylesLength );
+					theText[theText.size()-1] = 0;
 				}
 				
 				printf( "\t\t\t<text>%s</text>\n", theText.buf() );
-				printf( "\t\t\t<styles>%s</styles>\n", theStyles.buf() );
+				if( theStyles.size() > 0 )
+					printf( "\t\t\t<style-runs>%s</style-runs>\n", theStyles.buf() );
 				
-				currOffsIntoData += partLength -2 +(partLength % 2);	// Align on even byte.
+				currOffsIntoData += partLength +4 +(partLength % 2);	// Align on even byte.
 				
 				printf( "\t\t</content>\n" );
 			}
@@ -353,6 +379,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			printf( "\t<id>%d</id>\n", vBlockID );
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
+			int32_t	bitmapID = BIG_ENDIAN_32(blockData.int32at( 4 ));
+			printf( "\t<bitmap>%d</bitmap>\n", bitmapID );
 			int16_t	flags = BIG_ENDIAN_16(blockData.int16at( 0x0C -4 ));
 			printf( "\t<cantDelete> %s </cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
 			printf( "\t<showPict> %s </showPict>\n", (flags & (1 << 13)) ? "<false />" : "<true />" );	// showPict is stored reversed.
@@ -525,6 +553,42 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			printf( "\t</contents>\n" );
 
 			printf( "</card>\n" );
+		}
+		else if( strcmp(vBlockType,"FTBL") == 0 )
+		{
+			printf( "<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
+			CBuf		blockData( vBlockSize -12 );
+			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
+			int16_t	numFonts = BIG_ENDIAN_16(blockData.int16at( 6 ));
+			printf( "<fonts count=%d>\n", numFonts );
+			size_t	currOffsIntoData = 8;
+			currOffsIntoData += 4;	// Reserved?
+			for( int x = 0; x < numFonts; x++ )
+			{
+				printf( "\t<font>\n" );
+				int16_t	fontID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
+				printf( "\t\t<id>%d</id>\n", fontID );
+				
+				int x = 0, startOffs = currOffsIntoData +2;
+				printf( "\t\t<name>" );
+				for( x = startOffs; blockData[x] != 0; x++ )
+				{
+					char currCh = blockData[x];
+					if( currCh == '<' )
+						printf( "&lt;" );
+					else if( currCh == '>' )
+						printf( "&gt;" );
+					else
+						printf( "%c", currCh );
+				}
+				printf( "</name>\n" );
+			
+				currOffsIntoData = x +1;
+				currOffsIntoData += currOffsIntoData %2;	// Align on even byte.
+				
+				printf( "\t</font>\n" );
+			}
+			printf( "</fonts>\n" );
 		}
 		else
 		{
