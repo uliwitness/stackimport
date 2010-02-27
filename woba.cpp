@@ -29,7 +29,7 @@
 
 */
 
-#define DEBUGOUTPUT		1
+#define DEBUGOUTPUT		0
 
 
 #if DEBUGOUTPUT
@@ -44,6 +44,16 @@ CBuf::CBuf( size_t inSize )
 {
 	if( inSize > 0 )
 		mBuffer = new char[inSize];
+}
+
+
+CBuf::CBuf( const CBuf& inTemplate, size_t startOffs, size_t amount )
+{
+	if( amount == SIZE_MAX )
+		amount = inTemplate.size() -startOffs;
+	
+	mBuffer = new char[amount];
+	::memcpy( mBuffer, inTemplate.buf(startOffs, amount), amount );
 }
 
 
@@ -98,7 +108,7 @@ char& CBuf::operator [] ( int idx )
 char*	CBuf::buf( size_t offs, size_t amount )
 {
 	if( amount == SIZE_MAX )
-		amount = mSize;
+		amount = mSize -offs;
 	assert(mBuffer != NULL);
 	assert( (amount +offs) <= mSize );
 	
@@ -109,7 +119,7 @@ char*	CBuf::buf( size_t offs, size_t amount )
 const char*	CBuf::buf( size_t offs, size_t amount ) const
 {
 	if( amount == SIZE_MAX )
-		amount = mSize;
+		amount = mSize -offs;
 	assert(mBuffer != NULL);
 	assert( (amount +offs) <= mSize );
 	

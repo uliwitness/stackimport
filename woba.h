@@ -48,25 +48,29 @@ class CBuf
 {
 public:
 	explicit CBuf( size_t inSize = 0 );
+	CBuf( const CBuf& inTemplate, size_t startOffs = 0, size_t amount = SIZE_MAX ); 
 	~CBuf();
 	
-	void	resize( size_t inSize );
+	void		resize( size_t inSize );
 	
-	void	memcpy( size_t toOffs, const char* fromPtr, size_t fromOffs, size_t amount );
-	void	memcpy( size_t toOffs, const CBuf& fromPtr, size_t fromOffs, size_t amount );
+	void		memcpy( size_t toOffs, const char* fromPtr, size_t fromOffs, size_t amount );
+	void		memcpy( size_t toOffs, const CBuf& fromPtr, size_t fromOffs, size_t amount );
 	
-	const char operator [] ( int idx ) const;
-	char& operator [] ( int idx );
+	const char	operator [] ( int idx ) const;
+	char&		operator [] ( int idx );
 	
 	char*		buf( size_t offs = 0, size_t amount = SIZE_MAX );
 	const char*	buf( size_t offs = 0, size_t amount = SIZE_MAX ) const;
 	
-	void	xornstr( size_t dstOffs, char * src, size_t srcOffs, size_t amount );
-	void	xornstr( size_t dstOffs, const CBuf& src, size_t srcOffs, size_t amount );
+	void		xornstr( size_t dstOffs, char * src, size_t srcOffs, size_t amount );
+	void		xornstr( size_t dstOffs, const CBuf& src, size_t srcOffs, size_t amount );
 
-	void	shiftnstr( size_t dstOffs, int amount, int shiftAmount );
+	void		shiftnstr( size_t dstOffs, int amount, int shiftAmount );
 	
-	size_t	size()		{ return mSize; };
+	size_t		size() const		{ return mSize; };
+	
+	int16_t		int16at( size_t offs ) const	{ int16_t* theBuf = (int16_t*) buf(offs,sizeof(int16_t)); return *theBuf; };
+	int32_t		int32at( size_t offs ) const	{ int32_t* theBuf = (int32_t*) buf(offs,sizeof(int32_t)); return *theBuf; };
 	
 protected:
 	char*		mBuffer;
