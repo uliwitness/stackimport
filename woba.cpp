@@ -382,7 +382,8 @@ void woba_decode(picture & p, char * woba)
 					{
 						for (k=nz; k>0; k--)
 						{
-							buffer1[x] = 0;
+							if( x < buffer1.size() )
+								buffer1[x] = 0;
 							x++;
 						}
 						repeat--;
