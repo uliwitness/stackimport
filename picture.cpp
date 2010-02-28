@@ -452,6 +452,26 @@ void picture::writefile(char * fn)
 }
 
 
+void picture::writebitmapandmasktopbm(char * fn)
+{
+	fstream fp(fn, ios::out|ios::binary|ios::trunc);
+	char		str[256];
+	
+	// Write PBM Header:
+	snprintf( str, sizeof(str), "P4\n%d %d\n", width, height );
+	fp.write( str, strlen(str) );
+	
+	fp.write( bitmap, bitmaplength );
+	
+	// Write second PBM Header:
+	snprintf( str, sizeof(str), "\nP4\n%d %d\n", width, height );
+	fp.write( str, strlen(str) );
+	
+	fp.write( mask, masklength );
+	fp.close();
+}
+
+
 void picture::writebitmaptopbm(char * fn)
 {
 	fstream fp(fn, ios::out|ios::binary|ios::trunc);

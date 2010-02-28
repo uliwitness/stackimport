@@ -98,6 +98,7 @@ class picture
 	void bwrite(fstream);
 	void bread(fstream);
 	void writefile(char *);
+	void writebitmapandmasktopbm(char * fn);
 	void writebitmaptopbm(char * fn);
 	void writemasktopbm(char * fn);
 
