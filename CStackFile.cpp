@@ -221,35 +221,34 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			printf( "\t\t<dontSearch> %s </dontSearch>\n", (flags & (1 << 11)) ? "<true />" : "<false />" );
 			int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( 0x18 ));
 			int16_t	numContents = BIG_ENDIAN_16(blockData.int16at( 0x20 ));
-			printf( "\t\t<parts count=\"%d\">\n", numParts );
 			size_t	currOffsIntoData = 38;
 			for( int n = 0; n < numParts; n++ )
 			{
 				int16_t	partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
 				
-				printf( "\t\t\t<part>\n" );
+				printf( "\t\t<part>\n" );
 				int16_t	partID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +2 ));
-				printf( "\t\t\t\t<id>%d</id>\n", partID );
+				printf( "\t\t\t<id>%d</id>\n", partID );
 				int16_t	flagsAndType = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +4 ));
 				int16_t	partType = flagsAndType >> 8;
 				bool	isButton = partType == 1;
-				printf( "\t\t\t\t<type>%s</type>\n", isButton ? "button" : "field" );
-				printf( "\t\t\t\t<visible> %s </visible>\n", (flagsAndType & (1 << 7)) ? "<false />" : "<true />" );
+				printf( "\t\t\t<type>%s</type>\n", isButton ? "button" : "field" );
+				printf( "\t\t\t<visible> %s </visible>\n", (flagsAndType & (1 << 7)) ? "<false />" : "<true />" );
 				if( !isButton )
-					printf( "\t\t\t\t<dontWrap> %s </dontWrap>\n", (flagsAndType & (1 << 5)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<dontWrap> %s </dontWrap>\n", (flagsAndType & (1 << 5)) ? "<true />" : "<false />" );
 				if( !isButton )
-					printf( "\t\t\t\t<dontSearch> %s </dontSearch>\n", (flagsAndType & (1 << 4)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<dontSearch> %s </dontSearch>\n", (flagsAndType & (1 << 4)) ? "<true />" : "<false />" );
 				if( !isButton )
-					printf( "\t\t\t\t<sharedText> %s </sharedText>\n", (flagsAndType & (1 << 3)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<sharedText> %s </sharedText>\n", (flagsAndType & (1 << 3)) ? "<true />" : "<false />" );
 				if( !isButton )
-					printf( "\t\t\t\t<fixedLineHeight> %s </fixedLineHeight>\n", (flagsAndType & (1 << 2)) ? "<false />" : "<true />" );
+					printf( "\t\t\t<fixedLineHeight> %s </fixedLineHeight>\n", (flagsAndType & (1 << 2)) ? "<false />" : "<true />" );
 				if( !isButton )
-					printf( "\t\t\t\t<autoTab> %s </autoTab>\n", (flagsAndType & (1 << 1)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<autoTab> %s </autoTab>\n", (flagsAndType & (1 << 1)) ? "<true />" : "<false />" );
 				if( isButton )
-					printf( "\t\t\t\t<enabled> %s </enabled>\n", (flagsAndType & (1 << 0)) ? "<false />" : "<true />" );		// +++ WTF???
+					printf( "\t\t\t<enabled> %s </enabled>\n", (flagsAndType & (1 << 0)) ? "<false />" : "<true />" );		// +++ WTF???
 				if( !isButton )
-					printf( "\t\t\t\t<lockText> %s </lockText>\n", (flagsAndType & (1 << 0)) ? "<true />" : "<false />" );	// +++ WTF???
-				printf( "\t\t\t\t<rect>\n\t\t\t\t\t<left>%d</left>\n\t\t\t\t\t<top>%d</top>\n\t\t\t\t\t<right>%d</right>\n\t\t\t\t\t<bottom>%d</bottom>\n\t\t\t\t</rect>\n", BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +8 )),
+					printf( "\t\t\t<lockText> %s </lockText>\n", (flagsAndType & (1 << 0)) ? "<true />" : "<false />" );	// +++ WTF???
+				printf( "\t\t\t<rect>\n\t\t\t\t<left>%d</left>\n\t\t\t\t<top>%d</top>\n\t\t\t\t<right>%d</right>\n\t\t\t\t<bottom>%d</bottom>\n\t\t\t</rect>\n", BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +8 )),
 							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +6 )), BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +12 )),
 							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +10 )) );
 				int16_t	moreFlags = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +14 ));
@@ -315,68 +314,68 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 							break;
 					}
 				}
-				printf( "\t\t\t\t<style>%s</style>\n", styleStr );
+				printf( "\t\t\t<style>%s</style>\n", styleStr );
 				moreFlags = moreFlags >> 8;
 				if( isButton )
-					printf( "\t\t\t\t<showName> %s </showName>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<showName> %s </showName>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
 				if( !isButton )
-					printf( "\t\t\t\t<autoSelect> %s </autoSelect>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<autoSelect> %s </autoSelect>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
 				if( isButton )
-					printf( "\t\t\t\t<highlight> %s </highlight>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<highlight> %s </highlight>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
 				if( !isButton )
-					printf( "\t\t\t\t<showLines> %s </showLines>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
-				printf( "\t\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<showLines> %s </showLines>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
 				if( !isButton )
-					printf( "\t\t\t\t<wideMargins> %s </wideMargins>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<wideMargins> %s </wideMargins>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
 				if( isButton )
-					printf( "\t\t\t\t<sharedHighlight> %s </sharedHighlight>\n", (moreFlags & (1 << 4)) ? "<false />" : "<true />" );
+					printf( "\t\t\t<sharedHighlight> %s </sharedHighlight>\n", (moreFlags & (1 << 4)) ? "<false />" : "<true />" );
 				if( !isButton )
-					printf( "\t\t\t\t<multipleLines> %s </multipleLines>\n", (moreFlags & (1 << 4)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<multipleLines> %s </multipleLines>\n", (moreFlags & (1 << 4)) ? "<true />" : "<false />" );
 				int8_t	family = moreFlags & 15;
 				if( isButton )
-					printf( "\t\t\t\t<family>%d</family>\n", family );
+					printf( "\t\t\t<family>%d</family>\n", family );
 				int16_t	titleWidth = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +16 ));
 				if( isButton )
-					printf( "\t\t\t\t<titleWidth>%d</titleWidth>\n", titleWidth );
+					printf( "\t\t\t<titleWidth>%d</titleWidth>\n", titleWidth );
 				else
-					printf( "\t\t\t\t<lastSelectedLine>%d</lastSelectedLine>\n", titleWidth );
+					printf( "\t\t\t<lastSelectedLine>%d</lastSelectedLine>\n", titleWidth );
 				int16_t	iconID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +18 ));
 				if( isButton )
-					printf( "\t\t\t\t<icon>%d</icon>\n", iconID );
+					printf( "\t\t\t<icon>%d</icon>\n", iconID );
 				else
-					printf( "\t\t\t\t<selectedLine>%d</selectedLine>\n", iconID );
+					printf( "\t\t\t<selectedLine>%d</selectedLine>\n", iconID );
 				int16_t	textAlign = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +20 ));
-				printf( "\t\t\t\t<textAlign>%d</textAlign>\n", textAlign );
+				printf( "\t\t\t<textAlign>%d</textAlign>\n", textAlign );
 				int16_t	textFontID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +22 ));
-				printf( "\t\t\t\t<textFontID>%d</textFontID>\n", textFontID );
+				printf( "\t\t\t<textFontID>%d</textFontID>\n", textFontID );
 				int16_t	textSize = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +24 ));
-				printf( "\t\t\t\t<textSize>%d</textSize>\n", textSize );
+				printf( "\t\t\t<textSize>%d</textSize>\n", textSize );
 				int16_t	textStyleFlags = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +26 ));
-				printf( "\t\t\t\t<styles>\n" );
+				printf( "\t\t\t<styles>\n" );
 				if( textStyleFlags & (1 << 15) )
-					printf( "\t\t\t\t\t<style>group</style>\n" );
+					printf( "\t\t\t\t<style>group</style>\n" );
 				if( textStyleFlags & (1 << 14) )
-					printf( "\t\t\t\t\t<style>extend</style>\n" );
+					printf( "\t\t\t\t<style>extend</style>\n" );
 				if( textStyleFlags & (1 << 13) )
-					printf( "\t\t\t\t\t<style>condense</style>\n" );
+					printf( "\t\t\t\t<style>condense</style>\n" );
 				if( textStyleFlags & (1 << 12) )
-					printf( "\t\t\t\t\t<style>shadow</style>\n" );
+					printf( "\t\t\t\t<style>shadow</style>\n" );
 				if( textStyleFlags & (1 << 11) )
-					printf( "\t\t\t\t\t<style>outline</style>\n" );
+					printf( "\t\t\t\t<style>outline</style>\n" );
 				if( textStyleFlags & (1 << 10) )
-					printf( "\t\t\t\t\t<style>underline</style>\n" );
+					printf( "\t\t\t\t<style>underline</style>\n" );
 				if( textStyleFlags & (1 << 9) )
-					printf( "\t\t\t\t\t<style>italic</style>\n" );
+					printf( "\t\t\t\t<style>italic</style>\n" );
 				if( textStyleFlags & (1 << 8) )
-					printf( "\t\t\t\t\t<style>bold</style>\n" );
+					printf( "\t\t\t\t<style>bold</style>\n" );
 				
-				printf( "\t\t\t\t</styles>\n" );
+				printf( "\t\t\t</styles>\n" );
 				int16_t	textHeight = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +28 ));
 				if( !isButton )
-					printf( "\t\t\t\t<textHeight>%d</textHeight>\n", textHeight );
+					printf( "\t\t\t<textHeight>%d</textHeight>\n", textHeight );
 				
 				int x = 0, startOffs = currOffsIntoData +30;
-				printf( "\t\t\t\t<name>" );
+				printf( "\t\t\t<name>" );
 				for( x = startOffs; blockData[x] != 0; x++ )
 				{
 					char currCh = blockData[x];
@@ -392,7 +391,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				printf( "</name>\n" );
 				
 				startOffs = x +2;
-				printf( "\t\t\t\t<script>" );
+				printf( "\t\t\t<script>" );
 				for( x = startOffs; blockData[x] != 0; x++ )
 				{
 					char currCh = blockData[x];
@@ -407,26 +406,24 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				}
 				printf( "</script>\n" );
 				
-				printf( "\t\t\t</part>\n" );
+				printf( "\t\t</part>\n" );
 				
 				currOffsIntoData += partLength;
 				currOffsIntoData += (currOffsIntoData % 2);	// Align on even byte.
 			}
-			printf( "\t\t</parts>\n" );
 
-			printf( "\t\t<contents count=\"%d\">\n", numContents );
 			for( int n = 0; n < numContents; n++ )
 			{
 				int16_t		partID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
 				int16_t		partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +2 ));
-				printf( "\t\t\t<content>\n" );
+				printf( "\t\t<content>\n" );
 				
 				CBuf		theText, theStyles;
 				if( partID < 0 )	// It's a card part's contents:
 				{
 					partID = -partID;
-					printf( "\t\t\t\t<layer>card</layer>\n", partID );
-					printf( "\t\t\t\t<id>%d</id>\n", partID );
+					printf( "\t\t\t<layer>card</layer>\n", partID );
+					printf( "\t\t\t<id>%d</id>\n", partID );
 					
 					uint16_t	stylesLength = BIG_ENDIAN_16(blockData.uint16at( currOffsIntoData +4 ));
 					if( stylesLength > 32767 )
@@ -443,8 +440,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				}
 				else	// It's a bg part's contents:
 				{
-					printf( "\t\t\t\t<layer>background</layer>\n", partID );
-					printf( "\t\t\t\t<id>%d</id>\n", partID );
+					printf( "\t\t\t<layer>background</layer>\n", partID );
+					printf( "\t\t\t<id>%d</id>\n", partID );
 					
 					uint16_t	stylesLength = BIG_ENDIAN_16(blockData.uint16at( currOffsIntoData +4 ));
 					if( stylesLength > 32767 )
@@ -460,7 +457,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					theText[theText.size()-1] = 0;
 				}
 				
-				printf( "\t\t\t\t<text>" );
+				printf( "\t\t\t<text>" );
 				size_t	numChars = theText.size();
 				for( int x = 0; x < numChars; x++ )
 				{
@@ -480,9 +477,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				
 				currOffsIntoData += partLength +4 +(partLength % 2);	// Align on even byte.
 				
-				printf( "\t\t\t</content>\n" );
+				printf( "\t\t</content>\n" );
 			}
-			printf( "\t\t</contents>\n" );
 			
 			int x = 0, startOffs = currOffsIntoData;
 			printf( "\t\t<name>" );
@@ -535,35 +531,34 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			printf( "\t\t<owner>%d</owner>\n", owner );
 			int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( 0x20 -4 ));
 			int16_t	numContents = BIG_ENDIAN_16(blockData.int16at( 0x28 -4 ));
-			printf( "\t\t<parts count=\"%d\">\n", numParts );
 			size_t	currOffsIntoData = 0x2E -4;
 			for( int n = 0; n < numParts; n++ )
 			{
 				int16_t	partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
 				
-				printf( "\t\t\t<part>\n" );
+				printf( "\t\t<part>\n" );
 				int16_t	partID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +2 ));
-				printf( "\t\t\t\t<id>%d</id>\n", partID );
+				printf( "\t\t\t<id>%d</id>\n", partID );
 				int16_t	flagsAndType = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +4 ));
 				int16_t	partType = flagsAndType >> 8;
 				bool	isButton = partType == 1;
-				printf( "\t\t\t\t<type>%s</type>\n", isButton ? "button" : "field" );
-				printf( "\t\t\t\t<visible> %s </visible>\n", (flagsAndType & (1 << 7)) ? "<false />" : "<true />" );
+				printf( "\t\t\t<type>%s</type>\n", isButton ? "button" : "field" );
+				printf( "\t\t\t<visible> %s </visible>\n", (flagsAndType & (1 << 7)) ? "<false />" : "<true />" );
 				if( !isButton )
-					printf( "\t\t\t\t<dontWrap> %s </dontWrap>\n", (flagsAndType & (1 << 5)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<dontWrap> %s </dontWrap>\n", (flagsAndType & (1 << 5)) ? "<true />" : "<false />" );
 				if( !isButton )
-					printf( "\t\t\t\t<dontSearch> %s </dontSearch>\n", (flagsAndType & (1 << 4)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<dontSearch> %s </dontSearch>\n", (flagsAndType & (1 << 4)) ? "<true />" : "<false />" );
 				if( !isButton )
-					printf( "\t\t\t\t<sharedText> %s </sharedText>\n", (flagsAndType & (1 << 3)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<sharedText> %s </sharedText>\n", (flagsAndType & (1 << 3)) ? "<true />" : "<false />" );
 				if( !isButton )
-					printf( "\t\t\t\t<fixedLineHeight> %s </fixedLineHeight>\n", (flagsAndType & (1 << 2)) ? "<false />" : "<true />" );
+					printf( "\t\t\t<fixedLineHeight> %s </fixedLineHeight>\n", (flagsAndType & (1 << 2)) ? "<false />" : "<true />" );
 				if( !isButton )
-					printf( "\t\t\t\t<autoTab> %s </autoTab>\n", (flagsAndType & (1 << 1)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<autoTab> %s </autoTab>\n", (flagsAndType & (1 << 1)) ? "<true />" : "<false />" );
 				if( isButton )
-					printf( "\t\t\t\t<enabled> %s </enabled>\n", (flagsAndType & (1 << 0)) ? "<false />" : "<true />" );		// +++ WTF???
+					printf( "\t\t\t<enabled> %s </enabled>\n", (flagsAndType & (1 << 0)) ? "<false />" : "<true />" );		// +++ WTF???
 				if( !isButton )
-					printf( "\t\t\t\t<lockText> %s </lockText>\n", (flagsAndType & (1 << 0)) ? "<true />" : "<false />" );	// +++ WTF???
-				printf( "\t\t\t\t<rect>\n\t\t\t\t\t<left>%d</left>\n\t\t\t\t\t<top>%d</top>\n\t\t\t\t\t<right>%d</right>\n\t\t\t\t\t<bottom>%d</bottom>\n\t\t\t\t</rect>\n", BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +8 )),
+					printf( "\t\t\t<lockText> %s </lockText>\n", (flagsAndType & (1 << 0)) ? "<true />" : "<false />" );	// +++ WTF???
+				printf( "\t\t\t<rect>\n\t\t\t\t<left>%d</left>\n\t\t\t\t<top>%d</top>\n\t\t\t\t<right>%d</right>\n\t\t\t\t<bottom>%d</bottom>\n\t\t\t</rect>\n", BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +8 )),
 							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +6 )), BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +12 )),
 							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +10 )) );
 				int16_t	moreFlags = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +14 ));
@@ -629,68 +624,68 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 							break;
 					}
 				}
-				printf( "\t\t\t\t<style>%s</style>\n", styleStr );
+				printf( "\t\t\t<style>%s</style>\n", styleStr );
 				moreFlags = moreFlags >> 8;
 				if( isButton )
-					printf( "\t\t\t\t<showName> %s </showName>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<showName> %s </showName>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
 				if( !isButton )
-					printf( "\t\t\t\t<autoSelect> %s </autoSelect>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<autoSelect> %s </autoSelect>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
 				if( isButton )
-					printf( "\t\t\t\t<highlight> %s </highlight>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<highlight> %s </highlight>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
 				if( !isButton )
-					printf( "\t\t\t\t<showLines> %s </showLines>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
-				printf( "\t\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<showLines> %s </showLines>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
+				printf( "\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
 				if( !isButton )
-					printf( "\t\t\t\t<wideMargins> %s </wideMargins>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<wideMargins> %s </wideMargins>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
 				if( isButton )
-					printf( "\t\t\t\t<sharedHighlight> %s </sharedHighlight>\n", (moreFlags & (1 << 4)) ? "<false />" : "<true />" );
+					printf( "\t\t\t<sharedHighlight> %s </sharedHighlight>\n", (moreFlags & (1 << 4)) ? "<false />" : "<true />" );
 				if( !isButton )
-					printf( "\t\t\t\t<multipleLines> %s </multipleLines>\n", (moreFlags & (1 << 4)) ? "<true />" : "<false />" );
+					printf( "\t\t\t<multipleLines> %s </multipleLines>\n", (moreFlags & (1 << 4)) ? "<true />" : "<false />" );
 				int8_t	family = moreFlags & 15;
 				if( isButton )
-					printf( "\t\t\t\t<family>%d</family>\n", family );
+					printf( "\t\t\t<family>%d</family>\n", family );
 				int16_t	titleWidth = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +16 ));
 				if( isButton )
-					printf( "\t\t\t\t<titleWidth>%d</titleWidth>\n", titleWidth );
+					printf( "\t\t\t<titleWidth>%d</titleWidth>\n", titleWidth );
 				else
-					printf( "\t\t\t\t<lastSelectedLine>%d</lastSelectedLine>\n", titleWidth );
+					printf( "\t\t\t<lastSelectedLine>%d</lastSelectedLine>\n", titleWidth );
 				int16_t	iconID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +18 ));
 				if( isButton )
-					printf( "\t\t\t\t<icon>%d</icon>\n", iconID );
+					printf( "\t\t\t<icon>%d</icon>\n", iconID );
 				else
-					printf( "\t\t\t\t<selectedLine>%d</selectedLine>\n", iconID );
+					printf( "\t\t\t<selectedLine>%d</selectedLine>\n", iconID );
 				int16_t	textAlign = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +20 ));
-				printf( "\t\t\t\t<textAlign>%d</textAlign>\n", textAlign );
+				printf( "\t\t\t<textAlign>%d</textAlign>\n", textAlign );
 				int16_t	textFontID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +22 ));
-				printf( "\t\t\t\t<textFontID>%d</textFontID>\n", textFontID );
+				printf( "\t\t\t<textFontID>%d</textFontID>\n", textFontID );
 				int16_t	textSize = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +24 ));
-				printf( "\t\t\t\t<textSize>%d</textSize>\n", textSize );
+				printf( "\t\t\t<textSize>%d</textSize>\n", textSize );
 				int16_t	textStyleFlags = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +26 ));
-				printf( "\t\t\t\t<styles>\n" );
+				printf( "\t\t\t<styles>\n" );
 				if( textStyleFlags & (1 << 15) )
-					printf( "\t\t\t\t\t<style>group</style>\n" );
+					printf( "\t\t\t\t<style>group</style>\n" );
 				if( textStyleFlags & (1 << 14) )
-					printf( "\t\t\t\t\t<style>extend</style>\n" );
+					printf( "\t\t\t\t<style>extend</style>\n" );
 				if( textStyleFlags & (1 << 13) )
-					printf( "\t\t\t\t\t<style>condense</style>\n" );
+					printf( "\t\t\t\t<style>condense</style>\n" );
 				if( textStyleFlags & (1 << 12) )
-					printf( "\t\t\t\t\t<style>shadow</style>\n" );
+					printf( "\t\t\t\t<style>shadow</style>\n" );
 				if( textStyleFlags & (1 << 11) )
-					printf( "\t\t\t\t\t<style>outline</style>\n" );
+					printf( "\t\t\t\t<style>outline</style>\n" );
 				if( textStyleFlags & (1 << 10) )
-					printf( "\t\t\t\t\t<style>underline</style>\n" );
+					printf( "\t\t\t\t<style>underline</style>\n" );
 				if( textStyleFlags & (1 << 9) )
-					printf( "\t\t\t\t\t<style>italic</style>\n" );
+					printf( "\t\t\t\t<style>italic</style>\n" );
 				if( textStyleFlags & (1 << 8) )
-					printf( "\t\t\t\t\t<style>bold</style>\n" );
+					printf( "\t\t\t\t<style>bold</style>\n" );
 				
-				printf( "\t\t\t\t</styles>\n" );
+				printf( "\t\t\t</styles>\n" );
 				int16_t	textHeight = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +28 ));
 				if( !isButton )
-					printf( "\t\t\t\t<textHeight>%d</textHeight>\n", textHeight );
+					printf( "\t\t\t<textHeight>%d</textHeight>\n", textHeight );
 				
 				int x = 0, startOffs = currOffsIntoData +30;
-				printf( "\t\t\t\t<name>" );
+				printf( "\t\t\t<name>" );
 				for( x = startOffs; blockData[x] != 0; x++ )
 				{
 					char currCh = blockData[x];
@@ -706,7 +701,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				printf( "</name>\n" );
 				
 				startOffs = x +2;
-				printf( "\t\t\t\t<script>" );
+				printf( "\t\t\t<script>" );
 				for( x = startOffs; blockData[x] != 0; x++ )
 				{
 					char currCh = blockData[x];
@@ -721,36 +716,25 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				}
 				printf( "</script>\n" );
 				
-				printf( "\t\t\t</part>\n" );
+				printf( "\t\t</part>\n" );
 				
 				currOffsIntoData += partLength;
 				currOffsIntoData += (currOffsIntoData % 2);	// Align on even byte.
 			}
-			printf( "\t\t</parts>\n" );
 
-			if( vBlockID == 29091 )
-				printf("");
-
-			printf( "\t\t<contents count=\"%d\">\n", numContents );
 			for( int n = 0; n < numContents; n++ )
 			{
 				int16_t		partID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
 				int16_t		partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +2 ));
 				
-				CBuf		partData( partLength );
-				partData.memcpy( 0, blockData, currOffsIntoData +4, partLength );
-				char		fname[256] = { 0 };
-				snprintf( fname, sizeof(fname), "part_contents_CARD_%d_%d.data", vBlockID, partID );
-				partData.tofile( fname );
-				
-				printf( "\t\t\t<content>\n" );
+				printf( "\t\t<content>\n" );
 				
 				CBuf		theText, theStyles;
 				if( partID < 0 )	// It's a card part's contents:
 				{
 					partID = -partID;
-					printf( "\t\t\t\t<layer>card</layer>\n", partID );
-					printf( "\t\t\t\t<id>%d</id>\n", partID );
+					printf( "\t\t\t<layer>card</layer>\n", partID );
+					printf( "\t\t\t<id>%d</id>\n", partID );
 					
 					uint16_t	stylesLength = BIG_ENDIAN_16(blockData.uint16at( currOffsIntoData +4 ));
 					if( stylesLength > 32767 )
@@ -767,8 +751,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				}
 				else	// It's a bg part's contents:
 				{
-					printf( "\t\t\t\t<layer>background</layer>\n" );
-					printf( "\t\t\t\t<id>%d</id>\n", partID );
+					printf( "\t\t\t<layer>background</layer>\n" );
+					printf( "\t\t\t<id>%d</id>\n", partID );
 					
 					uint16_t	stylesLength = BIG_ENDIAN_16(blockData.uint16at( currOffsIntoData +4 ));
 					if( stylesLength > 32767 )
@@ -784,7 +768,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					theText[theText.size()-1] = 0;
 				}
 				
-				printf( "\t\t\t\t<text>" );
+				printf( "\t\t\t<text>" );
 				size_t	numChars = theText.size();
 				for( int x = 0; x < numChars; x++ )
 				{
@@ -800,13 +784,12 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				}
 				printf( "</text>\n" );
 				if( theStyles.size() > 0 )
-					printf( "\t\t\t\t<style-runs>%s</style-runs>\n", theStyles.buf() );
+					printf( "\t\t\t<style-runs>%s</style-runs>\n", theStyles.buf() );
 				
 				currOffsIntoData += partLength +4 +(partLength % 2);	// Align on even byte.
 				
-				printf( "\t\t\t</content>\n" );
+				printf( "\t\t</content>\n" );
 			}
-			printf( "\t\t</contents>\n" );
 
 			int x = 0, startOffs = currOffsIntoData;
 			printf( "\t\t<name>" );
@@ -848,17 +831,16 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
 			int16_t	numFonts = BIG_ENDIAN_16(blockData.int16at( 6 ));
-			printf( "\t<fonts count=\"%d\">\n", numFonts );
 			size_t	currOffsIntoData = 8;
 			currOffsIntoData += 4;	// Reserved?
 			for( int n = 0; n < numFonts; n++ )
 			{
-				printf( "\t\t<font>\n" );
+				printf( "\t<font>\n" );
 				int16_t	fontID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
-				printf( "\t\t\t<id>%d</id>\n", fontID );
+				printf( "\t\t<id>%d</id>\n", fontID );
 				
 				int x = 0, startOffs = currOffsIntoData +2;
-				printf( "\t\t\t<name>" );
+				printf( "\t\t<name>" );
 				for( x = startOffs; blockData[x] != 0; x++ )
 				{
 					char currCh = blockData[x];
@@ -876,9 +858,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				currOffsIntoData = x +1;
 				currOffsIntoData += currOffsIntoData %2;	// Align on even byte.
 				
-				printf( "\t\t</font>\n" );
+				printf( "\t</font>\n" );
 			}
-			printf( "\t</fonts>\n" );
 		}
 		else
 		{
