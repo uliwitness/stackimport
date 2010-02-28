@@ -933,9 +933,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			fclose( theFile );
 
 			printf( "\t<picture>\n\t\t<id>%d</id>\n\t\t<type>icon</type>\n\t\t<name>", theID );
-			for( x = 1; x <= name[0]; x++ )
+			for( int n = 1; n <= name[0]; n++ )
 			{
-				char currCh = name[x];
+				char currCh = name[n];
 				if( currCh == '<' )
 					printf( "&lt;" );
 				else if( currCh == '>' )
@@ -945,7 +945,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				else
 					printf( "%s", UniCharFromMacRoman(currCh) );
 			}
-			printf( "</name>\n\t\t<bitmap>ICON_%d.pict</bitmap>n\t</picture>\n", theID );
+			printf( "</name>\n\t\t<bitmap>ICON_%d.pict</bitmap>\n\t</picture>\n", theID );
 		}
 
 		// Export all PICT images:
@@ -969,9 +969,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			fclose( theFile );
 
 			printf( "\t<picture>\n\t\t<id>%d</id>\n\t\t<type>picture</type>\n\t\t<name>", theID );
-			for( x = 1; x <= name[0]; x++ )
+			for( int n = 1; n <= name[0]; n++ )
 			{
-				char currCh = name[x];
+				char currCh = name[n];
 				if( currCh == '<' )
 					printf( "&lt;" );
 				else if( currCh == '>' )
@@ -981,7 +981,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				else
 					printf( "%s", UniCharFromMacRoman(currCh) );
 			}
-			printf( "</name>\n\t\t<bitmap>PICT_%d.pict</bitmap>n\t</picture>\n", theID );
+			printf( "</name>\n\t\t<bitmap>PICT_%d.pict</bitmap>\n\t</picture>\n", theID );
 		}
 
 		// Export all CURS cursors:
@@ -1008,9 +1008,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			fclose( theFile );
 			
 			printf( "\t<picture>\n\t\t<id>%d</id>\n\t\t<type>cursor</type>\n\t\t<name>", theID );
-			for( x = 1; x <= name[0]; x++ )
+			for( int n = 1; n <= name[0]; n++ )
 			{
-				char currCh = name[x];
+				char currCh = name[n];
 				if( currCh == '<' )
 					printf( "&lt;" );
 				else if( currCh == '>' )
