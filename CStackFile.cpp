@@ -912,124 +912,129 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 	{
 		resRefNum = FSOpenResFile( &fileRef, fsRdPerm );
 		if( resRefNum < 0 )
-			return 5;
-		
-		// Export all B/W icons:
-		SInt16		numIcons = Count1Resources( 'ICON' );
-		for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+			err = fnfErr;
+		else
 		{
-			Handle		currIcon = Get1IndResource( 'ICON', x );
-			ResID       theID = 0;
-			ResType		theType = 0L;
-			Str255		name;
-			GetResInfo( currIcon, &theID, &theType, name );
-			char		fname[256];
-			snprintf( fname, sizeof(fname), "ICON_%d.pbm", theID );
-			FILE*		theFile = fopen( fname, "w" );
-			if( !theFile )
-				return 6;
-			fputs( "P4\n32 32\n", theFile );
-			fwrite( *currIcon, 4 * 32, 1, theFile );
-			fclose( theFile );
-
-			printf( "\t<picture>\n\t\t<id>%d</id>\n\t\t<type>icon</type>\n\t\t<name>", theID );
-			for( int n = 1; n <= name[0]; n++ )
+			// Export all B/W icons:
+			SInt16		numIcons = Count1Resources( 'ICON' );
+			for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
 			{
-				char currCh = name[n];
-				if( currCh == '<' )
-					printf( "&lt;" );
-				else if( currCh == '>' )
-					printf( "&gt;" );
-				else if( currCh == '&' )
-					printf( "&amp;" );
-				else
-					printf( "%s", UniCharFromMacRoman(currCh) );
-			}
-			printf( "</name>\n\t\t<bitmap>ICON_%d.pict</bitmap>\n\t</picture>\n", theID );
-		}
+				Handle		currIcon = Get1IndResource( 'ICON', x );
+				ResID       theID = 0;
+				ResType		theType = 0L;
+				Str255		name;
+				GetResInfo( currIcon, &theID, &theType, name );
+				char		fname[256];
+				snprintf( fname, sizeof(fname), "ICON_%d.pbm", theID );
+				FILE*		theFile = fopen( fname, "w" );
+				if( !theFile )
+					return false;
+				fputs( "P4\n32 32\n", theFile );
+				fwrite( *currIcon, 4 * 32, 1, theFile );
+				fclose( theFile );
 
-		// Export all PICT images:
-		numIcons = Count1Resources( 'PICT' );
-		for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
-		{
-			Handle		currPicture = Get1IndResource( 'PICT', x );
-			ResID       theID = 0;
-			ResType		theType = 0L;
-			Str255		name;
-			GetResInfo( currPicture, &theID, &theType, name );
-			char		fname[256];
-			snprintf( fname, sizeof(fname), "PICT_%d.pict", theID );
-			FILE*		theFile = fopen( fname, "w" );
-			if( !theFile )
-				return 6;
+				printf( "\t<picture>\n\t\t<id>%d</id>\n\t\t<type>icon</type>\n\t\t<name>", theID );
+				for( int n = 1; n <= name[0]; n++ )
+				{
+					char currCh = name[n];
+					if( currCh == '<' )
+						printf( "&lt;" );
+					else if( currCh == '>' )
+						printf( "&gt;" );
+					else if( currCh == '&' )
+						printf( "&amp;" );
+					else
+						printf( "%s", UniCharFromMacRoman(currCh) );
+				}
+				printf( "</name>\n\t\t<bitmap>ICON_%d.pict</bitmap>\n\t</picture>\n", theID );
+			}
+
+			// Export all PICT images:
+			numIcons = Count1Resources( 'PICT' );
+			for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+			{
+				Handle		currPicture = Get1IndResource( 'PICT', x );
+				ResID       theID = 0;
+				ResType		theType = 0L;
+				Str255		name;
+				GetResInfo( currPicture, &theID, &theType, name );
+				char		fname[256];
+				snprintf( fname, sizeof(fname), "PICT_%d.pict", theID );
+				FILE*		theFile = fopen( fname, "w" );
+				if( !theFile )
+					return false;
+				
+				for( int n = 0; n < 8; n++ )
+					fputs( "BILL_ATKINSON_ERIC_CARLSON_KEVIN_CALHOUN_DANIEL_THOME_HYPERCARD_", theFile );	// 64 bytes repeated 8 times is a neat 512 byte header.
+				fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
+				fclose( theFile );
+
+				printf( "\t<picture>\n\t\t<id>%d</id>\n\t\t<type>picture</type>\n\t\t<name>", theID );
+				for( int n = 1; n <= name[0]; n++ )
+				{
+					char currCh = name[n];
+					if( currCh == '<' )
+						printf( "&lt;" );
+					else if( currCh == '>' )
+						printf( "&gt;" );
+					else if( currCh == '&' )
+						printf( "&amp;" );
+					else
+						printf( "%s", UniCharFromMacRoman(currCh) );
+				}
+				printf( "</name>\n\t\t<bitmap>PICT_%d.pict</bitmap>\n\t</picture>\n", theID );
+			}
+
+			// Export all CURS cursors:
+			numIcons = Count1Resources( 'CURS' );
+			for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+			{
+				Handle		currIcon = Get1IndResource( 'CURS', x );
+				ResID       theID = 0;
+				ResType		theType = 0L;
+				Str255		name;
+				GetResInfo( currIcon, &theID, &theType, name );
+				char		fname[256];
+				snprintf( fname, sizeof(fname), "CURS_%d.pbm", theID, name );
+				FILE*		theFile = fopen( fname, "w" );
+				if( !theFile )
+					return false;
+				fputs( "P4\n16 16\n", theFile );
+				fwrite( *currIcon, 2 * 16, 1, theFile );
+				fputs( "\nP4\n16 16\n", theFile );
+				fwrite( (*currIcon) +(2 * 16), 2 * 16, 1, theFile );
+				int16_t	vertPos = * (int16_t*) ((*currIcon) +(2 * 16) +(2 * 16));
+				int16_t	horzPos = * (int16_t*) ((*currIcon) +(2 * 16) +(2 * 16) +2);
+				printf("");
+				fclose( theFile );
+				
+				printf( "\t<picture>\n\t\t<id>%d</id>\n\t\t<type>cursor</type>\n\t\t<name>", theID );
+				for( int n = 1; n <= name[0]; n++ )
+				{
+					char currCh = name[n];
+					if( currCh == '<' )
+						printf( "&lt;" );
+					else if( currCh == '>' )
+						printf( "&gt;" );
+					else if( currCh == '&' )
+						printf( "&amp;" );
+					else
+						printf( "%s", UniCharFromMacRoman(currCh) );
+				}
+				printf( "</name>\n\t\t<bitmap>CURS_%d.pbm</bitmap>\n\t\t<hotspot>\n\t\t\t<left>%d</left>\n\t\t\t<top>%d</top>\n\t\t</hotspot>\n\t</picture>\n", theID, horzPos, vertPos );
+			}
 			
-			for( int n = 0; n < 8; n++ )
-				fputs( "BILL_ATKINSON_ERIC_CARLSON_KEVIN_CALHOUN_DANIEL_THOME_HYPERCARD_", theFile );	// 64 bytes repeated 8 times is a neat 512 byte header.
-			fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
-			fclose( theFile );
-
-			printf( "\t<picture>\n\t\t<id>%d</id>\n\t\t<type>picture</type>\n\t\t<name>", theID );
-			for( int n = 1; n <= name[0]; n++ )
-			{
-				char currCh = name[n];
-				if( currCh == '<' )
-					printf( "&lt;" );
-				else if( currCh == '>' )
-					printf( "&gt;" );
-				else if( currCh == '&' )
-					printf( "&amp;" );
-				else
-					printf( "%s", UniCharFromMacRoman(currCh) );
-			}
-			printf( "</name>\n\t\t<bitmap>PICT_%d.pict</bitmap>\n\t</picture>\n", theID );
+			CloseResFile( resRefNum );
 		}
-
-		// Export all CURS cursors:
-		numIcons = Count1Resources( 'CURS' );
-		for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
-		{
-			Handle		currIcon = Get1IndResource( 'CURS', x );
-			ResID       theID = 0;
-			ResType		theType = 0L;
-			Str255		name;
-			GetResInfo( currIcon, &theID, &theType, name );
-			char		fname[256];
-			snprintf( fname, sizeof(fname), "CURS_%d.pbm", theID, name );
-			FILE*		theFile = fopen( fname, "w" );
-			if( !theFile )
-				return 6;
-			fputs( "P4\n16 16\n", theFile );
-			fwrite( *currIcon, 2 * 16, 1, theFile );
-			fputs( "\nP4\n16 16\n", theFile );
-			fwrite( (*currIcon) +(2 * 16), 2 * 16, 1, theFile );
-			int16_t	vertPos = * (int16_t*) ((*currIcon) +(2 * 16) +(2 * 16));
-			int16_t	horzPos = * (int16_t*) ((*currIcon) +(2 * 16) +(2 * 16) +2);
-			printf("");
-			fclose( theFile );
-			
-			printf( "\t<picture>\n\t\t<id>%d</id>\n\t\t<type>cursor</type>\n\t\t<name>", theID );
-			for( int n = 1; n <= name[0]; n++ )
-			{
-				char currCh = name[n];
-				if( currCh == '<' )
-					printf( "&lt;" );
-				else if( currCh == '>' )
-					printf( "&gt;" );
-				else if( currCh == '&' )
-					printf( "&amp;" );
-				else
-					printf( "%s", UniCharFromMacRoman(currCh) );
-			}
-			printf( "</name>\n\t\t<bitmap>CURS_%d.pbm</bitmap>\n\t\t<hotspot>\n\t\t\t<left>%d</left>\n\t\t\t<top>%d</top>\n\t\t</hotspot>\n\t</picture>\n", theID, horzPos, vertPos );
-		}
-		
-		CloseResFile( resRefNum );
 	}
-	else if( err != fnfErr )
-		return 7;
 	#endif // MAC_CODE
 	
 	printf( "</stackfile>\n" );
+	
+	#if MAC_CODE
+	if( err != fnfErr && err != noErr )
+		return false;
+	#endif // MAC_CODE
 	
 	return true;
 }
