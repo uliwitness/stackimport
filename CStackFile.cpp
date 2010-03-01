@@ -946,7 +946,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					else
 						printf( "%s", UniCharFromMacRoman(currCh) );
 				}
-				printf( "</name>\n\t\t<bitmap>ICON_%d.pict</bitmap>\n\t</picture>\n", theID );
+				printf( "</name>\n\t\t<bitmap>ICON_%d.pbm</bitmap>\n\t</picture>\n", theID );
 			}
 
 			// Export all PICT images:
