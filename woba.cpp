@@ -566,16 +566,19 @@ void woba_decode(picture & p, char * woba)
 			bx = maskBoundRectLeft / 8;
 			x = 0;
 			rowwidth = (maskBoundRectRight -maskBoundRectLeft) / 8;
-			buffer1.resize(rowwidth);
-			for( k = bx; x < rowwidth; k++, x++ )
+			if( rowwidth > 0 )
 			{
-				buffer1[k] = 0xFF;
+				buffer1.resize(rowwidth);
+				for( k = bx; x < rowwidth; k++, x++ )
+				{
+					buffer1[x] = 0xFF;	// was k as index.
+				}
+				for( k = maskBoundRectTop; k < maskBoundRectBottom; k++ )
+				{
+					p.maskmemcopyin( buffer1.buf(), 0, k, rowwidth );
+				}
+				buffer1.resize(0);
 			}
-			for( k = maskBoundRectTop; k < maskBoundRectBottom; k++ )
-			{
-				p.maskmemcopyin( buffer1.buf(), 0, k, rowwidth );
-			}
-			buffer1.resize(0);
 		}
 		
 		/* decode bitmap */
