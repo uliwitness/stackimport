@@ -489,8 +489,6 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					theText[theText.size()-1] = 0;
 				}
 				
-				printf( "\"%s\"\n", theText.buf() );
-				
 				fprintf( xmlFile, "\t\t\t<text>" );
 				size_t	numChars = theText.size();
 				for( int x = 0; x < numChars; x++ )
@@ -812,12 +810,11 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					else
 						stylesLength = 0;
 					theText.resize( partLength -stylesLength +1 );
-					theText.memcpy( 0, blockData, currOffsIntoData +4 +stylesLength, partLength -stylesLength );
+					theText.memcpy( 0, blockData, currOffsIntoData +4 +stylesLength,
+										partLength -stylesLength );
 					theText[theText.size()-1] = 0;
 				}
 				
-				printf( "\"%s\"\n", theText.buf() );
-
 				fprintf( xmlFile, "\t\t\t<text>" );
 				size_t	numChars = theText.size();
 				for( int x = 0; x < numChars; x++ )
@@ -940,14 +937,18 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				Str255		name;
 				GetResInfo( currIcon, &theID, &theType, name );
 				char		fname[256];
+				
+				picture		theIcon( 32, 32, 1, false );
+				theIcon.memcopyin( *currIcon, 0, 4 * 32 );
+				
+				theIcon.buildmaskfromsurroundings();
+				
+//				snprintf( fname, sizeof(fname), "ICON_%d_mask.pbm", theID );
+//				theIcon.writemasktopbm( fname );
+				
 				snprintf( fname, sizeof(fname), "ICON_%d.pbm", theID );
-				FILE*		theFile = fopen( fname, "w" );
-				if( !theFile )
-					return false;
-				fputs( "P4\n32 32\n", theFile );
-				fwrite( *currIcon, 4 * 32, 1, theFile );
-				fclose( theFile );
-
+				theIcon.writebitmapandmasktopbm( fname );
+				
 				fprintf( xmlFile, "\t<picture>\n\t\t<id>%d</id>\n\t\t<type>icon</type>\n\t\t<name>", theID );
 				for( int n = 1; n <= name[0]; n++ )
 				{
