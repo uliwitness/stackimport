@@ -46,9 +46,9 @@ class picture
 	public:
 	
 	picture(void);
-	picture(int, int, int, bool);
+	picture(int w, int h, int d, bool greymask);
 	~picture(void);
-	void reinit(int, int, int, bool);
+	void reinit(int w, int h, int d, bool greymask);
 	
 	int gwidth(void);
 	int gheight(void);
@@ -81,6 +81,9 @@ class picture
 	void memfill(char, int, int, int);
 	void maskmemfill(char, int, int);
 	void maskmemfill(char, int, int, int);
+	
+	void buildmaskfromsurroundings();
+	void scanstartingatpixel( int x, int y );
 	
 	void copyrow(int, int);
 	void maskcopyrow(int, int);

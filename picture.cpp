@@ -141,25 +141,25 @@ int picture::coordbyteoffset(int x, int y)
 	return (rowlength * y) + ((x * depth) / 8);
 }
 
-unsigned int picture::coordbitmask(int x, int y)
+unsigned int picture::coordbitmask( int x, int y )
 {
-	int i;
-	unsigned int m = __pow21(depth);
-	if (depth < 8) {
-		switch (depth) {
-		case 1:
-			i=7-(x%8);
-			break;
-		case 2:
-			i=2*(3-(x%4));
-			break;
-		case 4:
-			i=4*(1-(x%2));
-			break;
+	int				i;
+	unsigned int	m = __pow21(depth);
+	if( depth < 8 )
+	{
+		switch (depth)
+		{
+			case 1:
+				i= 7-(x%8);
+				break;
+			case 2:
+				i=2*(3-(x%4));
+				break;
+			case 4:
+				i=4*(1-(x%2));
+				break;
 		}
-		for ( ; i>=0 ; i--) {
-			m += m;
-		}
+		m <<= i;
 	}
 	return m;
 }
@@ -171,13 +171,9 @@ int picture::maskcoordbyteoffset(int x, int y)
 
 unsigned int picture::maskcoordbitmask(int x, int y)
 {
-	int i;
-	unsigned int m = greyscalemask?0xFF:1;
-	if (!greyscalemask) {
-		for (i=7-(x%8) ; i>=0 ; i--) {
-			m += m;
-		}
-	}
+	unsigned int m = greyscalemask ? 0xFF : 1;
+	if( !greyscalemask )
+		m <<= 7 -(x % 8);
 	return m;
 }
 
@@ -270,6 +266,48 @@ void picture::maskmemfill(char ch, int x, int y, int count)
 }
 
 
+void picture::buildmaskfromsurroundings()
+{
+	maskmemfill( 0xFF, 0, rowlength * height );		// All black.
+	
+	int x = 0, y = 0;
+	for( x = 0; x < width; x++ )
+		scanstartingatpixel( x, y );
+	
+	y = height -1;
+	for( x = 0; x < width; x++ )
+		scanstartingatpixel( x, y );
+	
+	x = 0;
+	for( y = 0; y < height; y++ )
+		scanstartingatpixel( x, y );
+	
+	x = width -1;
+	for( y = 0; y < height; y++ )
+		scanstartingatpixel( x, y );
+}
+
+
+void picture::scanstartingatpixel( int x, int y )
+{
+	// We've not fallen off the edge, have we?
+	if( x < 0 || y < 0 || x > width || y > height )
+		return;
+	
+	// This is a white pixel and the mask for it is still opaque?
+	//	i.e. we haven't processed it yet?
+	if( 0 == getpixel( x, y ) && 1 == maskgetpixel( x, y ) )
+	{
+		masksetpixel( x, y, 0x00 );	// Punch hole in the mask.
+		
+		// Scan surrounding pixels:
+		scanstartingatpixel( x -1, y );
+		scanstartingatpixel( x +1, y );
+		scanstartingatpixel( x, y -1 );
+		scanstartingatpixel( x, y +1 );
+	}
+}
+
 
 void picture::copyrow(int dest, int src)
 {
@@ -360,7 +398,7 @@ unsigned int picture::maskgetpixel(int x, int y)
 		return (unsigned char)mask[i];
 	} else {
 		i = mask[i] & maskcoordbitmask(x,y);
-		return i?1:0;
+		return i ? 1 : 0;
 	}
 }
 
@@ -371,7 +409,8 @@ void picture::masksetpixel(int x, int y, int c)
 	if (greyscalemask) {
 		mask[i] = (d & 0xFF);
 	} else {
-		mask[i] = ( (mask[i] & (~maskcoordbitmask(x,y))) | (d & maskcoordbitmask(x,y)) );
+		int		bitpos = maskcoordbitmask(x,y);
+		mask[i] = ( (mask[i] & (~bitpos)) | (d & bitpos) );
 	}
 }
 
