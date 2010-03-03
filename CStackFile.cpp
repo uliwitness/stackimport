@@ -20,6 +20,7 @@
 #include "EndianStuff.h"
 #if MAC_CODE
 #include <Carbon/Carbon.h>
+#include <QuickTime/QuickTime.h>
 #endif
 
 
@@ -1011,7 +1012,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				Str255		name;
 				GetResInfo( currIcon, &theID, &theType, name );
 				char		fname[256];
-				snprintf( fname, sizeof(fname), "CURS_%d.pbm", theID, name );
+				snprintf( fname, sizeof(fname), "CURS_%d.pbm", theID );
 				FILE*		theFile = fopen( fname, "w" );
 				if( !theFile )
 					return false;
@@ -1039,6 +1040,62 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				}
 				fprintf( xmlFile, "</name>\n\t\t<bitmap>CURS_%d.pbm</bitmap>\n\t\t<hotspot>\n\t\t\t<left>%d</left>\n\t\t\t<top>%d</top>\n\t\t</hotspot>\n\t</picture>\n", theID, horzPos, vertPos );
 			}
+
+			// Export all 'snd ' sound resources:
+			EnterMovies();
+			numIcons = Count1Resources( 'snd ' );
+			for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+			{
+				Handle		currIcon = Get1IndResource( 'snd ', x );
+				ResID       theID = 0;
+				ResType		theType = 0L;
+				Str255		name;
+				GetResInfo( currIcon, &theID, &theType, name );
+				char		fname[256];
+				snprintf( fname, sizeof(fname), "snd_%d.aiff", theID );
+ 			   	Handle		myHandle = NewHandleClear(0);
+				Handle		myDataRef = NewHandleClear( sizeof(Handle) );
+				BlockMove( &myHandle, *myDataRef, sizeof(Handle) );
+				
+				Movie	theMovie = NewMovie( newMovieActive );
+				err = GetMoviesError();
+				if( !theMovie || err != noErr )
+					return false;
+				
+				err = SetMovieDefaultDataRef( theMovie, myDataRef, HandleDataHandlerSubType);
+				if( !theMovie || err != noErr )
+					return false;
+				
+				err = PasteHandleIntoMovie( currIcon, 'snd ', theMovie, 0L, NULL );
+				if( err != noErr )
+					return false;
+				
+				FSRef		packageRef;
+				FSPathMakeRef( (UInt8*) packagePath.c_str(), &packageRef, NULL );
+				FSSpec		theSpec = { 0 };
+				FSGetCatalogInfo( &packageRef, kFSCatInfoNone, NULL, NULL, &theSpec, NULL );
+				theSpec.name[0] = strlen(fname);
+				strcpy( ((char*)theSpec.name) +1, fname );
+				ConvertMovieToFile( theMovie, NULL, &theSpec, kQTFileTypeAIFF, 'TVOD', smSystemScript, NULL, createMovieFileDeleteCurFile | movieToFileOnlyExport, NULL );
+				
+				DisposeMovie( theMovie );
+				
+				fprintf( xmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<name>", theID );
+				for( int n = 1; n <= name[0]; n++ )
+				{
+					char currCh = name[n];
+					if( currCh == '<' )
+						fprintf( xmlFile, "&lt;" );
+					else if( currCh == '>' )
+						fprintf( xmlFile, "&gt;" );
+					else if( currCh == '&' )
+						fprintf( xmlFile, "&amp;" );
+					else
+						fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
+				}
+				fprintf( xmlFile, "</name>\n\t\t<file>snd_%d.aiff</file>\n\t\t<type>sound</type>\n\t</media>\n", theID );
+			}
+			ExitMovies();
 			
 			CloseResFile( resRefNum );
 		}
