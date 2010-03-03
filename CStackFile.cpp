@@ -950,7 +950,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				snprintf( fname, sizeof(fname), "ICON_%d.pbm", theID );
 				theIcon.writebitmapandmasktopbm( fname );
 				
-				fprintf( xmlFile, "\t<picture>\n\t\t<id>%d</id>\n\t\t<type>icon</type>\n\t\t<name>", theID );
+				fprintf( xmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<type>icon</type>\n\t\t<name>", theID );
 				for( int n = 1; n <= name[0]; n++ )
 				{
 					char currCh = name[n];
@@ -963,7 +963,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					else
 						fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
 				}
-				fprintf( xmlFile, "</name>\n\t\t<bitmap>ICON_%d.pbm</bitmap>\n\t</picture>\n", theID );
+				fprintf( xmlFile, "</name>\n\t\t<file>ICON_%d.pbm</file>\n\t</media>\n", theID );
 			}
 
 			// Export all PICT images:
@@ -986,7 +986,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
 				fclose( theFile );
 
-				fprintf( xmlFile, "\t<picture>\n\t\t<id>%d</id>\n\t\t<type>picture</type>\n\t\t<name>", theID );
+				fprintf( xmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<type>picture</type>\n\t\t<name>", theID );
 				for( int n = 1; n <= name[0]; n++ )
 				{
 					char currCh = name[n];
@@ -999,7 +999,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					else
 						fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
 				}
-				fprintf( xmlFile, "</name>\n\t\t<bitmap>PICT_%d.pict</bitmap>\n\t</picture>\n", theID );
+				fprintf( xmlFile, "</name>\n\t\t<file>PICT_%d.pict</file>\n\t</media>\n", theID );
 			}
 
 			// Export all CURS cursors:
@@ -1025,7 +1025,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				printf("");
 				fclose( theFile );
 				
-				fprintf( xmlFile, "\t<picture>\n\t\t<id>%d</id>\n\t\t<type>cursor</type>\n\t\t<name>", theID );
+				fprintf( xmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<type>cursor</type>\n\t\t<name>", theID );
 				for( int n = 1; n <= name[0]; n++ )
 				{
 					char currCh = name[n];
@@ -1038,7 +1038,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					else
 						fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
 				}
-				fprintf( xmlFile, "</name>\n\t\t<bitmap>CURS_%d.pbm</bitmap>\n\t\t<hotspot>\n\t\t\t<left>%d</left>\n\t\t\t<top>%d</top>\n\t\t</hotspot>\n\t</picture>\n", theID, horzPos, vertPos );
+				fprintf( xmlFile, "</name>\n\t\t<file>CURS_%d.pbm</file>\n\t\t<hotspot>\n\t\t\t<left>%d</left>\n\t\t\t<top>%d</top>\n\t\t</hotspot>\n\t</media>\n", theID, horzPos, vertPos );
 			}
 
 			// Export all 'snd ' sound resources:
