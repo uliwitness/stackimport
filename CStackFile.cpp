@@ -114,8 +114,11 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 	if( !theFile.is_open() )
 		return false;
 	
-	std::string		packagePath( fpath );
-	packagePath.append( ".stak" );
+	std::string				packagePath( fpath );
+	std::string::size_type	pos = packagePath.rfind( std::string(".stak") );
+	if( pos != std::string::npos )
+		packagePath.resize( pos, 'X' );
+	packagePath.append( ".xstk" );
 	mkdir( packagePath.c_str(), 0777 );
 	chdir( packagePath.c_str() );
 	
@@ -343,16 +346,16 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					fprintf( xmlFile, "\t\t\t<highlight> %s </highlight>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
 				if( !isButton )
 					fprintf( xmlFile, "\t\t\t<showLines> %s </showLines>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
-				fprintf( xmlFile, "\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
+				int8_t	family = moreFlags & 15;
+				if( isButton )
+					fprintf( xmlFile, "\t\t\t<family>%d</family>\n", family );
+				fprintf( xmlFile, "\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5) || family != 0) ? "<true />" : "<false />" );
 				if( !isButton )
 					fprintf( xmlFile, "\t\t\t<wideMargins> %s </wideMargins>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
 				if( isButton )
 					fprintf( xmlFile, "\t\t\t<sharedHighlight> %s </sharedHighlight>\n", (moreFlags & (1 << 4)) ? "<false />" : "<true />" );
 				if( !isButton )
 					fprintf( xmlFile, "\t\t\t<multipleLines> %s </multipleLines>\n", (moreFlags & (1 << 4)) ? "<true />" : "<false />" );
-				int8_t	family = moreFlags & 15;
-				if( isButton )
-					fprintf( xmlFile, "\t\t\t<family>%d</family>\n", family );
 				int16_t	titleWidth = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +16 ));
 				if( isButton )
 					fprintf( xmlFile, "\t\t\t<titleWidth>%d</titleWidth>\n", titleWidth );
@@ -402,6 +405,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					fprintf( xmlFile, "\t\t\t<textStyle>italic</textStyle>\n" );
 				if( textStyleFlags & (1 << 8) )
 					fprintf( xmlFile, "\t\t\t<textStyle>bold</textStyle>\n" );
+				if( textStyleFlags == 0 )
+					fprintf( xmlFile, "\t\t\t<textStyle>plain</textStyle>\n" );
 				
 				int16_t	textHeight = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +28 ));
 				if( !isButton )
@@ -462,8 +467,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					if( stylesLength > 32767 )
 					{
 						stylesLength = stylesLength -32768;
-						theStyles.resize( stylesLength );
-						theStyles.memcpy( 0, blockData, currOffsIntoData +5, stylesLength );
+						theStyles.resize( stylesLength -2 );
+						theStyles.memcpy( 0, blockData, currOffsIntoData +5, stylesLength -2 );
 					}
 					else
 						stylesLength = 0;
@@ -480,8 +485,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					if( stylesLength > 32767 )
 					{
 						stylesLength = stylesLength -32768;
-						theStyles.resize( stylesLength );
-						theStyles.memcpy( 0, blockData, currOffsIntoData +6, stylesLength );
+						theStyles.resize( stylesLength -2 );
+						theStyles.memcpy( 0, blockData, currOffsIntoData +6, stylesLength -2 );
 					}
 					else
 						stylesLength = 0;
@@ -506,7 +511,13 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				}
 				fprintf( xmlFile, "</text>\n" );
 				if( theStyles.size() > 0 )
+				{
 					fprintf( xmlFile, "\t\t\t\t<style-runs>%s</style-runs>\n", theStyles.buf() );
+					
+					char sfn[256] = { 0 };
+					snprintf( sfn, sizeof(sfn), "style_runs_%d.styl", partID );
+					theStyles.tofile( sfn );
+				}
 				
 				currOffsIntoData += partLength +4 +(partLength % 2);	// Align on even byte.
 				
@@ -667,7 +678,6 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					fprintf( xmlFile, "\t\t\t<highlight> %s </highlight>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
 				if( !isButton )
 					fprintf( xmlFile, "\t\t\t<showLines> %s </showLines>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
-				fprintf( xmlFile, "\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
 				if( !isButton )
 					fprintf( xmlFile, "\t\t\t<wideMargins> %s </wideMargins>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
 				if( isButton )
@@ -677,6 +687,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				int8_t	family = moreFlags & 15;
 				if( isButton )
 					fprintf( xmlFile, "\t\t\t<family>%d</family>\n", family );
+				fprintf( xmlFile, "\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5) || family != 0) ? "<true />" : "<false />" );
 				int16_t	titleWidth = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +16 ));
 				if( isButton )
 					fprintf( xmlFile, "\t\t\t<titleWidth>%d</titleWidth>\n", titleWidth );
@@ -787,8 +798,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					if( stylesLength > 32767 )
 					{
 						stylesLength = stylesLength -32768;
-						theStyles.resize( stylesLength );
-						theStyles.memcpy( 0, blockData, currOffsIntoData +6, stylesLength );
+						theStyles.resize( stylesLength -2 );
+						theStyles.memcpy( 0, blockData, currOffsIntoData +6, stylesLength -2 );
 					}
 					else
 						stylesLength = 0;
@@ -805,8 +816,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					if( stylesLength > 32767 )
 					{
 						stylesLength = stylesLength -32768;
-						theStyles.resize( stylesLength );
-						theStyles.memcpy( 0, blockData, currOffsIntoData +6, stylesLength );
+						theStyles.resize( stylesLength -2 );
+						theStyles.memcpy( 0, blockData, currOffsIntoData +6, stylesLength -2 );
 					}
 					else
 						stylesLength = 0;
@@ -832,7 +843,24 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				}
 				fprintf( xmlFile, "</text>\n" );
 				if( theStyles.size() > 0 )
-					fprintf( xmlFile, "\t\t\t<style-runs>%s</style-runs>\n", theStyles.buf() );
+				{
+					for( size_t x = 0; x < theStyles.size(); )
+					{
+						int16_t	startOffset = BIG_ENDIAN_16(theStyles.int16at( x ));
+						x += sizeof(int16_t);
+						int16_t	styleID = BIG_ENDIAN_16(theStyles.int16at( x ));
+						x += sizeof(int16_t);
+						
+						fprintf( xmlFile, "\t\t\t<stylerun>\n" );
+						fprintf( xmlFile, "\t\t\t\t<offset>%u</offset>\n", startOffset );
+						fprintf( xmlFile, "\t\t\t\t<id>%u</id>\n", styleID );
+						fprintf( xmlFile, "\t\t\t</stylerun>\n" );
+					}
+					
+					char sfn[256] = { 0 };
+					snprintf( sfn, sizeof(sfn), "style_runs_%d_%d.styl", vBlockID, partID );
+					theStyles.tofile( sfn );
+				}
 				
 				currOffsIntoData += partLength +4 +(partLength % 2);	// Align on even byte.
 				
@@ -907,6 +935,63 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				currOffsIntoData += currOffsIntoData %2;	// Align on even byte.
 				
 				fprintf( xmlFile, "\t</font>\n" );
+			}
+		}
+		else if( strcmp(vBlockType,"STBL") == 0 )
+		{
+			fprintf( xmlFile, "\t<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
+			CBuf		blockData( vBlockSize -12 );
+			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
+			
+			char sfn[256] = { 0 };
+			snprintf( sfn, sizeof(sfn), "STBL_%d.data", vBlockID );
+			blockData.tofile( sfn );
+			
+			size_t		currOffs = 4;
+			int32_t		numStyles = BIG_ENDIAN_32(blockData.int32at( currOffs ));
+			currOffs += 4;
+			
+			for( int s = 0; s < numStyles; s++ )
+			{
+				currOffs += 16;
+				
+				fprintf( xmlFile, "\t<styleentry>\n" );
+				int16_t	fontID = BIG_ENDIAN_16(blockData.int16at( currOffs ));
+				if( fontID != -1 )
+					fprintf( xmlFile, "\t\t<font>%d</font>\n", fontID );
+				currOffs += 2;
+				
+				int16_t	textStyleFlags = BIG_ENDIAN_16(blockData.int16at( currOffs ));
+				currOffs += 2;
+				
+				if( textStyleFlags == 0 )
+					fprintf( xmlFile, "\t\t<textStyle>plain</textStyle>\n" );
+				else if( textStyleFlags != -1 )	// -1 means use field style.
+				{
+					if( textStyleFlags & (1 << 15) )
+						fprintf( xmlFile, "\t\t<textStyle>group</textStyle>\n" );
+					if( textStyleFlags & (1 << 14) )
+						fprintf( xmlFile, "\t\t<textStyle>extend</textStyle>\n" );
+					if( textStyleFlags & (1 << 13) )
+						fprintf( xmlFile, "\t\t<textStyle>condense</textStyle>\n" );
+					if( textStyleFlags & (1 << 12) )
+						fprintf( xmlFile, "\t\t<textStyle>shadow</textStyle>\n" );
+					if( textStyleFlags & (1 << 11) )
+						fprintf( xmlFile, "\t\t<textStyle>outline</textStyle>\n" );
+					if( textStyleFlags & (1 << 10) )
+						fprintf( xmlFile, "\t\t<textStyle>underline</textStyle>\n" );
+					if( textStyleFlags & (1 << 9) )
+						fprintf( xmlFile, "\t\t<textStyle>italic</textStyle>\n" );
+					if( textStyleFlags & (1 << 8) )
+						fprintf( xmlFile, "\t\t<textStyle>bold</textStyle>\n" );
+				}
+				int16_t	fontSize = BIG_ENDIAN_16(blockData.int16at( currOffs ));
+				if( fontSize != -1 )
+					fprintf( xmlFile, "\t\t<size>%d</size>\n", fontSize );
+				currOffs += 2;
+				currOffs += 2;	// 2 more padding?
+				
+				fprintf( xmlFile, "\t</styleentry>\n" );
 			}
 		}
 		else
