@@ -112,7 +112,10 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 {
 	std::ifstream		theFile( fpath.c_str() );
 	if( !theFile.is_open() )
+	{
+		fprintf( stderr, "Error: Couldn't open file '%s'\n", fpath.c_str() );
 		return false;
+	}
 	
 	std::string				packagePath( fpath );
 	std::string::size_type	pos = packagePath.rfind( std::string(".stak") );
@@ -125,7 +128,10 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 	packagePath.append( "/toc.xml" );
 	FILE*		xmlFile = fopen( packagePath.c_str(), "w" );
 	if( !xmlFile )
-		xmlFile = stdout;
+	{
+		fprintf( stderr, "Error: Couldn't create file TOC at '%s'\n", packagePath.c_str() );
+		return false;
+	}
 	
 	fprintf( xmlFile, "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n<!DOCTYPE stackfile PUBLIC \"-//Apple, Inc.//DTD stackfile V 2.0//EN\" \"\" >\n<stackfile>\n" );
 	
@@ -149,6 +155,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			break;
 		else if( strcmp(vBlockType,"BMAP") == 0 )	// Image block?
 		{
+			fprintf( stdout, "Status: Processing '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
 			fprintf( xmlFile, "\t<!-- Processed '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
 			picture		thePicture;
 			char*		pictureData = new char[vBlockSize -12];
@@ -162,6 +169,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		}
 		else if( strcmp(vBlockType,"STAK") == 0 )
 		{
+			fprintf( stdout, "Status: Processing '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
 			fprintf( xmlFile, "\t<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
 			fprintf( xmlFile, "\t<stack>\n" );
 			CBuf		blockData( vBlockSize -12 );
@@ -230,6 +238,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		}
 		else if( strcmp(vBlockType,"BKGD") == 0 )
 		{
+			fprintf( stdout, "Status: Processing '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
 			fprintf( xmlFile, "\t<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
 			fprintf( xmlFile, "\t<background>\n" );
 			fprintf( xmlFile, "\t\t<id>%d</id>\n", vBlockID );
@@ -510,13 +519,25 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 						fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
 				}
 				fprintf( xmlFile, "</text>\n" );
+				
 				if( theStyles.size() > 0 )
 				{
-					fprintf( xmlFile, "\t\t\t\t<style-runs>%s</style-runs>\n", theStyles.buf() );
+					for( size_t x = 0; x < theStyles.size(); )
+					{
+						int16_t	startOffset = BIG_ENDIAN_16(theStyles.int16at( x ));
+						x += sizeof(int16_t);
+						int16_t	styleID = BIG_ENDIAN_16(theStyles.int16at( x ));
+						x += sizeof(int16_t);
+						
+						fprintf( xmlFile, "\t\t\t<stylerun>\n" );
+						fprintf( xmlFile, "\t\t\t\t<offset>%u</offset>\n", startOffset );
+						fprintf( xmlFile, "\t\t\t\t<id>%u</id>\n", styleID );
+						fprintf( xmlFile, "\t\t\t</stylerun>\n" );
+					}
 					
-					char sfn[256] = { 0 };
-					snprintf( sfn, sizeof(sfn), "style_runs_%d.styl", partID );
-					theStyles.tofile( sfn );
+//					char sfn[256] = { 0 };
+//					snprintf( sfn, sizeof(sfn), "style_runs_%d_%d.styl", vBlockID, partID );
+//					theStyles.tofile( sfn );
 				}
 				
 				currOffsIntoData += partLength +4 +(partLength % 2);	// Align on even byte.
@@ -560,6 +581,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		}
 		else if( strcmp(vBlockType,"CARD") == 0 )
 		{
+			fprintf( stdout, "Status: Processing '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
 			fprintf( xmlFile, "\t<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
 			fprintf( xmlFile, "\t<card>\n" );
 			fprintf( xmlFile, "\t\t<id>%d</id>\n", vBlockID );
@@ -844,6 +866,10 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				fprintf( xmlFile, "</text>\n" );
 				if( theStyles.size() > 0 )
 				{
+					char sfn[256] = { 0 };
+					snprintf( sfn, sizeof(sfn), "style_runs_%d_%d.styl", vBlockID, partID );
+					theStyles.tofile( sfn );
+					
 					for( size_t x = 0; x < theStyles.size(); )
 					{
 						int16_t	startOffset = BIG_ENDIAN_16(theStyles.int16at( x ));
@@ -856,10 +882,6 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 						fprintf( xmlFile, "\t\t\t\t<id>%u</id>\n", styleID );
 						fprintf( xmlFile, "\t\t\t</stylerun>\n" );
 					}
-					
-					char sfn[256] = { 0 };
-					snprintf( sfn, sizeof(sfn), "style_runs_%d_%d.styl", vBlockID, partID );
-					theStyles.tofile( sfn );
 				}
 				
 				currOffsIntoData += partLength +4 +(partLength % 2);	// Align on even byte.
@@ -903,6 +925,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		}
 		else if( strcmp(vBlockType,"FTBL") == 0 )
 		{
+			fprintf( stdout, "Status: Processing '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
 			fprintf( xmlFile, "\t<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
@@ -939,6 +962,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		}
 		else if( strcmp(vBlockType,"STBL") == 0 )
 		{
+			fprintf( stdout, "Status: Processing '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
 			fprintf( xmlFile, "\t<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
@@ -996,6 +1020,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		}
 		else
 		{
+			fprintf( stderr, "Warning: Skipping '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
 			fprintf( xmlFile, "\t<!-- Skipped '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
 			theFile.ignore( vBlockSize -12 );	// Skip rest of block data.
 		}
@@ -1010,7 +1035,10 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 	{
 		resRefNum = FSOpenResFile( &fileRef, fsRdPerm );
 		if( resRefNum < 0 )
+		{
+			fprintf( stderr, "Warning: No Mac resource fork to import.\n" );
 			err = fnfErr;
+		}
 		else
 		{
 			// Export all B/W icons:
@@ -1023,6 +1051,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				Str255		name;
 				GetResInfo( currIcon, &theID, &theType, name );
 				char		fname[256];
+				
+				fprintf( stdout, "Status: Converting 'ICON' %d.\n", theID );
 				
 				picture		theIcon( 32, 32, 1, false );
 				theIcon.memcopyin( *currIcon, 0, 4 * 32 );
@@ -1061,10 +1091,16 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				Str255		name;
 				GetResInfo( currPicture, &theID, &theType, name );
 				char		fname[256];
+				
+				fprintf( stdout, "Status: Converting 'PICT' %d.\n", theID );
+
 				snprintf( fname, sizeof(fname), "PICT_%d.pict", theID );
 				FILE*		theFile = fopen( fname, "w" );
 				if( !theFile )
+				{
+					fprintf( stderr, "Error: Couldn't create file '%s' for 'ICON' %d.\n", fname, theID );
 					return false;
+				}
 				
 				for( int n = 0; n < 8; n++ )
 					fputs( "BILL_ATKINSON_ERIC_CARLSON_KEVIN_CALHOUN_DANIEL_THOME_HYPERCARD_", theFile );	// 64 bytes repeated 8 times is a neat 512 byte header.
@@ -1097,10 +1133,17 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				Str255		name;
 				GetResInfo( currIcon, &theID, &theType, name );
 				char		fname[256];
+				
+				fprintf( stdout, "Status: Converting 'CURS' %d.\n", theID );
+				
 				snprintf( fname, sizeof(fname), "CURS_%d.pbm", theID );
 				FILE*		theFile = fopen( fname, "w" );
 				if( !theFile )
+				{
+					fprintf( stderr, "Error: Couldn't create file '%s' for 'CURS' %d.\n", fname, theID );
 					return false;
+				}
+				
 				fputs( "P4\n16 16\n", theFile );
 				fwrite( *currIcon, 2 * 16, 1, theFile );
 				fputs( "\nP4\n16 16\n", theFile );
@@ -1137,6 +1180,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				Str255		name;
 				GetResInfo( currIcon, &theID, &theType, name );
 				char		fname[256];
+
+				fprintf( stdout, "Status: Converting 'snd ' %d.\n", theID );
+
 				snprintf( fname, sizeof(fname), "snd_%d.aiff", theID );
  			   	Handle		myHandle = NewHandleClear(0);
 				Handle		myDataRef = NewHandleClear( sizeof(Handle) );
@@ -1145,23 +1191,47 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				Movie	theMovie = NewMovie( newMovieActive );
 				err = GetMoviesError();
 				if( !theMovie || err != noErr )
+				{
+					fprintf( stderr, "Error: Error %d creating QuickTime container for 'snd ' %d.\n", (int)err, theID );
 					return false;
+				}
 				
 				err = SetMovieDefaultDataRef( theMovie, myDataRef, HandleDataHandlerSubType);
 				if( !theMovie || err != noErr )
+				{
+					fprintf( stderr, "Error: Error %d specifying data reference for 'snd ' %d.\n", (int)err, theID );
 					return false;
+				}
 				
 				err = PasteHandleIntoMovie( currIcon, 'snd ', theMovie, 0L, NULL );
 				if( err != noErr )
+				{
+					fprintf( stderr, "Error: Error %d inserting data of 'snd ' %d into QuickTime container.\n", (int)err, theID );
 					return false;
+				}
 				
 				FSRef		packageRef;
-				FSPathMakeRef( (UInt8*) packagePath.c_str(), &packageRef, NULL );
+				err = FSPathMakeRef( (UInt8*) packagePath.c_str(), &packageRef, NULL );
+				if( err != noErr )
+				{
+					fprintf( stderr, "Error: Error %d creating reference to package to export 'snd ' %d.\n", (int)err, theID );
+					return false;
+				}
 				FSSpec		theSpec = { 0 };
-				FSGetCatalogInfo( &packageRef, kFSCatInfoNone, NULL, NULL, &theSpec, NULL );
+				err = FSGetCatalogInfo( &packageRef, kFSCatInfoNone, NULL, NULL, &theSpec, NULL );
+				if( err != noErr )
+				{
+					fprintf( stderr, "Error: Error %d converting reference to package to export 'snd ' %d.\n", (int)err, theID );
+					return false;
+				}
 				theSpec.name[0] = strlen(fname);
 				strcpy( ((char*)theSpec.name) +1, fname );
-				ConvertMovieToFile( theMovie, NULL, &theSpec, kQTFileTypeAIFF, 'TVOD', smSystemScript, NULL, createMovieFileDeleteCurFile | movieToFileOnlyExport, NULL );
+				err = ConvertMovieToFile( theMovie, NULL, &theSpec, kQTFileTypeAIFF, 'TVOD', smSystemScript, NULL, createMovieFileDeleteCurFile | movieToFileOnlyExport, NULL );
+				if( err != noErr )
+				{
+					fprintf( stderr, "Error: Error %d converting 'snd ' %d to AIFF.\n", (int)err, theID );
+					return false;
+				}
 				
 				DisposeMovie( theMovie );
 				
@@ -1182,9 +1252,343 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			}
 			ExitMovies();
 			
+			// Export AddColor resources:
+			numIcons = Count1Resources( 'HCbg' );
+			for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+			{
+				Handle		currIcon = Get1IndResource( 'HCbg', x );
+				ResID       theID = 0;
+				ResType		theType = 0L;
+				Str255		name;
+				GetResInfo( currIcon, &theID, &theType, name );
+				char		fname[256];
+				
+				fprintf( stdout, "Status: Converting AddColor 'HCbg' %d.\n", theID );
+				
+				snprintf( fname, sizeof(fname), "HCbg_%d.data", theID );
+
+				size_t	dataLen = GetHandleSize( currIcon );
+				CBuf	theData( dataLen );
+				theData.memcpy( 0, *currIcon, 0, dataLen );
+				theData.tofile( fname );
+				
+				fprintf( xmlFile, "\t<addcolorbackground>\n\t\t<id>%d</id>\n", theID );
+				
+				size_t	currOffs = 0;
+				while( currOffs < dataLen )
+				{
+					fprintf( xmlFile, "\t\t<addcolorobject>\n" );
+					int8_t	currType = theData[currOffs];
+					bool	vHidden = currType & (1 << 7);
+					currType &= ~(1 << 7);
+					currOffs += 1;
+					
+					switch( currType )
+					{
+						case 0x01:	// Button
+						{
+							fprintf( xmlFile, "\t\t\t<type>button</type>\n" );
+							int16_t		buttonID = 0, bevelDepth = 0;
+							uint16_t	r = 0, g = 0, b = 0;
+							buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<id>%d</id>\n", buttonID );
+							bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+							r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<red>%d</red>\n", r );
+							g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<green>%d</green>\n", g );
+							b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<blue>%d</blue>\n", b );
+							break;
+						}
+
+						case 0x02:	// Field
+						{
+							fprintf( xmlFile, "\t\t\t<type>field</type>\n" );
+							int16_t		buttonID = 0, bevelDepth = 0;
+							uint16_t	r = 0, g = 0, b = 0;
+							buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<id>%d</id>\n", buttonID );
+							bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+							r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<red>%d</red>\n", r );
+							g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<green>%d</green>\n", g );
+							b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<blue>%d</blue>\n", b );
+							break;
+						}
+
+						case 0x03:	// Rectangle
+						{
+							fprintf( xmlFile, "\t\t\t<type>rectangle</type>\n" );
+							uint16_t	rc = 0, gc = 0, bc = 0;
+							int16_t		bevelDepth = 0;
+							int16_t		l, t, r, b;
+							l = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<left>%d</left>\n", l );
+							t = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<top>%d</top>\n", t );
+							r = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<right>%d</right>\n", r );
+							b = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<bottom>%d</bottom>\n", b );
+							bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<bevel>%d</bevel>\n", t );
+							rc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<red>%d</red>\n", rc );
+							gc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<green>%d</green>\n", gc );
+							bc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<blue>%d</blue>\n", bc );
+							break;
+						}
+
+						case 0x04:	// Picture
+						{
+							fprintf( xmlFile, "\t\t\t<type>picture</type>\n" );
+							int16_t		l, t, r, b;
+							l = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<left>%d</left>\n", l );
+							t = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<top>%d</top>\n", t );
+							r = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<right>%d</right>\n", r );
+							b = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<bottom>%d</bottom>\n", b );
+
+							uint8_t	transparentFlag = theData[currOffs];
+							currOffs += 1;
+							fprintf( xmlFile, "\t\t\t<transparent> %s </transparent>\n", transparentFlag ? "<true />" : "<false />" );
+							
+							uint8_t	imageNameLen = theData[currOffs];
+							currOffs += 1;
+							
+							fprintf( xmlFile, "\t\t\t<name>" );
+							for( int n = 0; n < imageNameLen; n++ )
+							{
+								char currCh = theData[currOffs++];
+								if( currCh == '<' )
+									fprintf( xmlFile, "&lt;" );
+								else if( currCh == '>' )
+									fprintf( xmlFile, "&gt;" );
+								else if( currCh == '&' )
+									fprintf( xmlFile, "&amp;" );
+								else
+									fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
+							}
+							fprintf( xmlFile, "</name>\n" );
+							break;
+						}
+						
+						default:
+							fprintf( xmlFile, "\t\t\t<!-- Unknown type %x, aborting 'HCcd' resource %d. -->\n", currType, theID );
+							fprintf( stderr, "Error: Unknown type %x, aborting 'HCcd' resource %d.\n", currType, theID );
+							currOffs = dataLen;	// Can't read more. Skip the rest.
+							break;
+					}
+					fprintf( xmlFile, "\t\t\t<visible> %s </visible>\n", (vHidden ? "<false />" : "<true />") );
+					fprintf( xmlFile, "\t\t</addcolorobject>\n" );
+				}
+			
+				fprintf( xmlFile, "\t</addcolorbackground>\n" );
+			}
+
+			// Export more AddColor resources:
+			numIcons = Count1Resources( 'HCcd' );
+			for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+			{
+				Handle		currIcon = Get1IndResource( 'HCcd', x );
+				ResID       theID = 0;
+				ResType		theType = 0L;
+				Str255		name;
+				GetResInfo( currIcon, &theID, &theType, name );
+				char		fname[256];
+				
+				fprintf( stdout, "Status: Converting AddColor 'HCcd' %d.\n", theID );
+
+				snprintf( fname, sizeof(fname), "HCcd_%d.data", theID );
+				
+				size_t	dataLen = GetHandleSize( currIcon );
+				CBuf	theData( dataLen );
+				theData.memcpy( 0, *currIcon, 0, dataLen );
+				//theData.tofile( fname );
+				
+				fprintf( xmlFile, "\t<addcolorcard>\n\t\t<id>%d</id>\n", theID );
+				
+				size_t	currOffs = 0;
+				while( currOffs < dataLen )
+				{
+					fprintf( xmlFile, "\t\t<addcolorobject>\n" );
+					int8_t	currType = theData[currOffs];
+					bool	vHidden = currType & (1 << 7);
+					currType &= ~(1 << 7);
+					currOffs += 1;
+					
+					switch( currType )
+					{
+						case 0x01:	// Button
+						{
+							fprintf( xmlFile, "\t\t\t<type>button</type>\n" );
+							int16_t		buttonID = 0, bevelDepth = 0;
+							uint16_t	r = 0, g = 0, b = 0;
+							buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<id>%d</id>\n", buttonID );
+							bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+							r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<red>%d</red>\n", r );
+							g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<green>%d</green>\n", g );
+							b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<blue>%d</blue>\n", b );
+							break;
+						}
+
+						case 0x02:	// Field
+						{
+							fprintf( xmlFile, "\t\t\t<type>field</type>\n" );
+							int16_t		buttonID = 0, bevelDepth = 0;
+							uint16_t	r = 0, g = 0, b = 0;
+							buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<id>%d</id>\n", buttonID );
+							bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+							r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<red>%d</red>\n", r );
+							g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<green>%d</green>\n", g );
+							b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<blue>%d</blue>\n", b );
+							break;
+						}
+
+						case 0x03:	// Rectangle
+						{
+							fprintf( xmlFile, "\t\t\t<type>rectangle</type>\n" );
+							uint16_t	rc = 0, gc = 0, bc = 0;
+							int16_t		bevelDepth = 0;
+							int16_t		l, t, r, b;
+							l = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<left>%d</left>\n", l );
+							t = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<top>%d</top>\n", t );
+							r = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<right>%d</right>\n", r );
+							b = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<bottom>%d</bottom>\n", b );
+							bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+							rc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<red>%d</red>\n", rc );
+							gc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<green>%d</green>\n", gc );
+							bc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<blue>%d</blue>\n", bc );
+							break;
+						}
+
+						case 0x04:	// Picture
+						{
+							fprintf( xmlFile, "\t\t\t<type>picture</type>\n" );
+							int16_t		l, t, r, b;
+							l = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<left>%d</left>\n", l );
+							t = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<top>%d</top>\n", t );
+							r = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<right>%d</right>\n", r );
+							b = BIG_ENDIAN_16(theData.int16at( currOffs ));
+							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t<bottom>%d</bottom>\n", b );
+
+							uint8_t	transparentFlag = theData[currOffs];
+							currOffs += 1;
+							fprintf( xmlFile, "\t\t\t<transparent> %s </transparent>\n", transparentFlag ? "<true />" : "<false />" );
+							
+							uint8_t	imageNameLen = theData[currOffs];
+							currOffs += 1;
+							
+							fprintf( xmlFile, "\t\t\t<name>" );
+							for( int n = 0; n < imageNameLen; n++ )
+							{
+								char currCh = theData[currOffs++];
+								if( currCh == '<' )
+									fprintf( xmlFile, "&lt;" );
+								else if( currCh == '>' )
+									fprintf( xmlFile, "&gt;" );
+								else if( currCh == '&' )
+									fprintf( xmlFile, "&amp;" );
+								else
+									fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
+							}
+							fprintf( xmlFile, "</name>\n" );
+							break;
+						}
+						
+						default:
+							fprintf( xmlFile, "\t\t\t<!-- Unknown type %x, aborting 'HCcd' resource %d. -->\n", currType, theID );
+							fprintf( stderr, "Error: Unknown type %x, aborting 'HCcd' resource %d.\n", currType, theID );
+							currOffs = dataLen;	// Can't read more. Skip the rest.
+							break;
+					}
+					fprintf( xmlFile, "\t\t\t<visible> %s </visible>\n", (vHidden ? "<false />" : "<true />") );
+					fprintf( xmlFile, "\t\t</addcolorobject>\n" );
+				}
+			
+				fprintf( xmlFile, "\t</addcolorcard>\n" );
+			}
+
 			CloseResFile( resRefNum );
 		}
 	}
+	else
+		fprintf( stderr, "Error: Error %d locating input file's resource fork.\n", (int)err );
 	#endif // MAC_CODE
 	
 	fprintf( xmlFile, "</stackfile>\n" );
@@ -1193,7 +1597,10 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 	
 	#if MAC_CODE
 	if( err != fnfErr && err != noErr )
+	{
+		fprintf( stderr, "Error: During conversion of Macintosh fork of stack.\n" );
 		return false;
+	}
 	#endif // MAC_CODE
 	
 	return true;
