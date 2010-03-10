@@ -1296,15 +1296,17 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 							bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
 							fprintf( xmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+							fprintf( xmlFile, "\t\t\t<color>\n" );
 							r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<red>%d</red>\n", r );
+							fprintf( xmlFile, "\t\t\t\t<red>%d</red>\n", r );
 							g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<green>%d</green>\n", g );
+							fprintf( xmlFile, "\t\t\t\t<green>%d</green>\n", g );
 							b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<blue>%d</blue>\n", b );
+							fprintf( xmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
+							fprintf( xmlFile, "\t\t\t</color>\n" );
 							break;
 						}
 
@@ -1319,15 +1321,17 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 							bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
 							fprintf( xmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+							fprintf( xmlFile, "\t\t\t<color>\n" );
 							r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<red>%d</red>\n", r );
+							fprintf( xmlFile, "\t\t\t\t<red>%d</red>\n", r );
 							g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<green>%d</green>\n", g );
+							fprintf( xmlFile, "\t\t\t\t<green>%d</green>\n", g );
 							b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<blue>%d</blue>\n", b );
+							fprintf( xmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
+							fprintf( xmlFile, "\t\t\t</color>\n" );
 							break;
 						}
 
@@ -1337,30 +1341,34 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 							uint16_t	rc = 0, gc = 0, bc = 0;
 							int16_t		bevelDepth = 0;
 							int16_t		l, t, r, b;
+							fprintf( xmlFile, "\t\t\t<rect>\n" );
 							l = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<left>%d</left>\n", l );
+							fprintf( xmlFile, "\t\t\t\t<left>%d</left>\n", l );
 							t = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<top>%d</top>\n", t );
+							fprintf( xmlFile, "\t\t\t\t<top>%d</top>\n", t );
 							r = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<right>%d</right>\n", r );
+							fprintf( xmlFile, "\t\t\t\t<right>%d</right>\n", r );
 							b = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<bottom>%d</bottom>\n", b );
+							fprintf( xmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
 							bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
+							fprintf( xmlFile, "\t\t\t</rect>\n" );
 							fprintf( xmlFile, "\t\t\t<bevel>%d</bevel>\n", t );
+							fprintf( xmlFile, "\t\t\t<color>\n" );
 							rc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<red>%d</red>\n", rc );
+							fprintf( xmlFile, "\t\t\t\t<red>%d</red>\n", rc );
 							gc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<green>%d</green>\n", gc );
+							fprintf( xmlFile, "\t\t\t\t<green>%d</green>\n", gc );
 							bc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<blue>%d</blue>\n", bc );
+							fprintf( xmlFile, "\t\t\t\t<blue>%d</blue>\n", bc );
+							fprintf( xmlFile, "\t\t\t</color>\n" );
 							break;
 						}
 
@@ -1368,18 +1376,20 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 						{
 							fprintf( xmlFile, "\t\t\t<type>picture</type>\n" );
 							int16_t		l, t, r, b;
+							fprintf( xmlFile, "\t\t\t<rect>\n" );
 							l = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<left>%d</left>\n", l );
+							fprintf( xmlFile, "\t\t\t\t<left>%d</left>\n", l );
 							t = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<top>%d</top>\n", t );
+							fprintf( xmlFile, "\t\t\t\t<top>%d</top>\n", t );
 							r = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<right>%d</right>\n", r );
+							fprintf( xmlFile, "\t\t\t\t<right>%d</right>\n", r );
 							b = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<bottom>%d</bottom>\n", b );
+							fprintf( xmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
+							fprintf( xmlFile, "\t\t\t</rect>\n" );
 
 							uint8_t	transparentFlag = theData[currOffs];
 							currOffs += 1;
@@ -1462,15 +1472,17 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 							bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
 							fprintf( xmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+							fprintf( xmlFile, "\t\t\t<color>\n" );
 							r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<red>%d</red>\n", r );
+							fprintf( xmlFile, "\t\t\t\t<red>%d</red>\n", r );
 							g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<green>%d</green>\n", g );
+							fprintf( xmlFile, "\t\t\t\t<green>%d</green>\n", g );
 							b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<blue>%d</blue>\n", b );
+							fprintf( xmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
+							fprintf( xmlFile, "\t\t\t</color>\n" );
 							break;
 						}
 
@@ -1485,15 +1497,17 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 							bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
 							fprintf( xmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+							fprintf( xmlFile, "\t\t\t<color>\n" );
 							r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<red>%d</red>\n", r );
+							fprintf( xmlFile, "\t\t\t\t<red>%d</red>\n", r );
 							g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<green>%d</green>\n", g );
+							fprintf( xmlFile, "\t\t\t\t<green>%d</green>\n", g );
 							b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<blue>%d</blue>\n", b );
+							fprintf( xmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
+							fprintf( xmlFile, "\t\t\t</color>\n" );
 							break;
 						}
 
@@ -1503,30 +1517,34 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 							uint16_t	rc = 0, gc = 0, bc = 0;
 							int16_t		bevelDepth = 0;
 							int16_t		l, t, r, b;
+							fprintf( xmlFile, "\t\t\t<rect>\n" );
 							l = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<left>%d</left>\n", l );
+							fprintf( xmlFile, "\t\t\t\t<left>%d</left>\n", l );
 							t = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<top>%d</top>\n", t );
+							fprintf( xmlFile, "\t\t\t\t<top>%d</top>\n", t );
 							r = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<right>%d</right>\n", r );
+							fprintf( xmlFile, "\t\t\t\t<right>%d</right>\n", r );
 							b = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<bottom>%d</bottom>\n", b );
+							fprintf( xmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
+							fprintf( xmlFile, "\t\t\t</rect>\n" );
 							bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
 							fprintf( xmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+							fprintf( xmlFile, "\t\t\t<color>\n" );
 							rc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<red>%d</red>\n", rc );
+							fprintf( xmlFile, "\t\t\t\t<red>%d</red>\n", rc );
 							gc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<green>%d</green>\n", gc );
+							fprintf( xmlFile, "\t\t\t\t<green>%d</green>\n", gc );
 							bc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<blue>%d</blue>\n", bc );
+							fprintf( xmlFile, "\t\t\t\t<blue>%d</blue>\n", bc );
+							fprintf( xmlFile, "\t\t\t</color>\n" );
 							break;
 						}
 
@@ -1534,18 +1552,20 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 						{
 							fprintf( xmlFile, "\t\t\t<type>picture</type>\n" );
 							int16_t		l, t, r, b;
+							fprintf( xmlFile, "\t\t\t<rect>\n" );
 							l = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<left>%d</left>\n", l );
+							fprintf( xmlFile, "\t\t\t\t<left>%d</left>\n", l );
 							t = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<top>%d</top>\n", t );
+							fprintf( xmlFile, "\t\t\t\t<top>%d</top>\n", t );
 							r = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<right>%d</right>\n", r );
+							fprintf( xmlFile, "\t\t\t\t<right>%d</right>\n", r );
 							b = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<bottom>%d</bottom>\n", b );
+							fprintf( xmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
+							fprintf( xmlFile, "\t\t\t</rect>\n" );
 
 							uint8_t	transparentFlag = theData[currOffs];
 							currOffs += 1;
