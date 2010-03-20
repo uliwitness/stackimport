@@ -264,23 +264,35 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				int16_t	partType = flagsAndType >> 8;
 				bool	isButton = partType == 1;
 				fprintf( xmlFile, "\t\t\t<type>%s</type>\n", isButton ? "button" : "field" );
-				fprintf( xmlFile, "\t\t\t<visible> %s </visible>\n", (flagsAndType & (1 << 7)) ? "<false />" : "<true />" );
+				fprintf( xmlFile, "\t\t\t<visible> %s </visible>\n", (flagsAndType & (1 << 7)) ? "<false />" : "<true />" );	// Really "hidden" flag.
 				if( !isButton )
 					fprintf( xmlFile, "\t\t\t<dontWrap> %s </dontWrap>\n", (flagsAndType & (1 << 5)) ? "<true />" : "<false />" );
+				else
+					fprintf( xmlFile, "\t\t\t<reserved5> %d </reserved5>\n", (flagsAndType & (1 << 5)) >> 5 );
 				if( !isButton )
 					fprintf( xmlFile, "\t\t\t<dontSearch> %s </dontSearch>\n", (flagsAndType & (1 << 4)) ? "<true />" : "<false />" );
+				else
+					fprintf( xmlFile, "\t\t\t<reserved4> %d </reserved4>\n", (flagsAndType & (1 << 4)) >> 4 );
 				if( !isButton )
 					fprintf( xmlFile, "\t\t\t<sharedText> %s </sharedText>\n", (flagsAndType & (1 << 3)) ? "<true />" : "<false />" );
+				else
+					fprintf( xmlFile, "\t\t\t<reserved3> %d </reserved3>\n", (flagsAndType & (1 << 3)) >> 3 );
 				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<fixedLineHeight> %s </fixedLineHeight>\n", (flagsAndType & (1 << 2)) ? "<false />" : "<true />" );
+					fprintf( xmlFile, "\t\t\t<fixedLineHeight> %s </fixedLineHeight>\n", (flagsAndType & (1 << 2)) ? "<false />" : "<true />" );	// Really "use real line height" flag.
+				else
+					fprintf( xmlFile, "\t\t\t<reserved2> %d </reserved2>\n", (flagsAndType & (1 << 2)) >> 2 );
 				if( !isButton )
 					fprintf( xmlFile, "\t\t\t<autoTab> %s </autoTab>\n", (flagsAndType & (1 << 1)) ? "<true />" : "<false />" );
+				else
+					fprintf( xmlFile, "\t\t\t<reserved1> %d </reserved1>\n", (flagsAndType & (1 << 1)) >> 1 );
 				if( isButton )
-					fprintf( xmlFile, "\t\t\t<enabled> %s </enabled>\n", (flagsAndType & (1 << 0)) ? "<false />" : "<true />" );		// +++ WTF???
-				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<lockText> %s </lockText>\n", (flagsAndType & (1 << 0)) ? "<true />" : "<false />" );	// +++ WTF???
-				fprintf( xmlFile, "\t\t\t<rect>\n\t\t\t\t<left>%d</left>\n\t\t\t\t<top>%d</top>\n\t\t\t\t<right>%d</right>\n\t\t\t\t<bottom>%d</bottom>\n\t\t\t</rect>\n", BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +8 )),
-							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +6 )), BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +12 )),
+					fprintf( xmlFile, "\t\t\t<enabled> %s </enabled>\n", (flagsAndType & (1 << 0)) ? "<false />" : "<true />" );	// Same as lockText on fields. Really "disabled" flag.
+				else
+					fprintf( xmlFile, "\t\t\t<lockText> %s </lockText>\n", (flagsAndType & (1 << 0)) ? "<true />" : "<false />" );	// Same as enabled on buttons.
+				fprintf( xmlFile, "\t\t\t<rect>\n\t\t\t\t<left>%d</left>\n\t\t\t\t<top>%d</top>\n\t\t\t\t<right>%d</right>\n\t\t\t\t<bottom>%d</bottom>\n\t\t\t</rect>\n",
+							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +8 )),
+							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +6 )),
+							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +12 )),
 							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +10 )) );
 				int16_t	moreFlags = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +14 ));
 				int8_t	styleFromLowNibble = moreFlags & 15;
@@ -349,32 +361,49 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				moreFlags = moreFlags >> 8;
 				if( isButton )
 					fprintf( xmlFile, "\t\t\t<showName> %s </showName>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
-				if( !isButton )
+				else
 					fprintf( xmlFile, "\t\t\t<autoSelect> %s </autoSelect>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
 				if( isButton )
 					fprintf( xmlFile, "\t\t\t<highlight> %s </highlight>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
-				if( !isButton )
+				else
 					fprintf( xmlFile, "\t\t\t<showLines> %s </showLines>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
+				if( !isButton )
+					fprintf( xmlFile, "\t\t\t<wideMargins> %s </wideMargins>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
+				else
+					fprintf( xmlFile, "\t\t\t<reserved25> %d </reserved25>\n", (flagsAndType & (1 << 5)) >> 5 );
+				if( isButton )
+					fprintf( xmlFile, "\t\t\t<sharedHighlight> %s </sharedHighlight>\n", (moreFlags & (1 << 4)) ? "<false />" : "<true />" );
+				else
+					fprintf( xmlFile, "\t\t\t<multipleLines> %s </multipleLines>\n", (moreFlags & (1 << 4)) ? "<true />" : "<false />" );
 				int8_t	family = moreFlags & 15;
 				if( isButton )
 					fprintf( xmlFile, "\t\t\t<family>%d</family>\n", family );
-				fprintf( xmlFile, "\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5) || family != 0) ? "<true />" : "<false />" );
-				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<wideMargins> %s </wideMargins>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
+				else
+					fprintf( xmlFile, "\t\t\t<reservedFamily> %d </reservedFamily>\n", family );
 				if( isButton )
-					fprintf( xmlFile, "\t\t\t<sharedHighlight> %s </sharedHighlight>\n", (moreFlags & (1 << 4)) ? "<false />" : "<true />" );
-				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<multipleLines> %s </multipleLines>\n", (moreFlags & (1 << 4)) ? "<true />" : "<false />" );
+					fprintf( xmlFile, "\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5) || family != 0) ? "<true />" : "<false />" );
+				else
+					fprintf( xmlFile, "\t\t\t<reserved35> %d </reserved35>\n", (flagsAndType & (1 << 5)) >> 5 );
+				
+				// titleWidth & iconID are list fields' lastSelectedLine and firstSelectedLine
+				// 	We generate a list containing each selected line so users of the file
+				//	format can add multiple selection easily.
 				int16_t	titleWidth = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +16 ));
 				if( isButton )
 					fprintf( xmlFile, "\t\t\t<titleWidth>%d</titleWidth>\n", titleWidth );
-				else
-					fprintf( xmlFile, "\t\t\t<lastSelectedLine>%d</lastSelectedLine>\n", titleWidth );
 				int16_t	iconID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +18 ));
 				if( isButton )
 					fprintf( xmlFile, "\t\t\t<icon>%d</icon>\n", iconID );
-				else
-					fprintf( xmlFile, "\t\t\t<selectedLine>%d</selectedLine>\n", iconID );
+				if( !isButton && iconID > 0 )
+				{
+					if( titleWidth <= 0 )
+						titleWidth = iconID;
+					
+					fprintf( xmlFile, "\t\t\t<selectedLines>\n", titleWidth );
+					for( int d = iconID; d <= titleWidth; d++ )
+						fprintf( xmlFile, "\t\t\t\t<integer>%d</integer>\n", d );
+					fprintf( xmlFile, "\t\t\t</selectedLines>\n" );
+				}
 				int16_t	textAlign = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +20 ));
 				const char*		textAlignStr = "unknown";
 				switch( textAlign )
@@ -588,16 +617,17 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
 			int32_t	bitmapID = BIG_ENDIAN_32(blockData.int32at( 4 ));
-			fprintf( xmlFile, "\t\t<bitmap>BMAP_%u.pbm</bitmap>\n", bitmapID );
-			int16_t	flags = BIG_ENDIAN_16(blockData.int16at( 0x0C -4 ));
+			if( bitmapID != 0 )
+				fprintf( xmlFile, "\t\t<bitmap>BMAP_%u.pbm</bitmap>\n", bitmapID );
+			int16_t	flags = BIG_ENDIAN_16(blockData.int16at( 8 ));
 			fprintf( xmlFile, "\t\t<cantDelete> %s </cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
 			fprintf( xmlFile, "\t\t<showPict> %s </showPict>\n", (flags & (1 << 13)) ? "<false />" : "<true />" );	// showPict is stored reversed.
 			fprintf( xmlFile, "\t\t<dontSearch> %s </dontSearch>\n", (flags & (1 << 11)) ? "<true />" : "<false />" );
-			int16_t	owner = BIG_ENDIAN_16(blockData.int16at( 0x1E -4 ));
+			int16_t	owner = BIG_ENDIAN_16(blockData.int16at( 22 ));
 			fprintf( xmlFile, "\t\t<owner>%d</owner>\n", owner );
-			int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( 0x20 -4 ));
-			int16_t	numContents = BIG_ENDIAN_16(blockData.int16at( 0x28 -4 ));
-			size_t	currOffsIntoData = 0x2E -4;
+			int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( 28 ));
+			int16_t	numContents = BIG_ENDIAN_16(blockData.int16at( 36 ));
+			size_t	currOffsIntoData = 42;
 			for( int n = 0; n < numParts; n++ )
 			{
 				int16_t	partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
@@ -609,23 +639,35 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				int16_t	partType = flagsAndType >> 8;
 				bool	isButton = partType == 1;
 				fprintf( xmlFile, "\t\t\t<type>%s</type>\n", isButton ? "button" : "field" );
-				fprintf( xmlFile, "\t\t\t<visible> %s </visible>\n", (flagsAndType & (1 << 7)) ? "<false />" : "<true />" );
+				fprintf( xmlFile, "\t\t\t<visible> %s </visible>\n", (flagsAndType & (1 << 7)) ? "<false />" : "<true />" );	// Really "hidden" flag.
 				if( !isButton )
 					fprintf( xmlFile, "\t\t\t<dontWrap> %s </dontWrap>\n", (flagsAndType & (1 << 5)) ? "<true />" : "<false />" );
+				else
+					fprintf( xmlFile, "\t\t\t<reserved5> %d </reserved5>\n", (flagsAndType & (1 << 5)) >> 5 );
 				if( !isButton )
 					fprintf( xmlFile, "\t\t\t<dontSearch> %s </dontSearch>\n", (flagsAndType & (1 << 4)) ? "<true />" : "<false />" );
+				else
+					fprintf( xmlFile, "\t\t\t<reserved4> %d </reserved4>\n", (flagsAndType & (1 << 4)) >> 4 );
 				if( !isButton )
 					fprintf( xmlFile, "\t\t\t<sharedText> %s </sharedText>\n", (flagsAndType & (1 << 3)) ? "<true />" : "<false />" );
+				else
+					fprintf( xmlFile, "\t\t\t<reserved3> %d </reserved3>\n", (flagsAndType & (1 << 3)) >> 3 );
 				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<fixedLineHeight> %s </fixedLineHeight>\n", (flagsAndType & (1 << 2)) ? "<false />" : "<true />" );
+					fprintf( xmlFile, "\t\t\t<fixedLineHeight> %s </fixedLineHeight>\n", (flagsAndType & (1 << 2)) ? "<false />" : "<true />" );	// Really "use real line height" flag.
+				else
+					fprintf( xmlFile, "\t\t\t<reserved2> %d </reserved2>\n", (flagsAndType & (1 << 2)) >> 2 );
 				if( !isButton )
 					fprintf( xmlFile, "\t\t\t<autoTab> %s </autoTab>\n", (flagsAndType & (1 << 1)) ? "<true />" : "<false />" );
+				else
+					fprintf( xmlFile, "\t\t\t<reserved1> %d </reserved1>\n", (flagsAndType & (1 << 1)) >> 1 );
 				if( isButton )
-					fprintf( xmlFile, "\t\t\t<enabled> %s </enabled>\n", (flagsAndType & (1 << 0)) ? "<false />" : "<true />" );		// +++ WTF???
-				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<lockText> %s </lockText>\n", (flagsAndType & (1 << 0)) ? "<true />" : "<false />" );	// +++ WTF???
-				fprintf( xmlFile, "\t\t\t<rect>\n\t\t\t\t<left>%d</left>\n\t\t\t\t<top>%d</top>\n\t\t\t\t<right>%d</right>\n\t\t\t\t<bottom>%d</bottom>\n\t\t\t</rect>\n", BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +8 )),
-							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +6 )), BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +12 )),
+					fprintf( xmlFile, "\t\t\t<enabled> %s </enabled>\n", (flagsAndType & (1 << 0)) ? "<false />" : "<true />" );	// Same as lockText on fields. Really "disabled" flag.
+				else
+					fprintf( xmlFile, "\t\t\t<lockText> %s </lockText>\n", (flagsAndType & (1 << 0)) ? "<true />" : "<false />" );	// Same as enabled on buttons.
+				fprintf( xmlFile, "\t\t\t<rect>\n\t\t\t\t<left>%d</left>\n\t\t\t\t<top>%d</top>\n\t\t\t\t<right>%d</right>\n\t\t\t\t<bottom>%d</bottom>\n\t\t\t</rect>\n",
+							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +8 )),
+							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +6 )),
+							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +12 )),
 							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +10 )) );
 				int16_t	moreFlags = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +14 ));
 				int8_t	styleFromLowNibble = moreFlags & 15;
@@ -694,32 +736,50 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				moreFlags = moreFlags >> 8;
 				if( isButton )
 					fprintf( xmlFile, "\t\t\t<showName> %s </showName>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
-				if( !isButton )
+				else
 					fprintf( xmlFile, "\t\t\t<autoSelect> %s </autoSelect>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
 				if( isButton )
 					fprintf( xmlFile, "\t\t\t<highlight> %s </highlight>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
-				if( !isButton )
+				else
 					fprintf( xmlFile, "\t\t\t<showLines> %s </showLines>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
 				if( !isButton )
 					fprintf( xmlFile, "\t\t\t<wideMargins> %s </wideMargins>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
+				else
+					fprintf( xmlFile, "\t\t\t<reserved25> %d </reserved25>\n", (flagsAndType & (1 << 5)) >> 5 );
 				if( isButton )
 					fprintf( xmlFile, "\t\t\t<sharedHighlight> %s </sharedHighlight>\n", (moreFlags & (1 << 4)) ? "<false />" : "<true />" );
-				if( !isButton )
+				else
 					fprintf( xmlFile, "\t\t\t<multipleLines> %s </multipleLines>\n", (moreFlags & (1 << 4)) ? "<true />" : "<false />" );
 				int8_t	family = moreFlags & 15;
 				if( isButton )
 					fprintf( xmlFile, "\t\t\t<family>%d</family>\n", family );
-				fprintf( xmlFile, "\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5) || family != 0) ? "<true />" : "<false />" );
+				else
+					fprintf( xmlFile, "\t\t\t<reservedFamily> %d </reservedFamily>\n", family );
+				if( isButton )
+					fprintf( xmlFile, "\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5) || family != 0) ? "<true />" : "<false />" );
+				else
+					fprintf( xmlFile, "\t\t\t<reserved35> %d </reserved35>\n", (flagsAndType & (1 << 5)) >> 5 );
+				
+				// titleWidth & iconID are list fields' lastSelectedLine and firstSelectedLine
+				// 	We generate a list containing each selected line so users of the file
+				//	format can add multiple selection easily.
 				int16_t	titleWidth = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +16 ));
 				if( isButton )
 					fprintf( xmlFile, "\t\t\t<titleWidth>%d</titleWidth>\n", titleWidth );
-				else
-					fprintf( xmlFile, "\t\t\t<lastSelectedLine>%d</lastSelectedLine>\n", titleWidth );
 				int16_t	iconID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +18 ));
 				if( isButton )
 					fprintf( xmlFile, "\t\t\t<icon>%d</icon>\n", iconID );
-				else
-					fprintf( xmlFile, "\t\t\t<selectedLine>%d</selectedLine>\n", iconID );
+				if( !isButton && iconID > 0 )
+				{
+					if( titleWidth <= 0 )
+						titleWidth = iconID;
+					
+					fprintf( xmlFile, "\t\t\t<selectedLines>\n", titleWidth );
+					for( int d = iconID; d <= titleWidth; d++ )
+						fprintf( xmlFile, "\t\t\t\t<integer>%d</integer>\n", d );
+					fprintf( xmlFile, "\t\t\t</selectedLines>\n" );
+				}
+				
 				int16_t	textAlign = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +20 ));
 				const char*		textAlignStr = "unknown";
 				switch( textAlign )
@@ -866,9 +926,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				fprintf( xmlFile, "</text>\n" );
 				if( theStyles.size() > 0 )
 				{
-					char sfn[256] = { 0 };
-					snprintf( sfn, sizeof(sfn), "style_runs_%d_%d.styl", vBlockID, partID );
-					theStyles.tofile( sfn );
+//					char sfn[256] = { 0 };
+//					snprintf( sfn, sizeof(sfn), "style_runs_%d_%d.styl", vBlockID, partID );
+//					theStyles.tofile( sfn );
 					
 					for( size_t x = 0; x < theStyles.size(); )
 					{
@@ -1018,11 +1078,21 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				fprintf( xmlFile, "\t</styleentry>\n" );
 			}
 		}
+		else if( strcmp(vBlockType,"FREE") == 0 )	// Not a free, reusable block?
+		{
+			fprintf( stderr, "Status: Skipping '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
+			fprintf( xmlFile, "\t<!-- Skipped '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
+			theFile.ignore( vBlockSize -12 );	// Skip rest of block data.
+		}
 		else
 		{
 			fprintf( stderr, "Warning: Skipping '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
-			fprintf( xmlFile, "\t<!-- Skipped '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
-			theFile.ignore( vBlockSize -12 );	// Skip rest of block data.
+			CBuf		blockData( vBlockSize -12 );
+			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
+			char		fname[256] = { 0 };
+			snprintf( fname, sizeof(fname), "%s_%d.data", vBlockType, vBlockID );
+			blockData.tofile( fname );
+			fprintf( xmlFile, "\t<unknown type=\"%4s\" id=\"%d\" size=\"%d\" file=\"%s\" />\n", vBlockType, vBlockID, vBlockSize, fname );
 		}
 	}
 	
