@@ -135,6 +135,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 	
 	fprintf( xmlFile, "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n<!DOCTYPE stackfile PUBLIC \"-//Apple, Inc.//DTD stackfile V 2.0//EN\" \"\" >\n<stackfile>\n" );
 	
+	int32_t		numberOfCards = -1;
+	
 	// Read block header:
 	char		vBlockType[5] = { 0 };
 	u_int32_t	vBlockSize = 0,
@@ -174,6 +176,12 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			fprintf( xmlFile, "\t<stack>\n" );
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
+			numberOfCards = BIG_ENDIAN_32(blockData.int32at( 32 ));
+			fprintf( xmlFile, "\t\t<cardCount>%d</cardCount>\n", numberOfCards );
+			int32_t	cardID = BIG_ENDIAN_32(blockData.int32at( 36 ));
+			fprintf( xmlFile, "\t\t<cardID>%d</cardID>\n", cardID );
+			int32_t	listID = BIG_ENDIAN_32(blockData.int32at( 40 ));
+			fprintf( xmlFile, "\t\t<listID>%d</listID>\n", listID );
 			int16_t	userLevel = BIG_ENDIAN_16(blockData.int16at( 60 ));
 			fprintf( xmlFile, "\t\t<userLevel>%d</userLevel>\n", userLevel );
 			int16_t	flags = BIG_ENDIAN_16(blockData.int16at( 64 ));
@@ -616,6 +624,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			fprintf( xmlFile, "\t\t<id>%d</id>\n", vBlockID );
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
+			int32_t	unknownFiller = BIG_ENDIAN_32(blockData.int32at( 0 ));
+			fprintf( xmlFile, "\t\t<filler1>%d</filler1>\n", unknownFiller );
 			int32_t	bitmapID = BIG_ENDIAN_32(blockData.int32at( 4 ));
 			if( bitmapID != 0 )
 				fprintf( xmlFile, "\t\t<bitmap>BMAP_%u.pbm</bitmap>\n", bitmapID );
@@ -764,11 +774,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				// 	We generate a list containing each selected line so users of the file
 				//	format can add multiple selection easily.
 				int16_t	titleWidth = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +16 ));
-				if( isButton )
-					fprintf( xmlFile, "\t\t\t<titleWidth>%d</titleWidth>\n", titleWidth );
 				int16_t	iconID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +18 ));
-				if( isButton )
-					fprintf( xmlFile, "\t\t\t<icon>%d</icon>\n", iconID );
 				if( !isButton && iconID > 0 )
 				{
 					if( titleWidth <= 0 )
@@ -779,7 +785,21 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 						fprintf( xmlFile, "\t\t\t\t<integer>%d</integer>\n", d );
 					fprintf( xmlFile, "\t\t\t</selectedLines>\n" );
 				}
-				
+				else if( isButton && styleFromLowNibble == 11 )	// Popup buttons use icon ID for selected line:
+				{
+					fprintf( xmlFile, "\t\t\t<titleWidth>%d</titleWidth>\n", titleWidth );
+					if( iconID != 0 )
+					{
+						fprintf( xmlFile, "\t\t\t<selectedLines>\n", titleWidth );
+						fprintf( xmlFile, "\t\t\t\t<integer>%d</integer>\n", iconID );
+						fprintf( xmlFile, "\t\t\t</selectedLines>\n" );
+					}
+				}
+				else
+				{
+					fprintf( xmlFile, "\t\t\t<titleWidth>%d</titleWidth>\n", titleWidth );
+					fprintf( xmlFile, "\t\t\t<icon>%d</icon>\n", iconID );
+				}
 				int16_t	textAlign = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +20 ));
 				const char*		textAlignStr = "unknown";
 				switch( textAlign )
@@ -1077,6 +1097,28 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				
 				fprintf( xmlFile, "\t</styleentry>\n" );
 			}
+		}
+		else if( strcmp(vBlockType,"PAGE") == 0 )
+		{
+			fprintf( stderr, "Status: Processing '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
+			CBuf		blockData( vBlockSize -12 );
+			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
+			char		fname[256] = { 0 };
+			snprintf( fname, sizeof(fname), "%s_%d.data", vBlockType, vBlockID );
+			blockData.tofile( fname );
+			
+			assert( numberOfCards != -1 );	// Haven't had a card count in the stack block yet? We're screwed!
+			
+			fprintf( xmlFile, "\t<pagetable>\n" );
+			size_t		currDataOffs = 12;
+			for( int32_t r = 0; r < numberOfCards; r++ )
+			{
+				int32_t		currCardID = BIG_ENDIAN_32( blockData.int32at( currDataOffs ) );
+				
+				fprintf( xmlFile, "\t\t<cardID>%d</cardID>\n", currCardID );
+				currDataOffs += 16;
+			}
+			fprintf( xmlFile, "\t</pagetable>\n" );
 		}
 		else if( strcmp(vBlockType,"FREE") == 0 )	// Not a free, reusable block?
 		{
