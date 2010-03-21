@@ -213,7 +213,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 
 			fprintf( xmlFile, "\t\t<patterns>\n" );
 			char			pattern[8] = { 0 };
-			int				offs = 0x2b4;
+			int				offs = 692;
 			for( int n = 0; n < 40; n++ )
 			{
 				memmove( pattern, blockData.buf( offs, 8 ), 8 );
@@ -227,7 +227,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			}
 			fprintf( xmlFile, "\t\t</patterns>\n" );
 			
-			int x = 0, startOffs = 0x5f4;
+			int x = 0, startOffs = 1524;
 			fprintf( xmlFile, "\t\t<script>" );
 			for( x = startOffs; blockData[x] != 0; x++ )
 			{
@@ -744,6 +744,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				}
 				fprintf( xmlFile, "\t\t\t<style>%s</style>\n", styleStr );
 				moreFlags = moreFlags >> 8;
+				int8_t	family = moreFlags & 15;
 				if( isButton )
 					fprintf( xmlFile, "\t\t\t<showName> %s </showName>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
 				else
@@ -755,20 +756,15 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				if( !isButton )
 					fprintf( xmlFile, "\t\t\t<wideMargins> %s </wideMargins>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
 				else
-					fprintf( xmlFile, "\t\t\t<reserved25> %d </reserved25>\n", (flagsAndType & (1 << 5)) >> 5 );
+					fprintf( xmlFile, "\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5) || family != 0) ? "<true />" : "<false />" );
 				if( isButton )
 					fprintf( xmlFile, "\t\t\t<sharedHighlight> %s </sharedHighlight>\n", (moreFlags & (1 << 4)) ? "<false />" : "<true />" );
 				else
 					fprintf( xmlFile, "\t\t\t<multipleLines> %s </multipleLines>\n", (moreFlags & (1 << 4)) ? "<true />" : "<false />" );
-				int8_t	family = moreFlags & 15;
 				if( isButton )
 					fprintf( xmlFile, "\t\t\t<family>%d</family>\n", family );
 				else
 					fprintf( xmlFile, "\t\t\t<reservedFamily> %d </reservedFamily>\n", family );
-				if( isButton )
-					fprintf( xmlFile, "\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5) || family != 0) ? "<true />" : "<false />" );
-				else
-					fprintf( xmlFile, "\t\t\t<reserved35> %d </reserved35>\n", (flagsAndType & (1 << 5)) >> 5 );
 				
 				// titleWidth & iconID are list fields' lastSelectedLine and firstSelectedLine
 				// 	We generate a list containing each selected line so users of the file
@@ -790,7 +786,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 					fprintf( xmlFile, "\t\t\t<titleWidth>%d</titleWidth>\n", titleWidth );
 					if( iconID != 0 )
 					{
-						fprintf( xmlFile, "\t\t\t<selectedLines>\n", titleWidth );
+						fprintf( xmlFile, "\t\t\t<selectedLines>\n" );
 						fprintf( xmlFile, "\t\t\t\t<integer>%d</integer>\n", iconID );
 						fprintf( xmlFile, "\t\t\t</selectedLines>\n" );
 					}
