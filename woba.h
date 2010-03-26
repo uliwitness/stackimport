@@ -75,6 +75,8 @@ public:
 	uint16_t	uint16at( size_t offs ) const	{ uint16_t* theBuf = (uint16_t*) buf(offs,sizeof(uint16_t)); return *theBuf; };
 	uint32_t	uint32at( size_t offs ) const	{ uint32_t* theBuf = (uint32_t*) buf(offs,sizeof(uint32_t)); return *theBuf; };
 	
+	bool		hasdata( size_t offs, size_t amount )	{ return (mBuffer != NULL) && (amount +offs) <= mSize; };
+	
 	void		tofile( const std::string& fpath );
 	
 protected:

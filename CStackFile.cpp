@@ -1096,7 +1096,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		}
 		else if( strcmp(vBlockType,"PAGE") == 0 )
 		{
-			fprintf( stderr, "Status: Processing '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
+			fprintf( stdout, "Status: Processing '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
 			char		fname[256] = { 0 };
@@ -1109,6 +1109,12 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			size_t		currDataOffs = 12;
 			for( int32_t r = 0; r < numberOfCards; r++ )
 			{
+				if( !blockData.hasdata( currDataOffs, sizeof(int32_t) ) )
+				{
+					fprintf( stderr, "Warning: Premature end of '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
+					break;
+				}
+				
 				int32_t		currCardID = BIG_ENDIAN_32( blockData.int32at( currDataOffs ) );
 				
 				fprintf( xmlFile, "\t\t<cardID>%d</cardID>\n", currCardID );
@@ -1118,7 +1124,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		}
 		else if( strcmp(vBlockType,"FREE") == 0 )	// Not a free, reusable block?
 		{
-			fprintf( stderr, "Status: Skipping '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
+			fprintf( stdout, "Status: Skipping '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
 			fprintf( xmlFile, "\t<!-- Skipped '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
 			theFile.ignore( vBlockSize -12 );	// Skip rest of block data.
 		}
@@ -1206,7 +1212,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				FILE*		theFile = fopen( fname, "w" );
 				if( !theFile )
 				{
-					fprintf( stderr, "Error: Couldn't create file '%s' for 'ICON' %d.\n", fname, theID );
+					fprintf( stderr, "Error: Couldn't create file '%s' for 'PICT' %d.\n", fname, theID );
 					return false;
 				}
 				
@@ -1711,7 +1717,135 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			
 				fprintf( xmlFile, "\t</addcolorcard>\n" );
 			}
+			
+			// Export all XCMD resources:
+			numIcons = Count1Resources( 'XCMD' );
+			for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+			{
+				Handle		currPicture = Get1IndResource( 'XCMD', x );
+				ResID       theID = 0;
+				ResType		theType = 0L;
+				Str255		name;
+				GetResInfo( currPicture, &theID, &theType, name );
+				char		fname[256];
+				int			nameLen = name[0];
+				
+				// C -> P-String:
+				memmove( name, name +1, nameLen );
+				name[nameLen] = 0;
+				
+				fprintf( stderr, "Warning: Skipping code resource 'XCMD' %d \"%s\".\n", theID, name );
 
+				snprintf( fname, sizeof(fname), "XCMD_68k_%d_%s.data", theID, name );
+				FILE*		theFile = fopen( fname, "w" );
+				if( !theFile )
+				{
+					fprintf( stderr, "Error: Couldn't create file '%s' for 'XCMD' %d.\n", fname, theID );
+					return false;
+				}
+				
+				fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
+				fclose( theFile );
+
+				fprintf( xmlFile, "\t<externalcommand type=\"command\" platform=\"mac68k\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />", theID, GetHandleSize( currPicture ), name, fname );
+			}
+			
+			// Export all XFCN resources:
+			numIcons = Count1Resources( 'XFCN' );
+			for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+			{
+				Handle		currPicture = Get1IndResource( 'XFCN', x );
+				ResID       theID = 0;
+				ResType		theType = 0L;
+				Str255		name;
+				GetResInfo( currPicture, &theID, &theType, name );
+				char		fname[256];
+				int			nameLen = name[0];
+				
+				// C -> P-String:
+				memmove( name, name +1, nameLen );
+				name[nameLen] = 0;
+				
+				fprintf( stderr, "Warning: Skipping code resource 'XFCN' %d \"%s\".\n", theID, name );
+
+				snprintf( fname, sizeof(fname), "XFCN_68k_%d_%s.data", theID, name );
+				FILE*		theFile = fopen( fname, "w" );
+				if( !theFile )
+				{
+					fprintf( stderr, "Error: Couldn't create file '%s' for 'XFCN' %d.\n", fname, theID );
+					return false;
+				}
+				
+				fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
+				fclose( theFile );
+
+				fprintf( xmlFile, "\t<externalcommand type=\"function\" platform=\"mac68k\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />", theID, GetHandleSize( currPicture ), name, fname );
+			}
+			
+			// Export all xcmd resources:
+			numIcons = Count1Resources( 'xcmd' );
+			for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+			{
+				Handle		currPicture = Get1IndResource( 'xcmd', x );
+				ResID       theID = 0;
+				ResType		theType = 0L;
+				Str255		name;
+				GetResInfo( currPicture, &theID, &theType, name );
+				char		fname[256];
+				int			nameLen = name[0];
+				
+				// C -> P-String:
+				memmove( name, name +1, nameLen );
+				name[nameLen] = 0;
+				
+				fprintf( stderr, "Warning: Skipping code resource 'xcmd' %d \"%s\".\n", theID, name );
+
+				snprintf( fname, sizeof(fname), "xcmd_ppc_%d_%s.data", theID, name );
+				FILE*		theFile = fopen( fname, "w" );
+				if( !theFile )
+				{
+					fprintf( stderr, "Error: Couldn't create file '%s' for 'xcmd' %d.\n", fname, theID );
+					return false;
+				}
+				
+				fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
+				fclose( theFile );
+
+				fprintf( xmlFile, "\t<externalcommand type=\"command\" platform=\"macppc\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />", theID, GetHandleSize( currPicture ), name, fname );
+			}
+			
+			// Export all XFCN resources:
+			numIcons = Count1Resources( 'xfcn' );
+			for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+			{
+				Handle		currPicture = Get1IndResource( 'xfcn', x );
+				ResID       theID = 0;
+				ResType		theType = 0L;
+				Str255		name;
+				GetResInfo( currPicture, &theID, &theType, name );
+				char		fname[256];
+				int			nameLen = name[0];
+				
+				// C -> P-String:
+				memmove( name, name +1, nameLen );
+				name[nameLen] = 0;
+				
+				fprintf( stderr, "Warning: Skipping code resource 'xfcn' %d \"%s\".\n", theID, name );
+
+				snprintf( fname, sizeof(fname), "xfcn_ppc_%d_%s.data", theID, name );
+				FILE*		theFile = fopen( fname, "w" );
+				if( !theFile )
+				{
+					fprintf( stderr, "Error: Couldn't create file '%s' for 'xfcn' %d.\n", fname, theID );
+					return false;
+				}
+				
+				fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
+				fclose( theFile );
+
+				fprintf( xmlFile, "\t<externalcommand type=\"function\" platform=\"macppc\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />", theID, GetHandleSize( currPicture ), name, fname );
+			}
+			
 			CloseResFile( resRefNum );
 		}
 	}
