@@ -1,7 +1,7 @@
 /*
 
  Picture Class for C++
- (c) 2005 Jonathan Bettencourt / Kreative Korporation
+ (c) 2005 Rebecca Bettencourt / Kreative Korporation
 
  This is a class that lets us manipulate bitmapped graphics in memory.
 

@@ -1,7 +1,7 @@
 /*
 
  WOBA Decoder for C++
- (c) 2005 Jonathan Bettencourt / Kreative Korporation
+ (c) 2005 Rebecca Bettencourt / Kreative Korporation
 
  This decodes the compressed bitmap format that HyperCard uses to store card images.
  The format is called WOBA, which stands for Wrath Of Bill Atkinson, because it was
@@ -243,7 +243,7 @@ void woba_decode(picture & p, char * woba)
 	int opcode = 0;
 	int operand = 0;
 	CBuf operandata(256);
-	int nz = 0, nd = 0;
+	int numberOfZeroBytes = 0, numberOfDataBytes = 0;
 	int k = 0;
 	
 	/*
@@ -291,8 +291,8 @@ void woba_decode(picture & p, char * woba)
 		/* decode mask */
 		if( maskDataLength )
 		{
-			bx8 = maskBoundRectLeft & (~ 0x1F);
-			bx = bx8/8;
+			bx8 = maskBoundRectLeft & (~ 0x1F);	// Get high 11 bits (mask out low 5 bits).
+			bx = bx8 / 8;						// Bitshift by 3?
 			x = 0;
 			y = maskBoundRectTop;
 			rowwidth8 = ( (maskBoundRectRight & 0x1F)?((maskBoundRectRight | 0x1F)+1):maskBoundRectRight ) - (maskBoundRectLeft & (~ 0x1F));
@@ -300,10 +300,15 @@ void woba_decode(picture & p, char * woba)
 			height = maskBoundRectBottom - maskBoundRectTop;
 			dx = dy = 0;
 			repeat = 1;
-			patternbuffer[0] = patternbuffer[2] = patternbuffer[4] = patternbuffer[6] = 170;
-			patternbuffer[1] = patternbuffer[3] = patternbuffer[5] = patternbuffer[7] = 85;
+			
+			// Build a 50% grey checkerboard pattern:
+			patternbuffer[0] = patternbuffer[2] = patternbuffer[4] = patternbuffer[6] = 170;	// Even rows: 170 == 10101010 binary.
+			patternbuffer[1] = patternbuffer[3] = patternbuffer[5] = patternbuffer[7] = 85;		// Odd rows:   85 == 01010101 binary.
+			
+			// Make both buffers large enough to hold a full row of pixels:
 			buffer1.resize(rowwidth);
 			buffer2.resize(rowwidth);
+			
 			j = 0;
 			
 			#if DEBUGOUTPUT
@@ -312,7 +317,7 @@ void woba_decode(picture & p, char * woba)
 			std::cout << "RW8: " << rowwidth8 << endl << "RW: " << rowwidth << endl << "H: " << height << endl;
 			#endif
 			
-			while (j<maskDataLength)
+			while( j < maskDataLength )
 			{
 				opcode = (unsigned char)woba[i];
 				
@@ -328,25 +333,28 @@ void woba_decode(picture & p, char * woba)
 				if( (opcode & 0x80) == 0 )
 				{
 					/* zeros followed by data */
-					nd = opcode >> 4;	// nd = number of data bytes?
-					nz = opcode & 15;	// nz = number of zeroes?
+					numberOfDataBytes = opcode >> 4;	// nd = number of data bytes?
+					numberOfZeroBytes = opcode & 15;	// nz = number of zeroes?
+					
 					#if DEBUGOUTPUT
-					std::cout << "nd: " << nd << endl << "nz: " << nz << endl;
+					std::cout << "nd: " << numberOfDataBytes << endl << "nz: " << numberOfZeroBytes << endl;
 					#endif
-					if (nd)
+					
+					if( numberOfDataBytes )
 					{
-						operandata.memcpy( 0, woba, i, nd );
-						i += nd; j += nd;
+						operandata.memcpy( 0, woba, i, numberOfDataBytes );
+						i += numberOfDataBytes; j += numberOfDataBytes;
 					}
-					while (repeat)
+					
+					while( repeat )
 					{
-						for (k = nz; k > 0; k--)
+						for( k = numberOfZeroBytes; k > 0; k-- )
 						{
-							buffer1[x]=0;
+							buffer1[x] = 0;
 							x++;
 						}
-						buffer1.memcpy( x, operandata, 0, nd );
-						x += nd;
+						buffer1.memcpy( x, operandata, 0, numberOfDataBytes );
+						x += numberOfDataBytes;
 						repeat--;
 					}
 					repeat = 1;
@@ -354,19 +362,19 @@ void woba_decode(picture & p, char * woba)
 				else if( (opcode & 0xE0) == 0xC0 )
 				{
 					/* opcode & 1F * 8 bytes of data */
-					nd = (opcode & 0x1F) * 8;
+					numberOfDataBytes = (opcode & 0x1F) * 8;
 					#if DEBUGOUTPUT
-					std::cout << "nd: " << nd << endl;
+					std::cout << "nd: " << numberOfDataBytes << endl;
 					#endif
-					if (nd)
+					if (numberOfDataBytes)
 					{
-						operandata.memcpy( 0, woba, i, nd );
-						i += nd; j += nd;
+						operandata.memcpy( 0, woba, i, numberOfDataBytes );
+						i += numberOfDataBytes; j += numberOfDataBytes;
 					}
-					while (repeat)
+					while( repeat )
 					{
-						buffer1.memcpy(x, operandata, 0, nd);
-						x += nd;
+						buffer1.memcpy(x, operandata, 0, numberOfDataBytes);
+						x += numberOfDataBytes;
 						repeat--;
 					}
 					repeat = 1;
@@ -374,13 +382,13 @@ void woba_decode(picture & p, char * woba)
 				else if( (opcode & 0xE0) == 0xE0 )
 				{
 					/* opcode & 1F * 16 bytes of zero */
-					nz = (opcode & 0x1F)*16;
+					numberOfZeroBytes = (opcode & 0x1F)*16;
 					#if DEBUGOUTPUT
-					std::cout << "nz: " << nz << endl;
+					std::cout << "nz: " << numberOfZeroBytes << endl;
 					#endif
-					while (repeat)
+					while( repeat )
 					{
-						for (k=nz; k>0; k--)
+						for (k=numberOfZeroBytes; k>0; k--)
 						{
 							if( x < buffer1.size() )
 								buffer1[x] = 0;
@@ -391,7 +399,7 @@ void woba_decode(picture & p, char * woba)
 					repeat=1;
 				}
 				
-				if( (opcode & 0xE0) == 0xA0 )
+				if( (opcode & 0xE0) == 0xA0 )	// Repeat the next opcode a certain number of times.
 				{
 					/* repeat opcode */
 					repeat = (opcode & 0x1F);
@@ -401,8 +409,8 @@ void woba_decode(picture & p, char * woba)
 					switch (opcode)
 					{
 						case 0x80: /* uncompressed data */
-							x=0;
-							while (repeat)
+							x = 0;
+							while( repeat )
 							{
 								p.maskmemcopyin(woba+i, bx8, y, rowwidth);
 								y++;
@@ -413,8 +421,8 @@ void woba_decode(picture & p, char * woba)
 							break;
 						
 						case 0x81: /* white row */
-							x=0;
-							while (repeat)
+							x = 0;
+							while( repeat )
 							{
 								p.maskmemfill(0, bx8, y, rowwidth);
 								y++;
@@ -424,8 +432,8 @@ void woba_decode(picture & p, char * woba)
 							break;
 						
 						case 0x82: /* black row */
-							x=0;
-							while (repeat)
+							x = 0;
+							while( repeat )
 							{
 								p.maskmemfill(0xFF, bx8, y, rowwidth);
 								y++;
@@ -440,8 +448,8 @@ void woba_decode(picture & p, char * woba)
 							std::cout << "patt: " << __hex(operand) << endl;
 							#endif
 							i++; j++;
-							x=0;
-							while (repeat)
+							x = 0;
+							while( repeat )
 							{
 								patternbuffer[y & 7] = operand;
 								p.maskmemfill(operand, bx8, y, rowwidth);
@@ -452,8 +460,8 @@ void woba_decode(picture & p, char * woba)
 							break;
 							
 						case 0x84: /* last pattern */
-							x=0;
-							while (repeat)
+							x = 0;
+							while( repeat )
 							{
 								operand = patternbuffer[y & 7];
 								#if DEBUGOUTPUT
@@ -468,7 +476,7 @@ void woba_decode(picture & p, char * woba)
 							
 						case 0x85: /* previous row */
 							x = 0;
-							while (repeat)
+							while( repeat )
 							{
 								p.maskcopyrow(y, y-1);
 								y++;
@@ -478,8 +486,8 @@ void woba_decode(picture & p, char * woba)
 							break;
 							
 						case 0x86: /* two rows back */
-							x=0;
-							while (repeat)
+							x = 0;
+							while( repeat )
 							{
 								p.maskcopyrow(y, y-2);
 								y++;
@@ -489,14 +497,14 @@ void woba_decode(picture & p, char * woba)
 							break;
 							
 						case 0x87: /* three rows back */
-							x=0;
-							while (repeat)
+							x = 0;
+							while( repeat )
 							{
 								p.maskcopyrow(y, y-3);
 								y++;
 								repeat--;
 							}
-							repeat=1;
+							repeat = 1;
 							break;
 							
 						case 0x88:
@@ -582,7 +590,7 @@ void woba_decode(picture & p, char * woba)
 		}
 		
 		/* decode bitmap */
-		if (pictureDataLength)
+		if( pictureDataLength )
 		{
 			bx8 = pictureBoundRectLeft & (~ 0x1F);
 			bx = bx8/8;
@@ -593,8 +601,11 @@ void woba_decode(picture & p, char * woba)
 			height = pictureBoundRectBottom - pictureBoundRectTop;
 			dx = dy = 0;
 			repeat = 1;
+			
+			// Build a 50% grey pattern, even rows are 10101010 and odd rows are 01010101:
 			patternbuffer[0] = patternbuffer[2] = patternbuffer[4] = patternbuffer[6] = 170;
 			patternbuffer[1] = patternbuffer[3] = patternbuffer[5] = patternbuffer[7] = 85;
+			
 			buffer1.resize(rowwidth);
 			buffer2.resize(rowwidth);
 			j = 0;
@@ -616,28 +627,30 @@ void woba_decode(picture & p, char * woba)
 				std::cout << "dx: " << dx << endl << "dy: " << dy << endl;
 				#endif
 				i++; j++;
-				if ( (opcode & 0x80) == 0 )
+				if( (opcode & 0x80) == 0 )
 				{
 					/* zeros followed by data */
-					nd = opcode >> 4;
-					nz = opcode & 15;
+					numberOfDataBytes = opcode >> 4;
+					numberOfZeroBytes = opcode & 15;
+					
 					#if DEBUGOUTPUT
-					std::cout << "nd: " << nd << endl << "nz: " << nz << endl;
+					std::cout << "nd: " << numberOfDataBytes << endl << "nz: " << numberOfZeroBytes << endl;
 					#endif
-					if (nd)
+					
+					if( numberOfDataBytes )
 					{
-						operandata.memcpy(0, woba,i, nd);
-						i+=nd; j+=nd;
+						operandata.memcpy( 0, woba,i, numberOfDataBytes );
+						i += numberOfDataBytes; j += numberOfDataBytes;
 					}
-					while (repeat)
+					while( repeat )
 					{
-						for( k = nz; k > 0; k-- )
+						for( k = numberOfZeroBytes; k > 0; k-- )
 						{
 							buffer1[x] = 0;
 							x++;
 						}
-						buffer1.memcpy( x, operandata, 0, nd );
-						x += nd;
+						buffer1.memcpy( x, operandata, 0, numberOfDataBytes );
+						x += numberOfDataBytes;
 						repeat--;
 					}
 					repeat = 1;
@@ -645,35 +658,35 @@ void woba_decode(picture & p, char * woba)
 				else if( (opcode & 0xE0) == 0xC0 )
 				{
 					/* opcode & 1F * 8 bytes of data */
-					nd = (opcode & 0x1F)*8;
+					numberOfDataBytes = (opcode & 0x1F) * 8;
 					#if DEBUGOUTPUT
-					std::cout << "nd: " << nd << endl;
+					std::cout << "nd: " << numberOfDataBytes << endl;
 					#endif
-					if (nd)
+					if( numberOfDataBytes )
 					{
-						operandata.memcpy( 0, woba, i, nd );
-						i += nd; j += nd;
+						operandata.memcpy( 0, woba, i, numberOfDataBytes );
+						i += numberOfDataBytes; j += numberOfDataBytes;
 					}
-					while (repeat)
+					while( repeat )
 					{
-						buffer1.memcpy(x, operandata, 0, __min(buffer1.size() -x,nd));
-						x += nd;
+						buffer1.memcpy( x, operandata, 0, __min(buffer1.size() -x, numberOfDataBytes) );
+						x += numberOfDataBytes;
 						repeat--;
 					}
 					repeat = 1;
 				}
-				else if ( (opcode & 0xE0) == 0xE0 )
+				else if( (opcode & 0xE0) == 0xE0 )
 				{
 					/* opcode & 1F * 16 bytes of zero */
-					nz = (opcode & 0x1F) * 16;
+					numberOfZeroBytes = (opcode & 0x1F) * 16;
 					#if DEBUGOUTPUT
-					std::cout << "nz: " << nz << endl;
+					std::cout << "nz: " << numberOfZeroBytes << endl;
 					#endif
-					while (repeat)
+					while( repeat )
 					{
-						for (k=nz; k>0; k--)
+						for( k = numberOfZeroBytes; k > 0; k-- )
 						{
-							buffer1[__min(x,buffer1.size()-1)] = 0;
+							buffer1[ __min(x,buffer1.size()-1) ] = 0;
 							x++;
 						}
 						repeat--;
@@ -681,7 +694,7 @@ void woba_decode(picture & p, char * woba)
 					repeat = 1;
 				}
 				
-				if ( (opcode & 0xE0) == 0xA0 )
+				if( (opcode & 0xE0) == 0xA0 )
 				{
 					/* repeat opcode */
 					repeat = (opcode & 0x1F);
@@ -692,9 +705,9 @@ void woba_decode(picture & p, char * woba)
 					{
 						case 0x80: /* uncompressed data */
 							x = 0;
-							while (repeat)
+							while( repeat )
 							{
-								p.memcopyin(woba+i, bx8, y, rowwidth);
+								p.memcopyin( woba+i, bx8, y, rowwidth );
 								y++;
 								repeat--;
 							}
@@ -703,10 +716,10 @@ void woba_decode(picture & p, char * woba)
 							break;
 							
 						case 0x81: /* white row */
-							x=0;
-							while (repeat)
+							x = 0;
+							while( repeat )
 							{
-								p.memfill(0, bx8, y, rowwidth);
+								p.memfill( 0, bx8, y, rowwidth );
 								y++;
 								repeat--;
 							}
@@ -714,10 +727,10 @@ void woba_decode(picture & p, char * woba)
 							break;
 							
 						case 0x82: /* black row */
-							x=0;
-							while (repeat)
+							x = 0;
+							while( repeat )
 							{
-								p.memfill(0xFF, bx8, y, rowwidth);
+								p.memfill( 0xFF, bx8, y, rowwidth );
 								y++;
 								repeat--;
 							}
@@ -731,47 +744,47 @@ void woba_decode(picture & p, char * woba)
 							#endif
 							i++; j++;
 							x = 0;
-							while (repeat)
+							while( repeat )
 							{
 								patternbuffer[y & 7] = operand;
-								p.memfill(operand, bx8, y, rowwidth);
+								p.memfill( operand, bx8, y, rowwidth );
 								y++;
 								repeat--;
 							}
-							repeat=1;
+							repeat = 1;
 							break;
 							
 						case 0x84: /* last pattern */
-							x=0;
-							while (repeat)
+							x = 0;
+							while( repeat )
 							{
 								operand = patternbuffer[y & 7];
 								#if DEBUGOUTPUT
 								std::cout << "patt: " << __hex(operand) << endl;
 								#endif
-								p.memfill(operand, bx8, y, rowwidth);
+								p.memfill( operand, bx8, y, rowwidth );
 								y++;
 								repeat--;
 							}
-							repeat=1;
+							repeat = 1;
 							break;
 							
 						case 0x85: /* previous row */
-							x=0;
-							while (repeat)
+							x = 0;
+							while( repeat )
 							{
-								p.copyrow(y, y-1);
+								p.copyrow( y, y -1 );
 								y++;
 								repeat--;
 							}
-							repeat=1;
+							repeat = 1;
 							break;
 							
 						case 0x86: /* two rows back */
-							x=0;
-							while (repeat)
+							x = 0;
+							while( repeat )
 							{
-								p.copyrow(y, y-2);
+								p.copyrow( y, y -2 );
 								y++;
 								repeat--;
 							}
@@ -779,14 +792,14 @@ void woba_decode(picture & p, char * woba)
 							break;
 							
 						case 0x87: /* three rows back */
-							x=0;
-							while (repeat)
+							x = 0;
+							while( repeat )
 							{
-								p.copyrow(y, y-3);
+								p.copyrow( y, y -3 );
 								y++;
 								repeat--;
 							}
-							repeat=1;
+							repeat = 1;
 							break;
 							
 						case 0x88:
@@ -822,24 +835,24 @@ void woba_decode(picture & p, char * woba)
 							break;
 							
 						default: /* it's not a repeat or a whole row */
-							if (x >= rowwidth)
+							if( x >= rowwidth )
 							{
-								x=0;
-								if (dx)
+								x = 0;
+								if( dx )
 								{
-									buffer2.memcpy(0, buffer1, 0, rowwidth);
-									for (k = rowwidth8/dx; k>0; k--)
+									buffer2.memcpy( 0, buffer1, 0, rowwidth );
+									for( k = rowwidth8 / dx; k > 0; k-- )
 									{
-										buffer2.shiftnstr(0, rowwidth, dx);
-										buffer1.xornstr(0, buffer2, 0, rowwidth);
+										buffer2.shiftnstr( 0, rowwidth, dx );
+										buffer1.xornstr( 0, buffer2, 0, rowwidth );
 									}
 								}
-								if (dy)
+								if( dy )
 								{
-									p.memcopyout(buffer2, bx8, y-dy, rowwidth);
-									buffer1.xornstr(0, buffer2, 0, rowwidth);
+									p.memcopyout( buffer2, bx8, y-dy, rowwidth );
+									buffer1.xornstr( 0, buffer2, 0, rowwidth );
 								}
-								p.memcopyin(buffer1.buf(), bx8, y, rowwidth);
+								p.memcopyin( buffer1.buf(), bx8, y, rowwidth );
 								y++;
 							}
 							break;

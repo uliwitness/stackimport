@@ -1,7 +1,7 @@
 /*
 
  WOBA Decoder for C++
- (c) 2005 Jonathan Bettencourt / Kreative Korporation
+ (c) 2005 Rebecca Bettencourt / Kreative Korporation
 
  This decodes the compressed bitmap format that HyperCard uses to store card images.
  The format is called WOBA, which stands for Wrath Of Bill Atkinson, because it was
