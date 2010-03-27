@@ -624,6 +624,11 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			fprintf( xmlFile, "\t\t<id>%d</id>\n", vBlockID );
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
+			
+			char sfn[256] = { 0 };
+			snprintf( sfn, sizeof(sfn), "CARD_%d.data", vBlockID );
+			blockData.tofile( sfn );
+
 			int32_t	unknownFiller = BIG_ENDIAN_32(blockData.int32at( 0 ));
 			fprintf( xmlFile, "\t\t<filler1>%d</filler1>\n", unknownFiller );
 			int32_t	bitmapID = BIG_ENDIAN_32(blockData.int32at( 4 ));
@@ -633,7 +638,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			fprintf( xmlFile, "\t\t<cantDelete> %s </cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
 			fprintf( xmlFile, "\t\t<showPict> %s </showPict>\n", (flags & (1 << 13)) ? "<false />" : "<true />" );	// showPict is stored reversed.
 			fprintf( xmlFile, "\t\t<dontSearch> %s </dontSearch>\n", (flags & (1 << 11)) ? "<true />" : "<false />" );
-			int16_t	owner = BIG_ENDIAN_16(blockData.int16at( 22 ));
+			int32_t	owner = BIG_ENDIAN_32(blockData.int32at( 24 ));
 			fprintf( xmlFile, "\t\t<owner>%d</owner>\n", owner );
 			int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( 28 ));
 			int16_t	numContents = BIG_ENDIAN_16(blockData.int16at( 36 ));
@@ -1747,7 +1752,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
 				fclose( theFile );
 
-				fprintf( xmlFile, "\t<externalcommand type=\"command\" platform=\"mac68k\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />", theID, GetHandleSize( currPicture ), name, fname );
+				fprintf( xmlFile, "\t<externalcommand type=\"command\" platform=\"mac68k\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
+									theID, GetHandleSize( currPicture ), name, fname );
 			}
 			
 			// Export all XFCN resources:
@@ -1779,7 +1785,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
 				fclose( theFile );
 
-				fprintf( xmlFile, "\t<externalcommand type=\"function\" platform=\"mac68k\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />", theID, GetHandleSize( currPicture ), name, fname );
+				fprintf( xmlFile, "\t<externalcommand type=\"function\" platform=\"mac68k\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
+									theID, GetHandleSize( currPicture ), name, fname );
 			}
 			
 			// Export all xcmd resources:
@@ -1811,7 +1818,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
 				fclose( theFile );
 
-				fprintf( xmlFile, "\t<externalcommand type=\"command\" platform=\"macppc\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />", theID, GetHandleSize( currPicture ), name, fname );
+				fprintf( xmlFile, "\t<externalcommand type=\"command\" platform=\"macppc\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
+									theID, GetHandleSize( currPicture ), name, fname );
 			}
 			
 			// Export all XFCN resources:
@@ -1843,7 +1851,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
 				fclose( theFile );
 
-				fprintf( xmlFile, "\t<externalcommand type=\"function\" platform=\"macppc\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />", theID, GetHandleSize( currPicture ), name, fname );
+				fprintf( xmlFile, "\t<externalcommand type=\"function\" platform=\"macppc\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
+									theID, GetHandleSize( currPicture ), name, fname );
 			}
 			
 			CloseResFile( resRefNum );
