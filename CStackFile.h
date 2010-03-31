@@ -83,6 +83,7 @@ protected:
 	bool	LoadFontTable( int32_t blockID, CBuf& blockData );
 	bool	LoadStyleTable( int32_t blockID, CBuf& blockData );
 	bool	LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& blockData );	// Card or Bkgd.
+	bool	LoadBackgroundBlock( int32_t blockID, CBuf& blockData );
 
 protected:
 	bool		mDumpRawBlockData;
