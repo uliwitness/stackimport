@@ -157,7 +157,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			break;
 		else if( strcmp(vBlockType,"BMAP") == 0 )	// Image block?
 		{
-			fprintf( stdout, "Status: Processing '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
+			fprintf( stdout, "Status: Processing '%4s' #%d %X (%d bytes)\n", vBlockType, vBlockID, vBlockID, vBlockSize );
 			fprintf( xmlFile, "\t<!-- Processed '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
 			picture		thePicture;
 			char*		pictureData = new char[vBlockSize -12];
@@ -176,6 +176,11 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			fprintf( xmlFile, "\t<stack>\n" );
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
+			
+			char sfn[256] = { 0 };
+			snprintf( sfn, sizeof(sfn), "STAK_%d.data", vBlockID );
+			blockData.tofile( sfn );
+			
 			numberOfCards = BIG_ENDIAN_32(blockData.int32at( 32 ));
 			fprintf( xmlFile, "\t\t<cardCount>%d</cardCount>\n", numberOfCards );
 			int32_t	cardID = BIG_ENDIAN_32(blockData.int32at( 36 ));
@@ -246,12 +251,17 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		}
 		else if( strcmp(vBlockType,"BKGD") == 0 )
 		{
-			fprintf( stdout, "Status: Processing '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
+			fprintf( stdout, "Status: Processing '%4s' #%d %X (%d bytes)\n", vBlockType, vBlockID, vBlockID, vBlockSize );
 			fprintf( xmlFile, "\t<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
 			fprintf( xmlFile, "\t<background>\n" );
 			fprintf( xmlFile, "\t\t<id>%d</id>\n", vBlockID );
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
+			
+			char sfn[256] = { 0 };
+			snprintf( sfn, sizeof(sfn), "BKGD_%d.data", vBlockID );
+			blockData.tofile( sfn );
+
 			int32_t	bitmapID = BIG_ENDIAN_32(blockData.int32at( 4 ));
 			fprintf( xmlFile, "\t\t<bitmap>BMAP_%u.pbm</bitmap>\n", bitmapID );
 			int16_t	flags = BIG_ENDIAN_16(blockData.int16at( 0x0C -4 ));
@@ -618,7 +628,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		}
 		else if( strcmp(vBlockType,"CARD") == 0 )
 		{
-			fprintf( stdout, "Status: Processing '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
+			fprintf( stdout, "Status: Processing '%4s' #%d %X (%d bytes)\n", vBlockType, vBlockID, vBlockID, vBlockSize );
 			fprintf( xmlFile, "\t<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
 			fprintf( xmlFile, "\t<card>\n" );
 			fprintf( xmlFile, "\t\t<id>%d</id>\n", vBlockID );
@@ -1006,7 +1016,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		}
 		else if( strcmp(vBlockType,"FTBL") == 0 )
 		{
-			fprintf( stdout, "Status: Processing '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
+			fprintf( stdout, "Status: Processing '%4s' #%d %X (%d bytes)\n", vBlockType, vBlockID, vBlockID, vBlockSize );
 			fprintf( xmlFile, "\t<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
@@ -1043,7 +1053,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		}
 		else if( strcmp(vBlockType,"STBL") == 0 )
 		{
-			fprintf( stdout, "Status: Processing '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
+			fprintf( stdout, "Status: Processing '%4s' #%d %X (%d bytes)\n", vBlockType, vBlockID, vBlockID, vBlockSize );
 			fprintf( xmlFile, "\t<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
@@ -1099,9 +1109,38 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				fprintf( xmlFile, "\t</styleentry>\n" );
 			}
 		}
+		else if( strcmp(vBlockType,"LIST") == 0 )
+		{
+			fprintf( stdout, "Status: Processing '%4s' #%d %X (%d bytes)\n", vBlockType, vBlockID, vBlockID, vBlockSize );
+			CBuf		blockData( vBlockSize -12 );
+			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
+			char		fname[256] = { 0 };
+			snprintf( fname, sizeof(fname), "%s_%d.data", vBlockType, vBlockID );
+			blockData.tofile( fname );
+			
+			fprintf( xmlFile, "\t<pagetablelist>\n" );
+			size_t		currDataOffs = 4;
+			int32_t		numPageTables = BIG_ENDIAN_32(blockData.int32at(currDataOffs));
+			currDataOffs += 26;
+			for( int32_t r = 0; r < numberOfCards; r++ )
+			{
+				currDataOffs += 2;
+				if( !blockData.hasdata( currDataOffs, sizeof(int32_t) ) )
+				{
+					fprintf( stderr, "Warning: Premature end of '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
+					break;
+				}
+				
+				int32_t		currPagetableID = BIG_ENDIAN_32( blockData.int32at( currDataOffs ) );
+				
+				fprintf( xmlFile, "\t\t<pagetable>%d</pagetable>\n", currPagetableID );
+				currDataOffs += 4;
+			}
+			fprintf( xmlFile, "\t</pagetablelist>\n" );
+		}
 		else if( strcmp(vBlockType,"PAGE") == 0 )
 		{
-			fprintf( stdout, "Status: Processing '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
+			fprintf( stdout, "Status: Processing '%4s' #%d %X (%d bytes)\n", vBlockType, vBlockID, vBlockID, vBlockSize );
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
 			char		fname[256] = { 0 };
@@ -1135,7 +1174,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		}
 		else
 		{
-			fprintf( stderr, "Warning: Skipping '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
+			fprintf( stderr, "Warning: Skipping '%4s' %X #%d (%d bytes)\n", vBlockType, vBlockID, vBlockID, vBlockSize );
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
 			char		fname[256] = { 0 };
