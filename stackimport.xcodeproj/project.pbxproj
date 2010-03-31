@@ -18,6 +18,7 @@
 		5542D08D113B159300555C64 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5542D08C113B159300555C64 /* Carbon.framework */; };
 		55C68B071163C0F800D8B44C /* CBuf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55C68B061163C0F800D8B44C /* CBuf.cpp */; };
 		55C68B0D1163C18B00D8B44C /* byteutils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55C68B0C1163C18B00D8B44C /* byteutils.cpp */; };
+		55C68BF41164062A00D8B44C /* Tests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55C68BF31164062A00D8B44C /* Tests.cpp */; };
 		8DD76F650486A84900D96B5E /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 08FB7796FE84155DC02AAC07 /* main.cpp */; settings = {ATTRIBUTES = (); }; };
 		8DD76F6A0486A84900D96B5E /* stackimport.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C6859E8B029090EE04C91782 /* stackimport.1 */; };
 /* End PBXBuildFile section */
@@ -54,6 +55,7 @@
 		55C68B061163C0F800D8B44C /* CBuf.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CBuf.cpp; sourceTree = "<group>"; };
 		55C68B0B1163C18B00D8B44C /* byteutils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = byteutils.h; sourceTree = "<group>"; };
 		55C68B0C1163C18B00D8B44C /* byteutils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = byteutils.cpp; sourceTree = "<group>"; };
+		55C68BF31164062A00D8B44C /* Tests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Tests.cpp; sourceTree = "<group>"; };
 		8DD76F6C0486A84900D96B5E /* stackimport */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = stackimport; sourceTree = BUILT_PRODUCTS_DIR; };
 		C6859E8B029090EE04C91782 /* stackimport.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = stackimport.1; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -93,6 +95,7 @@
 				55C68B051163C0F800D8B44C /* CBuf.h */,
 				55C68B061163C0F800D8B44C /* CBuf.cpp */,
 				3D0EA8160AD7028800A66EA1 /* Jons Wobadecode */,
+				55C68BF31164062A00D8B44C /* Tests.cpp */,
 			);
 			name = Source;
 			sourceTree = "<group>";
@@ -175,6 +178,7 @@
 				3D0EA80F0AD7027F00A66EA1 /* woba.cpp in Sources */,
 				55C68B071163C0F800D8B44C /* CBuf.cpp in Sources */,
 				55C68B0D1163C18B00D8B44C /* byteutils.cpp in Sources */,
+				55C68BF41164062A00D8B44C /* Tests.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

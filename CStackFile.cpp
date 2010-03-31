@@ -111,8 +111,8 @@ void	NumVersionToStr( char numVersion[4], char outStr[16] )
 
 
 CStackFile::CStackFile()
-	: mDumpRawBlockData(false), mStatusMessages(true), mXmlFile(NULL), mListBlockID(-1),
-	mCardBlockSize(-1)
+	: mDumpRawBlockData(false), mStatusMessages(true), mXmlFile(NULL),
+	mCardBlockSize(-1), mListBlockID(-1)
 {
 	
 }
@@ -790,58 +790,6 @@ bool	CStackFile::LoadListBlock( CBuf& blockData )
 
 bool	CStackFile::LoadFile( const std::string& fpath )
 {
-	#if 0
-	CStackBlockIdentifier		a( "TEST", 1 );
-	CStackBlockIdentifier		b( "TEST", 2 );
-	CStackBlockIdentifier		wildcardYes( "TEST" );
-	CStackBlockIdentifier		wildcardNo( "TOON" );
-	
-	// ==
-	bool	testState = a == b;
-	
-	testState = a == wildcardYes;
-	testState = wildcardYes == a;
-	
-	testState = b == wildcardYes;
-	testState = wildcardYes == b;
-	
-	testState = a == wildcardNo;
-	testState = wildcardNo == a;
-	
-	testState = b == wildcardNo;
-	testState = wildcardNo == b;
-	
-	// <
-	testState = a < b;
-	
-	testState = a < wildcardYes;
-	testState = wildcardYes < a;
-	
-	testState = b < wildcardYes;
-	testState = wildcardYes < b;
-	
-	testState = a < wildcardNo;
-	testState = wildcardNo < a;
-	
-	testState = b < wildcardNo;
-	testState = wildcardNo < b;
-	
-	// >
-	testState = a > b;
-	
-	testState = a > wildcardYes;
-	testState = wildcardYes > a;
-	
-	testState = b > wildcardYes;
-	testState = wildcardYes > b;
-	
-	testState = a > wildcardNo;
-	testState = wildcardNo > a;
-	
-	testState = b > wildcardNo;
-	testState = wildcardNo > b;
-	#endif
-	
 	std::ifstream		theFile( fpath.c_str() );
 	if( !theFile.is_open() )
 	{
@@ -901,7 +849,6 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
 			CStackBlockIdentifier	theTypeAndID(vBlockType,vBlockID);
 			mBlockMap[theTypeAndID] = blockData;
-			//mBlockMap.insert( std::make_pair(theTypeAndID,blockData) );
 			printf( "Status: Located block %s %d - (%d)\n", vBlockType, vBlockID, mBlockMap.size() );
 		}
 	}
