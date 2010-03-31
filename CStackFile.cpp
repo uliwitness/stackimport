@@ -109,8 +109,739 @@ void	NumVersionToStr( char numVersion[4], char outStr[16] )
 }
 
 
-bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool statusMessages )
+
+CStackFile::CStackFile()
+	: mDumpRawBlockData(false), mStatusMessages(true), mXmlFile(NULL), mListBlockID(-1),
+	mCardBlockSize(-1)
 {
+	
+}
+
+
+bool	CStackFile::LoadStackBlock( CBuf& blockData )
+{
+	if( mStatusMessages )
+		fprintf( stdout, "Status: Processing 'STAK' #-1 (%lu bytes)\n", blockData.size() );
+	fprintf( mXmlFile, "\t<stack>\n" );
+	
+	if( mDumpRawBlockData )
+	{
+		char sfn[256] = { 0 };
+		snprintf( sfn, sizeof(sfn), "STAK_-1.data" );
+		blockData.tofile( sfn );
+	}
+	
+	int32_t	numberOfCards = BIG_ENDIAN_32(blockData.int32at( 32 ));
+	fprintf( mXmlFile, "\t\t<cardCount>%d</cardCount>\n", numberOfCards );
+	int32_t	cardID = BIG_ENDIAN_32(blockData.int32at( 36 ));
+	fprintf( mXmlFile, "\t\t<cardID>%d</cardID>\n", cardID );
+	mListBlockID = BIG_ENDIAN_32(blockData.int32at( 40 ));
+	fprintf( mXmlFile, "\t\t<listID>%d</listID>\n", mListBlockID );
+	int16_t	userLevel = BIG_ENDIAN_16(blockData.int16at( 60 ));
+	fprintf( mXmlFile, "\t\t<userLevel>%d</userLevel>\n", userLevel );
+	int16_t	flags = BIG_ENDIAN_16(blockData.int16at( 64 ));
+	fprintf( mXmlFile, "\t\t<cantModify> %s </cantModify>\n", (flags & (1 << 15)) ? "<true />" : "<false />" );
+	fprintf( mXmlFile, "\t\t<cantDelete> %s </cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
+	fprintf( mXmlFile, "\t\t<privateAccess> %s </privateAccess>\n", (flags & (1 << 13)) ? "<true />" : "<false />" );
+	fprintf( mXmlFile, "\t\t<cantAbort> %s </cantAbort>\n", (flags & (1 << 11)) ? "<true />" : "<false />" );
+	fprintf( mXmlFile, "\t\t<cantPeek> %s </cantPeek>\n", (flags & (1 << 10)) ? "<true />" : "<false />" );
+	char		versStr[16] = { 0 };
+	int32_t	version0 = blockData.int32at( 84 );
+	NumVersionToStr( (char*) &version0, versStr );
+	fprintf( mXmlFile, "\t\t<createdByVersion>%s</createdByVersion>\n", versStr );
+	int32_t	version1 = blockData.int32at( 88 );
+	NumVersionToStr( (char*) &version1, versStr );
+	fprintf( mXmlFile, "\t\t<lastCompactedVersion>%s</lastCompactedVersion>\n", versStr );
+	int32_t	version2 = blockData.int32at( 92 );
+	NumVersionToStr( (char*) &version2, versStr );
+	fprintf( mXmlFile, "\t\t<lastEditedVersion>%s</lastEditedVersion>\n", versStr );
+	int32_t	version3 = blockData.int32at( 96 );
+	NumVersionToStr( (char*) &version3, versStr );
+	fprintf( mXmlFile, "\t\t<firstEditedVersion>%s</firstEditedVersion>\n", versStr );
+	int16_t	height = BIG_ENDIAN_16(blockData.int16at( 428 ));
+	if( height == 0 )
+		height = 342;
+	int16_t	width = BIG_ENDIAN_16(blockData.int16at( 430 ));
+	if( width == 0 )
+		width = 512;
+	fprintf( mXmlFile, "\t\t<cardSize>\n\t\t\t<width>%d</width>\n\t\t\t<height>%d</height>\n\t\t</cardSize>\n", width, height );
+
+	fprintf( mXmlFile, "\t\t<patterns>\n" );
+	char			pattern[8] = { 0 };
+	int				offs = 692;
+	for( int n = 0; n < 40; n++ )
+	{
+		memmove( pattern, blockData.buf( offs, 8 ), 8 );
+		char		fname[256] = { 0 };
+		sprintf( fname, "PAT_%u.pbm", n +1 );
+		picture		thePicture( 8, 8, 1, false );
+		thePicture.memcopyin( pattern, 0, 8 );
+		thePicture.writebitmaptopbm( fname );
+		offs += 8;
+		fprintf(mXmlFile,"\t\t\t<pattern>PAT_%u.pbm</pattern>\n", n+1);
+	}
+	fprintf( mXmlFile, "\t\t</patterns>\n" );
+	
+	int x = 0, startOffs = 1524;
+	fprintf( mXmlFile, "\t\t<script>" );
+	for( x = startOffs; blockData[x] != 0; x++ )
+	{
+		char currCh = blockData[x];
+		if( currCh == '<' )
+			fprintf( mXmlFile, "&lt;" );
+		else if( currCh == '>' )
+			fprintf( mXmlFile, "&gt;" );
+		else if( currCh == '&' )
+			fprintf( mXmlFile, "&amp;" );
+		else
+			fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
+	}
+	fprintf( mXmlFile, "</script>\n" );
+	fprintf( mXmlFile, "\t</stack>\n" );
+	
+	return true;
+}
+
+
+bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
+{
+	int32_t	vBlockSize = blockData.size();
+	if( mStatusMessages )
+		fprintf( stdout, "Status: Processing 'STBL' #%d %X (%d bytes)\n", blockID, blockID, vBlockSize );
+	fprintf( mXmlFile, "\t<!-- 'STBL' #%d (%d bytes) -->\n", blockID, vBlockSize );
+	
+	if( mDumpRawBlockData )
+	{
+		char sfn[256] = { 0 };
+		snprintf( sfn, sizeof(sfn), "STBL_%d.data", blockID );
+		blockData.tofile( sfn );
+	}
+	
+	size_t		currOffs = 4;
+	int32_t		numStyles = BIG_ENDIAN_32(blockData.int32at( currOffs ));
+	currOffs += 4;
+	
+	for( int s = 0; s < numStyles; s++ )
+	{
+		currOffs += 16;
+		
+		fprintf( mXmlFile, "\t<styleentry>\n" );
+		int16_t	fontID = BIG_ENDIAN_16(blockData.int16at( currOffs ));
+		if( fontID != -1 )
+			fprintf( mXmlFile, "\t\t<font>%d</font>\n", fontID );
+		currOffs += 2;
+		
+		int16_t	textStyleFlags = BIG_ENDIAN_16(blockData.int16at( currOffs ));
+		currOffs += 2;
+		
+		if( textStyleFlags == 0 )
+			fprintf( mXmlFile, "\t\t<textStyle>plain</textStyle>\n" );
+		else if( textStyleFlags != -1 )	// -1 means use field style.
+		{
+			if( textStyleFlags & (1 << 15) )
+				fprintf( mXmlFile, "\t\t<textStyle>group</textStyle>\n" );
+			if( textStyleFlags & (1 << 14) )
+				fprintf( mXmlFile, "\t\t<textStyle>extend</textStyle>\n" );
+			if( textStyleFlags & (1 << 13) )
+				fprintf( mXmlFile, "\t\t<textStyle>condense</textStyle>\n" );
+			if( textStyleFlags & (1 << 12) )
+				fprintf( mXmlFile, "\t\t<textStyle>shadow</textStyle>\n" );
+			if( textStyleFlags & (1 << 11) )
+				fprintf( mXmlFile, "\t\t<textStyle>outline</textStyle>\n" );
+			if( textStyleFlags & (1 << 10) )
+				fprintf( mXmlFile, "\t\t<textStyle>underline</textStyle>\n" );
+			if( textStyleFlags & (1 << 9) )
+				fprintf( mXmlFile, "\t\t<textStyle>italic</textStyle>\n" );
+			if( textStyleFlags & (1 << 8) )
+				fprintf( mXmlFile, "\t\t<textStyle>bold</textStyle>\n" );
+		}
+		int16_t	fontSize = BIG_ENDIAN_16(blockData.int16at( currOffs ));
+		if( fontSize != -1 )
+			fprintf( mXmlFile, "\t\t<size>%d</size>\n", fontSize );
+		currOffs += 2;
+		currOffs += 2;	// 2 more padding?
+		
+		fprintf( mXmlFile, "\t</styleentry>\n" );
+	}
+	
+	return true;
+}
+
+bool	CStackFile::LoadFontTable( int32_t blockID, CBuf& blockData )
+{
+	uint32_t	vBlockSize = blockData.size();
+	if( mStatusMessages )
+		fprintf( stdout, "Status: Processing 'FTBL' #%d %X (%d bytes)\n", blockID, blockID, vBlockSize );
+	fprintf( mXmlFile, "\t<!-- 'FTBL' #%d (%d bytes) -->\n", blockID, vBlockSize );
+	int16_t	numFonts = BIG_ENDIAN_16(blockData.int16at( 6 ));
+	size_t	currOffsIntoData = 8;
+	currOffsIntoData += 4;	// Reserved?
+	for( int n = 0; n < numFonts; n++ )
+	{
+		fprintf( mXmlFile, "\t<font>\n" );
+		int16_t	fontID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
+		fprintf( mXmlFile, "\t\t<id>%d</id>\n", fontID );
+		
+		int x = 0, startOffs = currOffsIntoData +2;
+		fprintf( mXmlFile, "\t\t<name>" );
+		for( x = startOffs; blockData[x] != 0; x++ )
+		{
+			char currCh = blockData[x];
+			if( currCh == '<' )
+				fprintf( mXmlFile, "&lt;" );
+			else if( currCh == '>' )
+				fprintf( mXmlFile, "&gt;" );
+			else if( currCh == '&' )
+				fprintf( mXmlFile, "&amp;" );
+			else
+				fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
+		}
+		fprintf( mXmlFile, "</name>\n" );
+	
+		currOffsIntoData = x +1;
+		currOffsIntoData += currOffsIntoData %2;	// Align on even byte.
+		
+		fprintf( mXmlFile, "\t</font>\n" );
+	}
+	
+	return true;
+}
+
+
+bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& blockData )
+{
+	int32_t		vBlockSize = blockData.size();
+	
+	if( mStatusMessages )
+		fprintf( stdout, "Status: Processing '%4s' #%d %X (%d bytes)\n", vBlockType, blockID, blockID, vBlockSize );
+	fprintf( mXmlFile, "\t<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, blockID, vBlockSize );
+	if( strcmp( "BKGD", vBlockType ) == 0 )
+		fprintf( mXmlFile, "\t<background>\n" );
+	else
+		fprintf( mXmlFile, "\t<card>\n" );
+	fprintf( mXmlFile, "\t\t<id>%d</id>\n", blockID );
+	
+	if( mDumpRawBlockData )
+	{
+		char sfn[256] = { 0 };
+		snprintf( sfn, sizeof(sfn), "%s_%d.data", vBlockType, blockID );
+		blockData.tofile( sfn );
+	}
+
+	int32_t	unknownFiller = BIG_ENDIAN_32(blockData.int32at( 0 ));
+	fprintf( mXmlFile, "\t\t<filler1>%d</filler1>\n", unknownFiller );
+	int32_t	bitmapID = BIG_ENDIAN_32(blockData.int32at( 4 ));
+	if( bitmapID != 0 )
+		fprintf( mXmlFile, "\t\t<bitmap>BMAP_%u.pbm</bitmap>\n", bitmapID );
+	int16_t	flags = BIG_ENDIAN_16(blockData.int16at( 8 ));
+	fprintf( mXmlFile, "\t\t<cantDelete> %s </cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
+	fprintf( mXmlFile, "\t\t<showPict> %s </showPict>\n", (flags & (1 << 13)) ? "<false />" : "<true />" );	// showPict is stored reversed.
+	fprintf( mXmlFile, "\t\t<dontSearch> %s </dontSearch>\n", (flags & (1 << 11)) ? "<true />" : "<false />" );
+	int32_t	owner = BIG_ENDIAN_32(blockData.int32at( 24 ));
+	fprintf( mXmlFile, "\t\t<owner>%d</owner>\n", owner );
+	int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( 28 ));
+	int16_t	numContents = BIG_ENDIAN_16(blockData.int16at( 36 ));
+	size_t	currOffsIntoData = 42;
+	for( int n = 0; n < numParts; n++ )
+	{
+		int16_t	partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
+		
+		fprintf( mXmlFile, "\t\t<part>\n" );
+		int16_t	partID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +2 ));
+		fprintf( mXmlFile, "\t\t\t<id>%d</id>\n", partID );
+		int16_t	flagsAndType = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +4 ));
+		int16_t	partType = flagsAndType >> 8;
+		bool	isButton = partType == 1;
+		fprintf( mXmlFile, "\t\t\t<type>%s</type>\n", isButton ? "button" : "field" );
+		fprintf( mXmlFile, "\t\t\t<visible> %s </visible>\n", (flagsAndType & (1 << 7)) ? "<false />" : "<true />" );	// Really "hidden" flag.
+		if( !isButton )
+			fprintf( mXmlFile, "\t\t\t<dontWrap> %s </dontWrap>\n", (flagsAndType & (1 << 5)) ? "<true />" : "<false />" );
+		else
+			fprintf( mXmlFile, "\t\t\t<reserved5> %d </reserved5>\n", (flagsAndType & (1 << 5)) >> 5 );
+		if( !isButton )
+			fprintf( mXmlFile, "\t\t\t<dontSearch> %s </dontSearch>\n", (flagsAndType & (1 << 4)) ? "<true />" : "<false />" );
+		else
+			fprintf( mXmlFile, "\t\t\t<reserved4> %d </reserved4>\n", (flagsAndType & (1 << 4)) >> 4 );
+		if( !isButton )
+			fprintf( mXmlFile, "\t\t\t<sharedText> %s </sharedText>\n", (flagsAndType & (1 << 3)) ? "<true />" : "<false />" );
+		else
+			fprintf( mXmlFile, "\t\t\t<reserved3> %d </reserved3>\n", (flagsAndType & (1 << 3)) >> 3 );
+		if( !isButton )
+			fprintf( mXmlFile, "\t\t\t<fixedLineHeight> %s </fixedLineHeight>\n", (flagsAndType & (1 << 2)) ? "<false />" : "<true />" );	// Really "use real line height" flag.
+		else
+			fprintf( mXmlFile, "\t\t\t<reserved2> %d </reserved2>\n", (flagsAndType & (1 << 2)) >> 2 );
+		if( !isButton )
+			fprintf( mXmlFile, "\t\t\t<autoTab> %s </autoTab>\n", (flagsAndType & (1 << 1)) ? "<true />" : "<false />" );
+		else
+			fprintf( mXmlFile, "\t\t\t<reserved1> %d </reserved1>\n", (flagsAndType & (1 << 1)) >> 1 );
+		if( isButton )
+			fprintf( mXmlFile, "\t\t\t<enabled> %s </enabled>\n", (flagsAndType & (1 << 0)) ? "<false />" : "<true />" );	// Same as lockText on fields. Really "disabled" flag.
+		else
+			fprintf( mXmlFile, "\t\t\t<lockText> %s </lockText>\n", (flagsAndType & (1 << 0)) ? "<true />" : "<false />" );	// Same as enabled on buttons.
+		fprintf( mXmlFile, "\t\t\t<rect>\n\t\t\t\t<left>%d</left>\n\t\t\t\t<top>%d</top>\n\t\t\t\t<right>%d</right>\n\t\t\t\t<bottom>%d</bottom>\n\t\t\t</rect>\n",
+					BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +8 )),
+					BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +6 )),
+					BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +12 )),
+					BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +10 )) );
+		int16_t	moreFlags = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +14 ));
+		int8_t	styleFromLowNibble = moreFlags & 15;
+		const char*		styleStr = "unknown";
+		if( isButton )
+		{
+			switch( styleFromLowNibble )
+			{
+				case 0:
+					styleStr = "transparent";
+					break;
+				case 1:
+					styleStr = "opaque";
+					break;
+				case 2:
+					styleStr = "rectangle";
+					break;
+				case 3:
+					styleStr = "roundrect";
+					break;
+				case 4:
+					styleStr = "shadow";
+					break;
+				case 5:
+					styleStr = "checkbox";
+					break;
+				case 6:
+					styleStr = "radiobutton";
+					break;
+				case 8:
+					styleStr = "standard";
+					break;
+				case 9:
+					styleStr = "default";
+					break;
+				case 10:
+					styleStr = "oval";
+					break;
+				case 11:
+					styleStr = "popup";
+					break;
+			}
+		}
+		else
+		{
+			switch( styleFromLowNibble )
+			{
+				case 0:
+					styleStr = "transparent";
+					break;
+				case 1:
+					styleStr = "opaque";
+					break;
+				case 2:
+					styleStr = "rectangle";
+					break;
+				case 4:
+					styleStr = "shadow";
+					break;
+				case 7:
+					styleStr = "scrolling";
+					break;
+			}
+		}
+		fprintf( mXmlFile, "\t\t\t<style>%s</style>\n", styleStr );
+		moreFlags = moreFlags >> 8;
+		int8_t	family = moreFlags & 15;
+		if( isButton )
+			fprintf( mXmlFile, "\t\t\t<showName> %s </showName>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
+		else
+			fprintf( mXmlFile, "\t\t\t<autoSelect> %s </autoSelect>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
+		if( isButton )
+			fprintf( mXmlFile, "\t\t\t<highlight> %s </highlight>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
+		else
+			fprintf( mXmlFile, "\t\t\t<showLines> %s </showLines>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
+		if( !isButton )
+			fprintf( mXmlFile, "\t\t\t<wideMargins> %s </wideMargins>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
+		else
+			fprintf( mXmlFile, "\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5) || family != 0) ? "<true />" : "<false />" );
+		if( isButton )
+			fprintf( mXmlFile, "\t\t\t<sharedHighlight> %s </sharedHighlight>\n", (moreFlags & (1 << 4)) ? "<false />" : "<true />" );
+		else
+			fprintf( mXmlFile, "\t\t\t<multipleLines> %s </multipleLines>\n", (moreFlags & (1 << 4)) ? "<true />" : "<false />" );
+		if( isButton )
+			fprintf( mXmlFile, "\t\t\t<family>%d</family>\n", family );
+		else
+			fprintf( mXmlFile, "\t\t\t<reservedFamily> %d </reservedFamily>\n", family );
+		
+		// titleWidth & iconID are list fields' lastSelectedLine and firstSelectedLine
+		// 	We generate a list containing each selected line so users of the file
+		//	format can add multiple selection easily.
+		int16_t	titleWidth = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +16 ));
+		int16_t	iconID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +18 ));
+		if( !isButton && iconID > 0 )
+		{
+			if( titleWidth <= 0 )
+				titleWidth = iconID;
+			
+			fprintf( mXmlFile, "\t\t\t<selectedLines>\n", titleWidth );
+			for( int d = iconID; d <= titleWidth; d++ )
+				fprintf( mXmlFile, "\t\t\t\t<integer>%d</integer>\n", d );
+			fprintf( mXmlFile, "\t\t\t</selectedLines>\n" );
+		}
+		else if( isButton && styleFromLowNibble == 11 )	// Popup buttons use icon ID for selected line:
+		{
+			fprintf( mXmlFile, "\t\t\t<titleWidth>%d</titleWidth>\n", titleWidth );
+			if( iconID != 0 )
+			{
+				fprintf( mXmlFile, "\t\t\t<selectedLines>\n" );
+				fprintf( mXmlFile, "\t\t\t\t<integer>%d</integer>\n", iconID );
+				fprintf( mXmlFile, "\t\t\t</selectedLines>\n" );
+			}
+		}
+		else
+		{
+			fprintf( mXmlFile, "\t\t\t<titleWidth>%d</titleWidth>\n", titleWidth );
+			fprintf( mXmlFile, "\t\t\t<icon>%d</icon>\n", iconID );
+		}
+		int16_t	textAlign = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +20 ));
+		const char*		textAlignStr = "unknown";
+		switch( textAlign )
+		{
+			case 0:
+				textAlignStr = "left";
+				break;
+			case 1:
+				textAlignStr = "center";
+				break;
+			case -1:
+				textAlignStr = "right";
+				break;
+			case -2:
+				textAlignStr = "forceLeft";
+				break;
+		}
+		fprintf( mXmlFile, "\t\t\t<textAlign>%s</textAlign>\n", textAlignStr );
+		int16_t	textFontID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +22 ));
+		fprintf( mXmlFile, "\t\t\t<textFontID>%d</textFontID>\n", textFontID );
+		int16_t	textSize = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +24 ));
+		fprintf( mXmlFile, "\t\t\t<textSize>%d</textSize>\n", textSize );
+		int16_t	textStyleFlags = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +26 ));
+		if( textStyleFlags & (1 << 15) )
+			fprintf( mXmlFile, "\t\t\t<textStyle>group</textStyle>\n" );
+		if( textStyleFlags & (1 << 14) )
+			fprintf( mXmlFile, "\t\t\t<textStyle>extend</textStyle>\n" );
+		if( textStyleFlags & (1 << 13) )
+			fprintf( mXmlFile, "\t\t\t<textStyle>condense</textStyle>\n" );
+		if( textStyleFlags & (1 << 12) )
+			fprintf( mXmlFile, "\t\t\t<textStyle>shadow</textStyle>\n" );
+		if( textStyleFlags & (1 << 11) )
+			fprintf( mXmlFile, "\t\t\t<textStyle>outline</textStyle>\n" );
+		if( textStyleFlags & (1 << 10) )
+			fprintf( mXmlFile, "\t\t\t<textStyle>underline</textStyle>\n" );
+		if( textStyleFlags & (1 << 9) )
+			fprintf( mXmlFile, "\t\t\t<textStyle>italic</textStyle>\n" );
+		if( textStyleFlags & (1 << 8) )
+			fprintf( mXmlFile, "\t\t\t<textStyle>bold</textStyle>\n" );
+		
+		int16_t	textHeight = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +28 ));
+		if( !isButton )
+			fprintf( mXmlFile, "\t\t\t<textHeight>%d</textHeight>\n", textHeight );
+		
+		int x = 0, startOffs = currOffsIntoData +30;
+		fprintf( mXmlFile, "\t\t\t<name>" );
+		for( x = startOffs; blockData[x] != 0; x++ )
+		{
+			char currCh = blockData[x];
+			if( currCh == '<' )
+				fprintf( mXmlFile, "&lt;" );
+			else if( currCh == '>' )
+				fprintf( mXmlFile, "&gt;" );
+			else if( currCh == '&' )
+				fprintf( mXmlFile, "&amp;" );
+			else
+				fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
+		}
+		fprintf( mXmlFile, "</name>\n" );
+		
+		startOffs = x +2;
+		fprintf( mXmlFile, "\t\t\t<script>" );
+		for( x = startOffs; blockData[x] != 0; x++ )
+		{
+			char currCh = blockData[x];
+			if( currCh == '<' )
+				fprintf( mXmlFile, "&lt;" );
+			else if( currCh == '>' )
+				fprintf( mXmlFile, "&gt;" );
+			else if( currCh == '&' )
+				fprintf( mXmlFile, "&amp;" );
+			else
+				fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
+		}
+		fprintf( mXmlFile, "</script>\n" );
+		
+		fprintf( mXmlFile, "\t\t</part>\n" );
+		
+		currOffsIntoData += partLength;
+		currOffsIntoData += (currOffsIntoData % 2);	// Align on even byte.
+	}
+
+	for( int n = 0; n < numContents; n++ )
+	{
+		int16_t		partID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
+		int16_t		partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +2 ));
+		
+		fprintf( mXmlFile, "\t\t<content>\n" );
+		
+		CBuf		theText, theStyles;
+		if( partID < 0 )	// It's a card part's contents:
+		{
+			partID = -partID;
+			fprintf( mXmlFile, "\t\t\t<layer>card</layer>\n", partID );
+			fprintf( mXmlFile, "\t\t\t<id>%d</id>\n", partID );
+			
+			uint16_t	stylesLength = BIG_ENDIAN_16(blockData.uint16at( currOffsIntoData +4 ));
+			if( stylesLength > 32767 )
+			{
+				stylesLength = stylesLength -32768;
+				theStyles.resize( stylesLength -2 );
+				theStyles.memcpy( 0, blockData, currOffsIntoData +6, stylesLength -2 );
+			}
+			else
+				stylesLength = 0;
+			theText.resize( partLength -stylesLength +1 );
+			theText.memcpy( 0, blockData, currOffsIntoData +4 +stylesLength, partLength -stylesLength );
+			theText[theText.size()-1] = 0;
+		}
+		else	// It's a bg part's contents:
+		{
+			fprintf( mXmlFile, "\t\t\t<layer>background</layer>\n" );
+			fprintf( mXmlFile, "\t\t\t<id>%d</id>\n", partID );
+			
+			uint16_t	stylesLength = BIG_ENDIAN_16(blockData.uint16at( currOffsIntoData +4 ));
+			if( stylesLength > 32767 )
+			{
+				stylesLength = stylesLength -32768;
+				theStyles.resize( stylesLength -2 );
+				theStyles.memcpy( 0, blockData, currOffsIntoData +6, stylesLength -2 );
+			}
+			else
+				stylesLength = 0;
+			theText.resize( partLength -stylesLength +1 );
+			theText.memcpy( 0, blockData, currOffsIntoData +4 +stylesLength,
+								partLength -stylesLength );
+			theText[theText.size()-1] = 0;
+		}
+		
+		fprintf( mXmlFile, "\t\t\t<text>" );
+		size_t	numChars = theText.size();
+		for( int x = 0; x < numChars; x++ )
+		{
+			char currCh = theText[x];
+			if( currCh == '<' )
+				fprintf( mXmlFile, "&lt;" );
+			else if( currCh == '>' )
+				fprintf( mXmlFile, "&gt;" );
+			else if( currCh == '&' )
+				fprintf( mXmlFile, "&amp;" );
+			else
+				fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
+		}
+		fprintf( mXmlFile, "</text>\n" );
+		if( theStyles.size() > 0 )
+		{
+//			char sfn[256] = { 0 };
+//			snprintf( sfn, sizeof(sfn), "style_runs_%d_%d.styl", blockID, partID );
+//			theStyles.tofile( sfn );
+			
+			for( size_t x = 0; x < theStyles.size(); )
+			{
+				int16_t	startOffset = BIG_ENDIAN_16(theStyles.int16at( x ));
+				x += sizeof(int16_t);
+				int16_t	styleID = BIG_ENDIAN_16(theStyles.int16at( x ));
+				x += sizeof(int16_t);
+				
+				fprintf( mXmlFile, "\t\t\t<stylerun>\n" );
+				fprintf( mXmlFile, "\t\t\t\t<offset>%u</offset>\n", startOffset );
+				fprintf( mXmlFile, "\t\t\t\t<id>%u</id>\n", styleID );
+				fprintf( mXmlFile, "\t\t\t</stylerun>\n" );
+			}
+		}
+		
+		currOffsIntoData += partLength +4 +(partLength % 2);	// Align on even byte.
+		
+		fprintf( mXmlFile, "\t\t</content>\n" );
+	}
+
+	int x = 0, startOffs = currOffsIntoData;
+	fprintf( mXmlFile, "\t\t<name>" );
+	for( x = startOffs; blockData[x] != 0; x++ )
+	{
+		char currCh = blockData[x];
+		if( currCh == '<' )
+			fprintf( mXmlFile, "&lt;" );
+		else if( currCh == '>' )
+			fprintf( mXmlFile, "&gt;" );
+		else if( currCh == '&' )
+			fprintf( mXmlFile, "&amp;" );
+		else
+			fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
+	}
+	fprintf( mXmlFile, "</name>\n" );
+	
+	startOffs = x +1;
+	fprintf( mXmlFile, "\t\t<script>" );
+	for( x = startOffs; blockData[x] != 0; x++ )
+	{
+		char currCh = blockData[x];
+		if( currCh == '<' )
+			fprintf( mXmlFile, "&lt;" );
+		else if( currCh == '>' )
+			fprintf( mXmlFile, "&gt;" );
+		else if( currCh == '&' )
+			fprintf( mXmlFile, "&amp;" );
+		else
+			fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
+	}
+	fprintf( mXmlFile, "</script>\n" );
+
+	if( strcmp( "BKGD", vBlockType ) == 0 )
+		fprintf( mXmlFile, "\t</background>\n" );
+	else
+		fprintf( mXmlFile, "\t</card>\n" );
+	
+	return true;
+}
+
+
+bool	CStackFile::LoadPageTable( int32_t blockID, CBuf& blockData )
+{
+	bool	success = true;
+	
+	if( mStatusMessages )
+		fprintf( stdout, "Status: Processing 'PAGE' #%lu (%d bytes)\n", blockID, blockData.size() );
+
+	if( mDumpRawBlockData )
+	{
+		char sfn[256] = { 0 };
+		snprintf( sfn, sizeof(sfn), "PAGE_%d.data", blockID );
+		blockData.tofile( sfn );
+	}
+	
+	if( mCardBlockSize != -1 )
+	{
+		size_t		currDataOffs = 12;
+		while( true )
+		{
+			if( !blockData.hasdata( currDataOffs, sizeof(int32_t) ) )
+			{
+				fprintf( stderr, "Warning: Premature end of 'PAGE' #%d (%lu bytes)\n", blockID, blockData.size() );
+				break;
+			}
+			
+			int32_t		currCardID = BIG_ENDIAN_32( blockData.int32at( currDataOffs ) );
+			if( currCardID == 0 )
+				break;	// End of page list. (Sentinel)
+			
+			success = LoadLayerBlock( "CARD", currCardID, mBlockMap[CStackBlockIdentifier("CARD",currCardID)] );
+			
+			currDataOffs += mCardBlockSize;
+		}
+	}
+	else
+		fprintf( stderr, "Warning: Couldn't parse 'PAGE' #%d (%lu bytes) because it preceded the page table list.\n", blockID, blockData.size() );
+	
+	return success;
+}
+
+
+bool	CStackFile::LoadListBlock( CBuf& blockData )
+{
+	if( mStatusMessages )
+		fprintf( stdout, "Status: Processing 'LIST' #%d (%d bytes)\n", mListBlockID, blockData.size() );
+	
+	if( mDumpRawBlockData )
+	{
+		char sfn[256] = { 0 };
+		snprintf( sfn, sizeof(sfn), "LIST_%d.data", mListBlockID );
+		blockData.tofile( sfn );
+	}
+
+	size_t		currDataOffs = 4;
+	int32_t		numPageTables = BIG_ENDIAN_32(blockData.int32at(currDataOffs));
+	currDataOffs += 12;
+	mCardBlockSize = BIG_ENDIAN_16(blockData.int16at(currDataOffs));
+	currDataOffs += 18;
+	for( int32_t r = 0; r < numPageTables; r++ )
+	{
+		currDataOffs += 2;
+		if( !blockData.hasdata( currDataOffs, sizeof(int32_t) ) )
+		{
+			fprintf( stderr, "Warning: Premature end of 'LIST' #%d (%d bytes)\n", mListBlockID, blockData.size() );
+			break;
+		}
+		
+		int32_t		currPagetableID = BIG_ENDIAN_32( blockData.int32at( currDataOffs ) );
+		
+		LoadPageTable( currPagetableID, mBlockMap[CStackBlockIdentifier("PAGE",currPagetableID)] );
+		
+		currDataOffs += 4;
+	}
+	
+	return true;
+}
+
+
+bool	CStackFile::LoadFile( const std::string& fpath )
+{
+	#if 0
+	CStackBlockIdentifier		a( "TEST", 1 );
+	CStackBlockIdentifier		b( "TEST", 2 );
+	CStackBlockIdentifier		wildcardYes( "TEST" );
+	CStackBlockIdentifier		wildcardNo( "TOON" );
+	
+	// ==
+	bool	testState = a == b;
+	
+	testState = a == wildcardYes;
+	testState = wildcardYes == a;
+	
+	testState = b == wildcardYes;
+	testState = wildcardYes == b;
+	
+	testState = a == wildcardNo;
+	testState = wildcardNo == a;
+	
+	testState = b == wildcardNo;
+	testState = wildcardNo == b;
+	
+	// <
+	testState = a < b;
+	
+	testState = a < wildcardYes;
+	testState = wildcardYes < a;
+	
+	testState = b < wildcardYes;
+	testState = wildcardYes < b;
+	
+	testState = a < wildcardNo;
+	testState = wildcardNo < a;
+	
+	testState = b < wildcardNo;
+	testState = wildcardNo < b;
+	
+	// >
+	testState = a > b;
+	
+	testState = a > wildcardYes;
+	testState = wildcardYes > a;
+	
+	testState = b > wildcardYes;
+	testState = wildcardYes > b;
+	
+	testState = a > wildcardNo;
+	testState = wildcardNo > a;
+	
+	testState = b > wildcardNo;
+	testState = wildcardNo > b;
+	#endif
+	
 	std::ifstream		theFile( fpath.c_str() );
 	if( !theFile.is_open() )
 	{
@@ -127,26 +858,24 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 	chdir( packagePath.c_str() );
 	
 	packagePath.append( "/toc.xml" );
-	FILE*		xmlFile = fopen( packagePath.c_str(), "w" );
-	if( !xmlFile )
+	mXmlFile = fopen( packagePath.c_str(), "w" );
+	if( !mXmlFile )
 	{
 		fprintf( stderr, "Error: Couldn't create file TOC at '%s'\n", packagePath.c_str() );
 		return false;
 	}
 	
-	if( statusMessages )
+	if( mStatusMessages )
 		fprintf( stdout, "Status: Output package name is '%s'\n", packagePath.c_str() );
 	
-	fprintf( xmlFile, "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n<!DOCTYPE stackfile PUBLIC \"-//Apple, Inc.//DTD stackfile V 2.0//EN\" \"\" >\n<stackfile>\n" );
+	fprintf( mXmlFile, "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n<!DOCTYPE stackfile PUBLIC \"-//Apple, Inc.//DTD stackfile V 2.0//EN\" \"\" >\n<stackfile>\n" );
 	
-	int32_t		numberOfCards = -1;
-	int16_t		cardBlockSize = -1;
-	
-	// Read block header:
 	char		vBlockType[5] = { 0 };
-	u_int32_t	vBlockSize = 0,
-				vBlockID = 0;
+	u_int32_t	vBlockSize = 0;
+	int32_t		vBlockID = 0;
 	
+	// Read all blocks so we can random-access them. Yes, I know there are more
+	//	efficient ways, but honestly, who cares?
 	while( true )
 	{
 		theFile.read( (char*) &vBlockSize, sizeof(vBlockSize) );
@@ -160,1081 +889,62 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 		
 		if( strcmp(vBlockType,"TAIL") == 0 && vBlockID == 0xffffffff )	// End marker block?
 			break;
-		else if( strcmp(vBlockType,"BMAP") == 0 )	// Image block?
-		{
-			if( statusMessages )
-				fprintf( stdout, "Status: Processing '%4s' #%d %X (%d bytes)\n", vBlockType, vBlockID, vBlockID, vBlockSize );
-			fprintf( xmlFile, "\t<!-- Processed '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
-			picture		thePicture;
-			char*		pictureData = new char[vBlockSize -12];
-			theFile.read( pictureData, vBlockSize -12 );
-			woba_decode( thePicture, pictureData );
-			
-			char		fname[256];
-			sprintf( fname, "BMAP_%u.pbm", vBlockID );
-			thePicture.writebitmapandmasktopbm( fname );
-			delete [] pictureData;
-		}
-		else if( strcmp(vBlockType,"STAK") == 0 )
-		{
-			if( statusMessages )
-				fprintf( stdout, "Status: Processing '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
-			fprintf( xmlFile, "\t<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
-			fprintf( xmlFile, "\t<stack>\n" );
-			CBuf		blockData( vBlockSize -12 );
-			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
-			
-			if( dumpRawBlockData )
-			{
-				char sfn[256] = { 0 };
-				snprintf( sfn, sizeof(sfn), "STAK_%d.data", vBlockID );
-				blockData.tofile( sfn );
-			}
-			
-			numberOfCards = BIG_ENDIAN_32(blockData.int32at( 32 ));
-			fprintf( xmlFile, "\t\t<cardCount>%d</cardCount>\n", numberOfCards );
-			int32_t	cardID = BIG_ENDIAN_32(blockData.int32at( 36 ));
-			fprintf( xmlFile, "\t\t<cardID>%d</cardID>\n", cardID );
-			int32_t	listID = BIG_ENDIAN_32(blockData.int32at( 40 ));
-			fprintf( xmlFile, "\t\t<listID>%d</listID>\n", listID );
-			int16_t	userLevel = BIG_ENDIAN_16(blockData.int16at( 60 ));
-			fprintf( xmlFile, "\t\t<userLevel>%d</userLevel>\n", userLevel );
-			int16_t	flags = BIG_ENDIAN_16(blockData.int16at( 64 ));
-			fprintf( xmlFile, "\t\t<cantModify> %s </cantModify>\n", (flags & (1 << 15)) ? "<true />" : "<false />" );
-			fprintf( xmlFile, "\t\t<cantDelete> %s </cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
-			fprintf( xmlFile, "\t\t<privateAccess> %s </privateAccess>\n", (flags & (1 << 13)) ? "<true />" : "<false />" );
-			fprintf( xmlFile, "\t\t<cantAbort> %s </cantAbort>\n", (flags & (1 << 11)) ? "<true />" : "<false />" );
-			fprintf( xmlFile, "\t\t<cantPeek> %s </cantPeek>\n", (flags & (1 << 10)) ? "<true />" : "<false />" );
-			char		versStr[16] = { 0 };
-			int32_t	version0 = blockData.int32at( 84 );
-			NumVersionToStr( (char*) &version0, versStr );
-			fprintf( xmlFile, "\t\t<createdByVersion>%s</createdByVersion>\n", versStr );
-			int32_t	version1 = blockData.int32at( 88 );
-			NumVersionToStr( (char*) &version1, versStr );
-			fprintf( xmlFile, "\t\t<lastCompactedVersion>%s</lastCompactedVersion>\n", versStr );
-			int32_t	version2 = blockData.int32at( 92 );
-			NumVersionToStr( (char*) &version2, versStr );
-			fprintf( xmlFile, "\t\t<lastEditedVersion>%s</lastEditedVersion>\n", versStr );
-			int32_t	version3 = blockData.int32at( 96 );
-			NumVersionToStr( (char*) &version3, versStr );
-			fprintf( xmlFile, "\t\t<firstEditedVersion>%s</firstEditedVersion>\n", versStr );
-			int16_t	height = BIG_ENDIAN_16(blockData.int16at( 428 ));
-			if( height == 0 )
-				height = 342;
-			int16_t	width = BIG_ENDIAN_16(blockData.int16at( 430 ));
-			if( width == 0 )
-				width = 512;
-			fprintf( xmlFile, "\t\t<cardSize>\n\t\t\t<width>%d</width>\n\t\t\t<height>%d</height>\n\t\t</cardSize>\n", width, height );
-
-			fprintf( xmlFile, "\t\t<patterns>\n" );
-			char			pattern[8] = { 0 };
-			int				offs = 692;
-			for( int n = 0; n < 40; n++ )
-			{
-				memmove( pattern, blockData.buf( offs, 8 ), 8 );
-				char		fname[256] = { 0 };
-				sprintf( fname, "PAT_%u.pbm", n +1 );
-				picture		thePicture( 8, 8, 1, false );
-				thePicture.memcopyin( pattern, 0, 8 );
-				thePicture.writebitmaptopbm( fname );
-				offs += 8;
-				fprintf(xmlFile,"\t\t\t<pattern>PAT_%u.pbm</pattern>\n", n+1);
-			}
-			fprintf( xmlFile, "\t\t</patterns>\n" );
-			
-			int x = 0, startOffs = 1524;
-			fprintf( xmlFile, "\t\t<script>" );
-			for( x = startOffs; blockData[x] != 0; x++ )
-			{
-				char currCh = blockData[x];
-				if( currCh == '<' )
-					fprintf( xmlFile, "&lt;" );
-				else if( currCh == '>' )
-					fprintf( xmlFile, "&gt;" );
-				else if( currCh == '&' )
-					fprintf( xmlFile, "&amp;" );
-				else
-					fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
-			}
-			fprintf( xmlFile, "</script>\n" );
-			fprintf( xmlFile, "\t</stack>\n" );
-		}
-		else if( strcmp(vBlockType,"BKGD") == 0 )
-		{
-			if( statusMessages )
-				fprintf( stdout, "Status: Processing '%4s' #%d %X (%d bytes)\n", vBlockType, vBlockID, vBlockID, vBlockSize );
-			fprintf( xmlFile, "\t<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
-			fprintf( xmlFile, "\t<background>\n" );
-			fprintf( xmlFile, "\t\t<id>%d</id>\n", vBlockID );
-			CBuf		blockData( vBlockSize -12 );
-			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
-			
-			if( dumpRawBlockData )
-			{
-				char sfn[256] = { 0 };
-				snprintf( sfn, sizeof(sfn), "BKGD_%d.data", vBlockID );
-				blockData.tofile( sfn );
-			}
-
-			int32_t	bitmapID = BIG_ENDIAN_32(blockData.int32at( 4 ));
-			fprintf( xmlFile, "\t\t<bitmap>BMAP_%u.pbm</bitmap>\n", bitmapID );
-			int16_t	flags = BIG_ENDIAN_16(blockData.int16at( 0x0C -4 ));
-			fprintf( xmlFile, "\t\t<cantDelete> %s </cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
-			fprintf( xmlFile, "\t\t<showPict> %s </showPict>\n", (flags & (1 << 13)) ? "<false />" : "<true />" );	// showPict is stored reversed.
-			fprintf( xmlFile, "\t\t<dontSearch> %s </dontSearch>\n", (flags & (1 << 11)) ? "<true />" : "<false />" );
-			int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( 0x18 ));
-			int16_t	numContents = BIG_ENDIAN_16(blockData.int16at( 0x20 ));
-			size_t	currOffsIntoData = 38;
-			for( int n = 0; n < numParts; n++ )
-			{
-				int16_t	partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
-				
-				fprintf( xmlFile, "\t\t<part>\n" );
-				int16_t	partID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +2 ));
-				fprintf( xmlFile, "\t\t\t<id>%d</id>\n", partID );
-				int16_t	flagsAndType = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +4 ));
-				int16_t	partType = flagsAndType >> 8;
-				bool	isButton = partType == 1;
-				fprintf( xmlFile, "\t\t\t<type>%s</type>\n", isButton ? "button" : "field" );
-				fprintf( xmlFile, "\t\t\t<visible> %s </visible>\n", (flagsAndType & (1 << 7)) ? "<false />" : "<true />" );	// Really "hidden" flag.
-				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<dontWrap> %s </dontWrap>\n", (flagsAndType & (1 << 5)) ? "<true />" : "<false />" );
-				else
-					fprintf( xmlFile, "\t\t\t<reserved5> %d </reserved5>\n", (flagsAndType & (1 << 5)) >> 5 );
-				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<dontSearch> %s </dontSearch>\n", (flagsAndType & (1 << 4)) ? "<true />" : "<false />" );
-				else
-					fprintf( xmlFile, "\t\t\t<reserved4> %d </reserved4>\n", (flagsAndType & (1 << 4)) >> 4 );
-				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<sharedText> %s </sharedText>\n", (flagsAndType & (1 << 3)) ? "<true />" : "<false />" );
-				else
-					fprintf( xmlFile, "\t\t\t<reserved3> %d </reserved3>\n", (flagsAndType & (1 << 3)) >> 3 );
-				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<fixedLineHeight> %s </fixedLineHeight>\n", (flagsAndType & (1 << 2)) ? "<false />" : "<true />" );	// Really "use real line height" flag.
-				else
-					fprintf( xmlFile, "\t\t\t<reserved2> %d </reserved2>\n", (flagsAndType & (1 << 2)) >> 2 );
-				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<autoTab> %s </autoTab>\n", (flagsAndType & (1 << 1)) ? "<true />" : "<false />" );
-				else
-					fprintf( xmlFile, "\t\t\t<reserved1> %d </reserved1>\n", (flagsAndType & (1 << 1)) >> 1 );
-				if( isButton )
-					fprintf( xmlFile, "\t\t\t<enabled> %s </enabled>\n", (flagsAndType & (1 << 0)) ? "<false />" : "<true />" );	// Same as lockText on fields. Really "disabled" flag.
-				else
-					fprintf( xmlFile, "\t\t\t<lockText> %s </lockText>\n", (flagsAndType & (1 << 0)) ? "<true />" : "<false />" );	// Same as enabled on buttons.
-				fprintf( xmlFile, "\t\t\t<rect>\n\t\t\t\t<left>%d</left>\n\t\t\t\t<top>%d</top>\n\t\t\t\t<right>%d</right>\n\t\t\t\t<bottom>%d</bottom>\n\t\t\t</rect>\n",
-							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +8 )),
-							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +6 )),
-							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +12 )),
-							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +10 )) );
-				int16_t	moreFlags = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +14 ));
-				int8_t	styleFromLowNibble = moreFlags & 15;
-				const char*		styleStr = "unknown";
-				if( isButton )
-				{
-					switch( styleFromLowNibble )
-					{
-						case 0:
-							styleStr = "transparent";
-							break;
-						case 1:
-							styleStr = "opaque";
-							break;
-						case 2:
-							styleStr = "rectangle";
-							break;
-						case 3:
-							styleStr = "roundrect";
-							break;
-						case 4:
-							styleStr = "shadow";
-							break;
-						case 5:
-							styleStr = "checkbox";
-							break;
-						case 6:
-							styleStr = "radiobutton";
-							break;
-						case 8:
-							styleStr = "standard";
-							break;
-						case 9:
-							styleStr = "default";
-							break;
-						case 10:
-							styleStr = "oval";
-							break;
-						case 11:
-							styleStr = "popup";
-							break;
-					}
-				}
-				else
-				{
-					switch( styleFromLowNibble )
-					{
-						case 0:
-							styleStr = "transparent";
-							break;
-						case 1:
-							styleStr = "opaque";
-							break;
-						case 2:
-							styleStr = "rectangle";
-							break;
-						case 4:
-							styleStr = "shadow";
-							break;
-						case 7:
-							styleStr = "scrolling";
-							break;
-					}
-				}
-				fprintf( xmlFile, "\t\t\t<style>%s</style>\n", styleStr );
-				moreFlags = moreFlags >> 8;
-				if( isButton )
-					fprintf( xmlFile, "\t\t\t<showName> %s </showName>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
-				else
-					fprintf( xmlFile, "\t\t\t<autoSelect> %s </autoSelect>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
-				if( isButton )
-					fprintf( xmlFile, "\t\t\t<highlight> %s </highlight>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
-				else
-					fprintf( xmlFile, "\t\t\t<showLines> %s </showLines>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
-				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<wideMargins> %s </wideMargins>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
-				else
-					fprintf( xmlFile, "\t\t\t<reserved25> %d </reserved25>\n", (flagsAndType & (1 << 5)) >> 5 );
-				if( isButton )
-					fprintf( xmlFile, "\t\t\t<sharedHighlight> %s </sharedHighlight>\n", (moreFlags & (1 << 4)) ? "<false />" : "<true />" );
-				else
-					fprintf( xmlFile, "\t\t\t<multipleLines> %s </multipleLines>\n", (moreFlags & (1 << 4)) ? "<true />" : "<false />" );
-				int8_t	family = moreFlags & 15;
-				if( isButton )
-					fprintf( xmlFile, "\t\t\t<family>%d</family>\n", family );
-				else
-					fprintf( xmlFile, "\t\t\t<reservedFamily> %d </reservedFamily>\n", family );
-				if( isButton )
-					fprintf( xmlFile, "\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5) || family != 0) ? "<true />" : "<false />" );
-				else
-					fprintf( xmlFile, "\t\t\t<reserved35> %d </reserved35>\n", (flagsAndType & (1 << 5)) >> 5 );
-				
-				// titleWidth & iconID are list fields' lastSelectedLine and firstSelectedLine
-				// 	We generate a list containing each selected line so users of the file
-				//	format can add multiple selection easily.
-				int16_t	titleWidth = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +16 ));
-				if( isButton )
-					fprintf( xmlFile, "\t\t\t<titleWidth>%d</titleWidth>\n", titleWidth );
-				int16_t	iconID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +18 ));
-				if( isButton )
-					fprintf( xmlFile, "\t\t\t<icon>%d</icon>\n", iconID );
-				if( !isButton && iconID > 0 )
-				{
-					if( titleWidth <= 0 )
-						titleWidth = iconID;
-					
-					fprintf( xmlFile, "\t\t\t<selectedLines>\n", titleWidth );
-					for( int d = iconID; d <= titleWidth; d++ )
-						fprintf( xmlFile, "\t\t\t\t<integer>%d</integer>\n", d );
-					fprintf( xmlFile, "\t\t\t</selectedLines>\n" );
-				}
-				int16_t	textAlign = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +20 ));
-				const char*		textAlignStr = "unknown";
-				switch( textAlign )
-				{
-					case 0:
-						textAlignStr = "left";
-						break;
-					case 1:
-						textAlignStr = "center";
-						break;
-					case -1:
-						textAlignStr = "right";
-						break;
-					case -2:
-						textAlignStr = "forceLeft";
-						break;
-				}
-				fprintf( xmlFile, "\t\t\t<textAlign>%s</textAlign>\n", textAlignStr );
-				int16_t	textFontID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +22 ));
-				fprintf( xmlFile, "\t\t\t<textFontID>%d</textFontID>\n", textFontID );
-				int16_t	textSize = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +24 ));
-				fprintf( xmlFile, "\t\t\t<textSize>%d</textSize>\n", textSize );
-				int16_t	textStyleFlags = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +26 ));
-				if( textStyleFlags & (1 << 15) )
-					fprintf( xmlFile, "\t\t\t<textStyle>group</textStyle>\n" );
-				if( textStyleFlags & (1 << 14) )
-					fprintf( xmlFile, "\t\t\t<textStyle>extend</textStyle>\n" );
-				if( textStyleFlags & (1 << 13) )
-					fprintf( xmlFile, "\t\t\t<textStyle>condense</textStyle>\n" );
-				if( textStyleFlags & (1 << 12) )
-					fprintf( xmlFile, "\t\t\t<textStyle>shadow</textStyle>\n" );
-				if( textStyleFlags & (1 << 11) )
-					fprintf( xmlFile, "\t\t\t<textStyle>outline</textStyle>\n" );
-				if( textStyleFlags & (1 << 10) )
-					fprintf( xmlFile, "\t\t\t<textStyle>underline</textStyle>\n" );
-				if( textStyleFlags & (1 << 9) )
-					fprintf( xmlFile, "\t\t\t<textStyle>italic</textStyle>\n" );
-				if( textStyleFlags & (1 << 8) )
-					fprintf( xmlFile, "\t\t\t<textStyle>bold</textStyle>\n" );
-				if( textStyleFlags == 0 )
-					fprintf( xmlFile, "\t\t\t<textStyle>plain</textStyle>\n" );
-				
-				int16_t	textHeight = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +28 ));
-				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<textHeight>%d</textHeight>\n", textHeight );
-				
-				int x = 0, startOffs = currOffsIntoData +30;
-				fprintf( xmlFile, "\t\t\t<name>" );
-				for( x = startOffs; blockData[x] != 0; x++ )
-				{
-					char currCh = blockData[x];
-					if( currCh == '<' )
-						fprintf( xmlFile, "&lt;" );
-					else if( currCh == '>' )
-						fprintf( xmlFile, "&gt;" );
-					else if( currCh == '&' )
-						fprintf( xmlFile, "&amp;" );
-					else
-						fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
-				}
-				fprintf( xmlFile, "</name>\n" );
-				
-				startOffs = x +2;
-				fprintf( xmlFile, "\t\t\t<script>" );
-				for( x = startOffs; blockData[x] != 0; x++ )
-				{
-					char currCh = blockData[x];
-					if( currCh == '<' )
-						fprintf( xmlFile, "&lt;" );
-					else if( currCh == '>' )
-						fprintf( xmlFile, "&gt;" );
-					else if( currCh == '&' )
-						fprintf( xmlFile, "&amp;" );
-					else
-						fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
-				}
-				fprintf( xmlFile, "</script>\n" );
-				
-				fprintf( xmlFile, "\t\t</part>\n" );
-				
-				currOffsIntoData += partLength;
-				currOffsIntoData += (currOffsIntoData % 2);	// Align on even byte.
-			}
-
-			for( int n = 0; n < numContents; n++ )
-			{
-				int16_t		partID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
-				int16_t		partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +2 ));
-				fprintf( xmlFile, "\t\t<content>\n" );
-				
-				CBuf		theText, theStyles;
-				if( partID < 0 )	// It's a card part's contents:
-				{
-					partID = -partID;
-					fprintf( xmlFile, "\t\t\t<layer>card</layer>\n", partID );
-					fprintf( xmlFile, "\t\t\t<id>%d</id>\n", partID );
-					
-					uint16_t	stylesLength = BIG_ENDIAN_16(blockData.uint16at( currOffsIntoData +4 ));
-					if( stylesLength > 32767 )
-					{
-						stylesLength = stylesLength -32768;
-						theStyles.resize( stylesLength -2 );
-						theStyles.memcpy( 0, blockData, currOffsIntoData +5, stylesLength -2 );
-					}
-					else
-						stylesLength = 0;
-					theText.resize( partLength -stylesLength +1 );
-					theText.memcpy( 0, blockData, currOffsIntoData +5 +stylesLength, partLength -1 -stylesLength );
-					theText[theText.size()-1] = 0;
-				}
-				else	// It's a bg part's contents:
-				{
-					fprintf( xmlFile, "\t\t\t<layer>background</layer>\n", partID );
-					fprintf( xmlFile, "\t\t\t<id>%d</id>\n", partID );
-					
-					uint16_t	stylesLength = BIG_ENDIAN_16(blockData.uint16at( currOffsIntoData +4 ));
-					if( stylesLength > 32767 )
-					{
-						stylesLength = stylesLength -32768;
-						theStyles.resize( stylesLength -2 );
-						theStyles.memcpy( 0, blockData, currOffsIntoData +6, stylesLength -2 );
-					}
-					else
-						stylesLength = 0;
-					theText.resize( partLength -stylesLength +1 );
-					theText.memcpy( 0, blockData, currOffsIntoData +4 +stylesLength, partLength -stylesLength );
-					theText[theText.size()-1] = 0;
-				}
-				
-				fprintf( xmlFile, "\t\t\t<text>" );
-				size_t	numChars = theText.size();
-				for( int x = 0; x < numChars; x++ )
-				{
-					char currCh = theText[x];
-					if( currCh == '<' )
-						fprintf( xmlFile, "&lt;" );
-					else if( currCh == '>' )
-						fprintf( xmlFile, "&gt;" );
-					else if( currCh == '&' )
-						fprintf( xmlFile, "&amp;" );
-					else
-						fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
-				}
-				fprintf( xmlFile, "</text>\n" );
-				
-				if( theStyles.size() > 0 )
-				{
-					for( size_t x = 0; x < theStyles.size(); )
-					{
-						int16_t	startOffset = BIG_ENDIAN_16(theStyles.int16at( x ));
-						x += sizeof(int16_t);
-						int16_t	styleID = BIG_ENDIAN_16(theStyles.int16at( x ));
-						x += sizeof(int16_t);
-						
-						fprintf( xmlFile, "\t\t\t<stylerun>\n" );
-						fprintf( xmlFile, "\t\t\t\t<offset>%u</offset>\n", startOffset );
-						fprintf( xmlFile, "\t\t\t\t<id>%u</id>\n", styleID );
-						fprintf( xmlFile, "\t\t\t</stylerun>\n" );
-					}
-					
-//					char sfn[256] = { 0 };
-//					snprintf( sfn, sizeof(sfn), "style_runs_%d_%d.styl", vBlockID, partID );
-//					theStyles.tofile( sfn );
-				}
-				
-				currOffsIntoData += partLength +4 +(partLength % 2);	// Align on even byte.
-				
-				fprintf( xmlFile, "\t\t</content>\n" );
-			}
-			
-			int x = 0, startOffs = currOffsIntoData;
-			fprintf( xmlFile, "\t\t<name>" );
-			for( x = startOffs; blockData[x] != 0; x++ )
-			{
-				char currCh = blockData[x];
-				if( currCh == '<' )
-					fprintf( xmlFile, "&lt;" );
-				else if( currCh == '>' )
-					fprintf( xmlFile, "&gt;" );
-				else if( currCh == '&' )
-					fprintf( xmlFile, "&amp;" );
-				else
-					fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
-			}
-			fprintf( xmlFile, "</name>\n" );
-			
-			startOffs = x +1;
-			fprintf( xmlFile, "\t\t<script>" );
-			for( x = startOffs; blockData[x] != 0; x++ )
-			{
-				char currCh = blockData[x];
-				if( currCh == '<' )
-					fprintf( xmlFile, "&lt;" );
-				else if( currCh == '>' )
-					fprintf( xmlFile, "&gt;" );
-				else if( currCh == '&' )
-					fprintf( xmlFile, "&amp;" );
-				else
-					fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
-			}
-			fprintf( xmlFile, "</script>\n" );
-
-			fprintf( xmlFile, "\t</background>\n" );
-		}
-		else if( strcmp(vBlockType,"CARD") == 0 )
-		{
-			if( statusMessages )
-				fprintf( stdout, "Status: Processing '%4s' #%d %X (%d bytes)\n", vBlockType, vBlockID, vBlockID, vBlockSize );
-			fprintf( xmlFile, "\t<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
-			fprintf( xmlFile, "\t<card>\n" );
-			fprintf( xmlFile, "\t\t<id>%d</id>\n", vBlockID );
-			CBuf		blockData( vBlockSize -12 );
-			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
-			
-			if( dumpRawBlockData )
-			{
-				char sfn[256] = { 0 };
-				snprintf( sfn, sizeof(sfn), "CARD_%d.data", vBlockID );
-				blockData.tofile( sfn );
-			}
-
-			int32_t	unknownFiller = BIG_ENDIAN_32(blockData.int32at( 0 ));
-			fprintf( xmlFile, "\t\t<filler1>%d</filler1>\n", unknownFiller );
-			int32_t	bitmapID = BIG_ENDIAN_32(blockData.int32at( 4 ));
-			if( bitmapID != 0 )
-				fprintf( xmlFile, "\t\t<bitmap>BMAP_%u.pbm</bitmap>\n", bitmapID );
-			int16_t	flags = BIG_ENDIAN_16(blockData.int16at( 8 ));
-			fprintf( xmlFile, "\t\t<cantDelete> %s </cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
-			fprintf( xmlFile, "\t\t<showPict> %s </showPict>\n", (flags & (1 << 13)) ? "<false />" : "<true />" );	// showPict is stored reversed.
-			fprintf( xmlFile, "\t\t<dontSearch> %s </dontSearch>\n", (flags & (1 << 11)) ? "<true />" : "<false />" );
-			int32_t	owner = BIG_ENDIAN_32(blockData.int32at( 24 ));
-			fprintf( xmlFile, "\t\t<owner>%d</owner>\n", owner );
-			int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( 28 ));
-			int16_t	numContents = BIG_ENDIAN_16(blockData.int16at( 36 ));
-			size_t	currOffsIntoData = 42;
-			for( int n = 0; n < numParts; n++ )
-			{
-				int16_t	partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
-				
-				fprintf( xmlFile, "\t\t<part>\n" );
-				int16_t	partID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +2 ));
-				fprintf( xmlFile, "\t\t\t<id>%d</id>\n", partID );
-				int16_t	flagsAndType = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +4 ));
-				int16_t	partType = flagsAndType >> 8;
-				bool	isButton = partType == 1;
-				fprintf( xmlFile, "\t\t\t<type>%s</type>\n", isButton ? "button" : "field" );
-				fprintf( xmlFile, "\t\t\t<visible> %s </visible>\n", (flagsAndType & (1 << 7)) ? "<false />" : "<true />" );	// Really "hidden" flag.
-				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<dontWrap> %s </dontWrap>\n", (flagsAndType & (1 << 5)) ? "<true />" : "<false />" );
-				else
-					fprintf( xmlFile, "\t\t\t<reserved5> %d </reserved5>\n", (flagsAndType & (1 << 5)) >> 5 );
-				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<dontSearch> %s </dontSearch>\n", (flagsAndType & (1 << 4)) ? "<true />" : "<false />" );
-				else
-					fprintf( xmlFile, "\t\t\t<reserved4> %d </reserved4>\n", (flagsAndType & (1 << 4)) >> 4 );
-				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<sharedText> %s </sharedText>\n", (flagsAndType & (1 << 3)) ? "<true />" : "<false />" );
-				else
-					fprintf( xmlFile, "\t\t\t<reserved3> %d </reserved3>\n", (flagsAndType & (1 << 3)) >> 3 );
-				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<fixedLineHeight> %s </fixedLineHeight>\n", (flagsAndType & (1 << 2)) ? "<false />" : "<true />" );	// Really "use real line height" flag.
-				else
-					fprintf( xmlFile, "\t\t\t<reserved2> %d </reserved2>\n", (flagsAndType & (1 << 2)) >> 2 );
-				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<autoTab> %s </autoTab>\n", (flagsAndType & (1 << 1)) ? "<true />" : "<false />" );
-				else
-					fprintf( xmlFile, "\t\t\t<reserved1> %d </reserved1>\n", (flagsAndType & (1 << 1)) >> 1 );
-				if( isButton )
-					fprintf( xmlFile, "\t\t\t<enabled> %s </enabled>\n", (flagsAndType & (1 << 0)) ? "<false />" : "<true />" );	// Same as lockText on fields. Really "disabled" flag.
-				else
-					fprintf( xmlFile, "\t\t\t<lockText> %s </lockText>\n", (flagsAndType & (1 << 0)) ? "<true />" : "<false />" );	// Same as enabled on buttons.
-				fprintf( xmlFile, "\t\t\t<rect>\n\t\t\t\t<left>%d</left>\n\t\t\t\t<top>%d</top>\n\t\t\t\t<right>%d</right>\n\t\t\t\t<bottom>%d</bottom>\n\t\t\t</rect>\n",
-							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +8 )),
-							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +6 )),
-							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +12 )),
-							BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +10 )) );
-				int16_t	moreFlags = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +14 ));
-				int8_t	styleFromLowNibble = moreFlags & 15;
-				const char*		styleStr = "unknown";
-				if( isButton )
-				{
-					switch( styleFromLowNibble )
-					{
-						case 0:
-							styleStr = "transparent";
-							break;
-						case 1:
-							styleStr = "opaque";
-							break;
-						case 2:
-							styleStr = "rectangle";
-							break;
-						case 3:
-							styleStr = "roundrect";
-							break;
-						case 4:
-							styleStr = "shadow";
-							break;
-						case 5:
-							styleStr = "checkbox";
-							break;
-						case 6:
-							styleStr = "radiobutton";
-							break;
-						case 8:
-							styleStr = "standard";
-							break;
-						case 9:
-							styleStr = "default";
-							break;
-						case 10:
-							styleStr = "oval";
-							break;
-						case 11:
-							styleStr = "popup";
-							break;
-					}
-				}
-				else
-				{
-					switch( styleFromLowNibble )
-					{
-						case 0:
-							styleStr = "transparent";
-							break;
-						case 1:
-							styleStr = "opaque";
-							break;
-						case 2:
-							styleStr = "rectangle";
-							break;
-						case 4:
-							styleStr = "shadow";
-							break;
-						case 7:
-							styleStr = "scrolling";
-							break;
-					}
-				}
-				fprintf( xmlFile, "\t\t\t<style>%s</style>\n", styleStr );
-				moreFlags = moreFlags >> 8;
-				int8_t	family = moreFlags & 15;
-				if( isButton )
-					fprintf( xmlFile, "\t\t\t<showName> %s </showName>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
-				else
-					fprintf( xmlFile, "\t\t\t<autoSelect> %s </autoSelect>\n", (moreFlags & (1 << 7)) ? "<true />" : "<false />" );
-				if( isButton )
-					fprintf( xmlFile, "\t\t\t<highlight> %s </highlight>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
-				else
-					fprintf( xmlFile, "\t\t\t<showLines> %s </showLines>\n", (moreFlags & (1 << 6)) ? "<true />" : "<false />" );
-				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<wideMargins> %s </wideMargins>\n", (moreFlags & (1 << 5)) ? "<true />" : "<false />" );
-				else
-					fprintf( xmlFile, "\t\t\t<autoHighlight> %s </autoHighlight>\n", (moreFlags & (1 << 5) || family != 0) ? "<true />" : "<false />" );
-				if( isButton )
-					fprintf( xmlFile, "\t\t\t<sharedHighlight> %s </sharedHighlight>\n", (moreFlags & (1 << 4)) ? "<false />" : "<true />" );
-				else
-					fprintf( xmlFile, "\t\t\t<multipleLines> %s </multipleLines>\n", (moreFlags & (1 << 4)) ? "<true />" : "<false />" );
-				if( isButton )
-					fprintf( xmlFile, "\t\t\t<family>%d</family>\n", family );
-				else
-					fprintf( xmlFile, "\t\t\t<reservedFamily> %d </reservedFamily>\n", family );
-				
-				// titleWidth & iconID are list fields' lastSelectedLine and firstSelectedLine
-				// 	We generate a list containing each selected line so users of the file
-				//	format can add multiple selection easily.
-				int16_t	titleWidth = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +16 ));
-				int16_t	iconID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +18 ));
-				if( !isButton && iconID > 0 )
-				{
-					if( titleWidth <= 0 )
-						titleWidth = iconID;
-					
-					fprintf( xmlFile, "\t\t\t<selectedLines>\n", titleWidth );
-					for( int d = iconID; d <= titleWidth; d++ )
-						fprintf( xmlFile, "\t\t\t\t<integer>%d</integer>\n", d );
-					fprintf( xmlFile, "\t\t\t</selectedLines>\n" );
-				}
-				else if( isButton && styleFromLowNibble == 11 )	// Popup buttons use icon ID for selected line:
-				{
-					fprintf( xmlFile, "\t\t\t<titleWidth>%d</titleWidth>\n", titleWidth );
-					if( iconID != 0 )
-					{
-						fprintf( xmlFile, "\t\t\t<selectedLines>\n" );
-						fprintf( xmlFile, "\t\t\t\t<integer>%d</integer>\n", iconID );
-						fprintf( xmlFile, "\t\t\t</selectedLines>\n" );
-					}
-				}
-				else
-				{
-					fprintf( xmlFile, "\t\t\t<titleWidth>%d</titleWidth>\n", titleWidth );
-					fprintf( xmlFile, "\t\t\t<icon>%d</icon>\n", iconID );
-				}
-				int16_t	textAlign = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +20 ));
-				const char*		textAlignStr = "unknown";
-				switch( textAlign )
-				{
-					case 0:
-						textAlignStr = "left";
-						break;
-					case 1:
-						textAlignStr = "center";
-						break;
-					case -1:
-						textAlignStr = "right";
-						break;
-					case -2:
-						textAlignStr = "forceLeft";
-						break;
-				}
-				fprintf( xmlFile, "\t\t\t<textAlign>%s</textAlign>\n", textAlignStr );
-				int16_t	textFontID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +22 ));
-				fprintf( xmlFile, "\t\t\t<textFontID>%d</textFontID>\n", textFontID );
-				int16_t	textSize = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +24 ));
-				fprintf( xmlFile, "\t\t\t<textSize>%d</textSize>\n", textSize );
-				int16_t	textStyleFlags = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +26 ));
-				if( textStyleFlags & (1 << 15) )
-					fprintf( xmlFile, "\t\t\t<textStyle>group</textStyle>\n" );
-				if( textStyleFlags & (1 << 14) )
-					fprintf( xmlFile, "\t\t\t<textStyle>extend</textStyle>\n" );
-				if( textStyleFlags & (1 << 13) )
-					fprintf( xmlFile, "\t\t\t<textStyle>condense</textStyle>\n" );
-				if( textStyleFlags & (1 << 12) )
-					fprintf( xmlFile, "\t\t\t<textStyle>shadow</textStyle>\n" );
-				if( textStyleFlags & (1 << 11) )
-					fprintf( xmlFile, "\t\t\t<textStyle>outline</textStyle>\n" );
-				if( textStyleFlags & (1 << 10) )
-					fprintf( xmlFile, "\t\t\t<textStyle>underline</textStyle>\n" );
-				if( textStyleFlags & (1 << 9) )
-					fprintf( xmlFile, "\t\t\t<textStyle>italic</textStyle>\n" );
-				if( textStyleFlags & (1 << 8) )
-					fprintf( xmlFile, "\t\t\t<textStyle>bold</textStyle>\n" );
-				
-				int16_t	textHeight = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +28 ));
-				if( !isButton )
-					fprintf( xmlFile, "\t\t\t<textHeight>%d</textHeight>\n", textHeight );
-				
-				int x = 0, startOffs = currOffsIntoData +30;
-				fprintf( xmlFile, "\t\t\t<name>" );
-				for( x = startOffs; blockData[x] != 0; x++ )
-				{
-					char currCh = blockData[x];
-					if( currCh == '<' )
-						fprintf( xmlFile, "&lt;" );
-					else if( currCh == '>' )
-						fprintf( xmlFile, "&gt;" );
-					else if( currCh == '&' )
-						fprintf( xmlFile, "&amp;" );
-					else
-						fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
-				}
-				fprintf( xmlFile, "</name>\n" );
-				
-				startOffs = x +2;
-				fprintf( xmlFile, "\t\t\t<script>" );
-				for( x = startOffs; blockData[x] != 0; x++ )
-				{
-					char currCh = blockData[x];
-					if( currCh == '<' )
-						fprintf( xmlFile, "&lt;" );
-					else if( currCh == '>' )
-						fprintf( xmlFile, "&gt;" );
-					else if( currCh == '&' )
-						fprintf( xmlFile, "&amp;" );
-					else
-						fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
-				}
-				fprintf( xmlFile, "</script>\n" );
-				
-				fprintf( xmlFile, "\t\t</part>\n" );
-				
-				currOffsIntoData += partLength;
-				currOffsIntoData += (currOffsIntoData % 2);	// Align on even byte.
-			}
-
-			for( int n = 0; n < numContents; n++ )
-			{
-				int16_t		partID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
-				int16_t		partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +2 ));
-				
-				fprintf( xmlFile, "\t\t<content>\n" );
-				
-				CBuf		theText, theStyles;
-				if( partID < 0 )	// It's a card part's contents:
-				{
-					partID = -partID;
-					fprintf( xmlFile, "\t\t\t<layer>card</layer>\n", partID );
-					fprintf( xmlFile, "\t\t\t<id>%d</id>\n", partID );
-					
-					uint16_t	stylesLength = BIG_ENDIAN_16(blockData.uint16at( currOffsIntoData +4 ));
-					if( stylesLength > 32767 )
-					{
-						stylesLength = stylesLength -32768;
-						theStyles.resize( stylesLength -2 );
-						theStyles.memcpy( 0, blockData, currOffsIntoData +6, stylesLength -2 );
-					}
-					else
-						stylesLength = 0;
-					theText.resize( partLength -stylesLength +1 );
-					theText.memcpy( 0, blockData, currOffsIntoData +4 +stylesLength, partLength -stylesLength );
-					theText[theText.size()-1] = 0;
-				}
-				else	// It's a bg part's contents:
-				{
-					fprintf( xmlFile, "\t\t\t<layer>background</layer>\n" );
-					fprintf( xmlFile, "\t\t\t<id>%d</id>\n", partID );
-					
-					uint16_t	stylesLength = BIG_ENDIAN_16(blockData.uint16at( currOffsIntoData +4 ));
-					if( stylesLength > 32767 )
-					{
-						stylesLength = stylesLength -32768;
-						theStyles.resize( stylesLength -2 );
-						theStyles.memcpy( 0, blockData, currOffsIntoData +6, stylesLength -2 );
-					}
-					else
-						stylesLength = 0;
-					theText.resize( partLength -stylesLength +1 );
-					theText.memcpy( 0, blockData, currOffsIntoData +4 +stylesLength,
-										partLength -stylesLength );
-					theText[theText.size()-1] = 0;
-				}
-				
-				fprintf( xmlFile, "\t\t\t<text>" );
-				size_t	numChars = theText.size();
-				for( int x = 0; x < numChars; x++ )
-				{
-					char currCh = theText[x];
-					if( currCh == '<' )
-						fprintf( xmlFile, "&lt;" );
-					else if( currCh == '>' )
-						fprintf( xmlFile, "&gt;" );
-					else if( currCh == '&' )
-						fprintf( xmlFile, "&amp;" );
-					else
-						fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
-				}
-				fprintf( xmlFile, "</text>\n" );
-				if( theStyles.size() > 0 )
-				{
-//					char sfn[256] = { 0 };
-//					snprintf( sfn, sizeof(sfn), "style_runs_%d_%d.styl", vBlockID, partID );
-//					theStyles.tofile( sfn );
-					
-					for( size_t x = 0; x < theStyles.size(); )
-					{
-						int16_t	startOffset = BIG_ENDIAN_16(theStyles.int16at( x ));
-						x += sizeof(int16_t);
-						int16_t	styleID = BIG_ENDIAN_16(theStyles.int16at( x ));
-						x += sizeof(int16_t);
-						
-						fprintf( xmlFile, "\t\t\t<stylerun>\n" );
-						fprintf( xmlFile, "\t\t\t\t<offset>%u</offset>\n", startOffset );
-						fprintf( xmlFile, "\t\t\t\t<id>%u</id>\n", styleID );
-						fprintf( xmlFile, "\t\t\t</stylerun>\n" );
-					}
-				}
-				
-				currOffsIntoData += partLength +4 +(partLength % 2);	// Align on even byte.
-				
-				fprintf( xmlFile, "\t\t</content>\n" );
-			}
-
-			int x = 0, startOffs = currOffsIntoData;
-			fprintf( xmlFile, "\t\t<name>" );
-			for( x = startOffs; blockData[x] != 0; x++ )
-			{
-				char currCh = blockData[x];
-				if( currCh == '<' )
-					fprintf( xmlFile, "&lt;" );
-				else if( currCh == '>' )
-					fprintf( xmlFile, "&gt;" );
-				else if( currCh == '&' )
-					fprintf( xmlFile, "&amp;" );
-				else
-					fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
-			}
-			fprintf( xmlFile, "</name>\n" );
-			
-			startOffs = x +1;
-			fprintf( xmlFile, "\t\t<script>" );
-			for( x = startOffs; blockData[x] != 0; x++ )
-			{
-				char currCh = blockData[x];
-				if( currCh == '<' )
-					fprintf( xmlFile, "&lt;" );
-				else if( currCh == '>' )
-					fprintf( xmlFile, "&gt;" );
-				else if( currCh == '&' )
-					fprintf( xmlFile, "&amp;" );
-				else
-					fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
-			}
-			fprintf( xmlFile, "</script>\n" );
-
-			fprintf( xmlFile, "\t</card>\n" );
-		}
-		else if( strcmp(vBlockType,"FTBL") == 0 )
-		{
-			if( statusMessages )
-				fprintf( stdout, "Status: Processing '%4s' #%d %X (%d bytes)\n", vBlockType, vBlockID, vBlockID, vBlockSize );
-			fprintf( xmlFile, "\t<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
-			CBuf		blockData( vBlockSize -12 );
-			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
-			int16_t	numFonts = BIG_ENDIAN_16(blockData.int16at( 6 ));
-			size_t	currOffsIntoData = 8;
-			currOffsIntoData += 4;	// Reserved?
-			for( int n = 0; n < numFonts; n++ )
-			{
-				fprintf( xmlFile, "\t<font>\n" );
-				int16_t	fontID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
-				fprintf( xmlFile, "\t\t<id>%d</id>\n", fontID );
-				
-				int x = 0, startOffs = currOffsIntoData +2;
-				fprintf( xmlFile, "\t\t<name>" );
-				for( x = startOffs; blockData[x] != 0; x++ )
-				{
-					char currCh = blockData[x];
-					if( currCh == '<' )
-						fprintf( xmlFile, "&lt;" );
-					else if( currCh == '>' )
-						fprintf( xmlFile, "&gt;" );
-					else if( currCh == '&' )
-						fprintf( xmlFile, "&amp;" );
-					else
-						fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
-				}
-				fprintf( xmlFile, "</name>\n" );
-			
-				currOffsIntoData = x +1;
-				currOffsIntoData += currOffsIntoData %2;	// Align on even byte.
-				
-				fprintf( xmlFile, "\t</font>\n" );
-			}
-		}
-		else if( strcmp(vBlockType,"STBL") == 0 )
-		{
-			if( statusMessages )
-				fprintf( stdout, "Status: Processing '%4s' #%d %X (%d bytes)\n", vBlockType, vBlockID, vBlockID, vBlockSize );
-			fprintf( xmlFile, "\t<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
-			CBuf		blockData( vBlockSize -12 );
-			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
-			
-			if( dumpRawBlockData )
-			{
-				char sfn[256] = { 0 };
-				snprintf( sfn, sizeof(sfn), "STBL_%d.data", vBlockID );
-				blockData.tofile( sfn );
-			}
-			
-			size_t		currOffs = 4;
-			int32_t		numStyles = BIG_ENDIAN_32(blockData.int32at( currOffs ));
-			currOffs += 4;
-			
-			for( int s = 0; s < numStyles; s++ )
-			{
-				currOffs += 16;
-				
-				fprintf( xmlFile, "\t<styleentry>\n" );
-				int16_t	fontID = BIG_ENDIAN_16(blockData.int16at( currOffs ));
-				if( fontID != -1 )
-					fprintf( xmlFile, "\t\t<font>%d</font>\n", fontID );
-				currOffs += 2;
-				
-				int16_t	textStyleFlags = BIG_ENDIAN_16(blockData.int16at( currOffs ));
-				currOffs += 2;
-				
-				if( textStyleFlags == 0 )
-					fprintf( xmlFile, "\t\t<textStyle>plain</textStyle>\n" );
-				else if( textStyleFlags != -1 )	// -1 means use field style.
-				{
-					if( textStyleFlags & (1 << 15) )
-						fprintf( xmlFile, "\t\t<textStyle>group</textStyle>\n" );
-					if( textStyleFlags & (1 << 14) )
-						fprintf( xmlFile, "\t\t<textStyle>extend</textStyle>\n" );
-					if( textStyleFlags & (1 << 13) )
-						fprintf( xmlFile, "\t\t<textStyle>condense</textStyle>\n" );
-					if( textStyleFlags & (1 << 12) )
-						fprintf( xmlFile, "\t\t<textStyle>shadow</textStyle>\n" );
-					if( textStyleFlags & (1 << 11) )
-						fprintf( xmlFile, "\t\t<textStyle>outline</textStyle>\n" );
-					if( textStyleFlags & (1 << 10) )
-						fprintf( xmlFile, "\t\t<textStyle>underline</textStyle>\n" );
-					if( textStyleFlags & (1 << 9) )
-						fprintf( xmlFile, "\t\t<textStyle>italic</textStyle>\n" );
-					if( textStyleFlags & (1 << 8) )
-						fprintf( xmlFile, "\t\t<textStyle>bold</textStyle>\n" );
-				}
-				int16_t	fontSize = BIG_ENDIAN_16(blockData.int16at( currOffs ));
-				if( fontSize != -1 )
-					fprintf( xmlFile, "\t\t<size>%d</size>\n", fontSize );
-				currOffs += 2;
-				currOffs += 2;	// 2 more padding?
-				
-				fprintf( xmlFile, "\t</styleentry>\n" );
-			}
-		}
-		else if( strcmp(vBlockType,"LIST") == 0 )
-		{
-			if( statusMessages )
-				fprintf( stdout, "Status: Processing '%4s' #%d %X (%d bytes)\n", vBlockType, vBlockID, vBlockID, vBlockSize );
-			CBuf		blockData( vBlockSize -12 );
-			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
-			
-			if( dumpRawBlockData )
-			{
-				char sfn[256] = { 0 };
-				snprintf( sfn, sizeof(sfn), "%s_%d.data", vBlockType, vBlockID );
-				blockData.tofile( sfn );
-			}
-
-			fprintf( xmlFile, "\t<pagetablelist>\n" );
-			size_t		currDataOffs = 4;
-			int32_t		numPageTables = BIG_ENDIAN_32(blockData.int32at(currDataOffs));
-			currDataOffs += 12;
-			cardBlockSize = BIG_ENDIAN_16(blockData.int16at(currDataOffs));
-			fprintf( xmlFile, "\t\t<cardEntrySize>%d</cardEntrySize>\n", cardBlockSize );
-			currDataOffs += 18;
-			for( int32_t r = 0; r < numPageTables; r++ )
-			{
-				currDataOffs += 2;
-				if( !blockData.hasdata( currDataOffs, sizeof(int32_t) ) )
-				{
-					fprintf( stderr, "Warning: Premature end of '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
-					break;
-				}
-				
-				int32_t		currPagetableID = BIG_ENDIAN_32( blockData.int32at( currDataOffs ) );
-				
-				fprintf( xmlFile, "\t\t<pagetable>%d</pagetable>\n", currPagetableID );
-				currDataOffs += 4;
-			}
-			fprintf( xmlFile, "\t</pagetablelist>\n" );
-		}
-		else if( strcmp(vBlockType,"PAGE") == 0 )
-		{
-			if( statusMessages )
-				fprintf( stdout, "Status: Processing '%4s' #%d %X (%d bytes)\n", vBlockType, vBlockID, vBlockID, vBlockSize );
-			CBuf		blockData( vBlockSize -12 );
-			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
-
-			if( dumpRawBlockData )
-			{
-				char sfn[256] = { 0 };
-				snprintf( sfn, sizeof(sfn), "%s_%d.data", vBlockType, vBlockID );
-				blockData.tofile( sfn );
-			}
-			
-			if( cardBlockSize != -1 )
-			{
-				fprintf( xmlFile, "\t<pagetable>\n" );
-				fprintf( xmlFile, "\t\t<id>%d</id>\n", vBlockID );
-				fprintf( xmlFile, "\t\t<cards>\n" );
-				size_t		currDataOffs = 12;
-				while( true )
-				{
-					if( !blockData.hasdata( currDataOffs, sizeof(int32_t) ) )
-					{
-						fprintf( stderr, "Warning: Premature end of '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
-						break;
-					}
-					
-					int32_t		currCardID = BIG_ENDIAN_32( blockData.int32at( currDataOffs ) );
-					if( currCardID == 0 )
-						break;
-					
-					fprintf( xmlFile, "\t\t\t<cardID>%d</cardID>\n", currCardID );
-					
-					currDataOffs += cardBlockSize;
-				}
-				fprintf( xmlFile, "\t\t</cards>\n" );
-				fprintf( xmlFile, "\t</pagetable>\n" );
-			}
-			else
-				fprintf( stderr, "Warning: Couldn't parse '%4s' #%d (%d bytes) because it preceded the page table list.\n", vBlockType, vBlockID, vBlockSize );
-		}
 		else if( strcmp(vBlockType,"FREE") == 0 )	// Not a free, reusable block?
 		{
-			if( statusMessages )
+			if( mStatusMessages )
 				fprintf( stdout, "Status: Skipping '%4s' #%d (%d bytes)\n", vBlockType, vBlockID, vBlockSize );
-			fprintf( xmlFile, "\t<!-- Skipped '%4s' #%d (%d bytes) -->\n", vBlockType, vBlockID, vBlockSize );
 			theFile.ignore( vBlockSize -12 );	// Skip rest of block data.
 		}
 		else
 		{
-			fprintf( stderr, "Warning: Skipping '%4s' %X #%d (%d bytes)\n", vBlockType, vBlockID, vBlockID, vBlockSize );
 			CBuf		blockData( vBlockSize -12 );
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
-
-			if( dumpRawBlockData )
-			{
-				char sfn[256] = { 0 };
-				snprintf( sfn, sizeof(sfn), "%s_%d.data", vBlockType, vBlockID );
-				blockData.tofile( sfn );
-				
-				fprintf( xmlFile, "\t<unknown type=\"%4s\" id=\"%d\" size=\"%d\" file=\"%s\" />\n", vBlockType, vBlockID, vBlockSize, sfn );
-			}
+			CStackBlockIdentifier	theTypeAndID(vBlockType,vBlockID);
+			mBlockMap[theTypeAndID] = blockData;
+			//mBlockMap.insert( std::make_pair(theTypeAndID,blockData) );
+			printf( "Status: Located block %s %d - (%d)\n", vBlockType, vBlockID, mBlockMap.size() );
 		}
 	}
 	
+	// Load some "table of contents"-style blocks other blocks need to refer to:
+	CBlockMap::iterator		stackItty = mBlockMap.find(CStackBlockIdentifier("STAK"));
+	if( stackItty == mBlockMap.end() )
+		fprintf( stderr, "Error: Couldn't find stack block." );
+	bool	success = LoadStackBlock( stackItty->second );
+	if( success )
+		success = LoadFontTable( -1, mBlockMap[CStackBlockIdentifier("FTBL")] );
+	if( success )
+		success = LoadStyleTable( -1, mBlockMap[CStackBlockIdentifier("STBL")] );
+	if( success )
+		success = LoadListBlock( mBlockMap[CStackBlockIdentifier("LIST",mListBlockID)] );
+	
+	// Now load all backgrounds and bitmaps:
+	if( success )
+	{
+		CBlockMap::iterator	currBlockItty = mBlockMap.begin();
+		for( ; currBlockItty != mBlockMap.end(); currBlockItty++ )
+		{
+			if( currBlockItty->first == CStackBlockIdentifier("BMAP") )
+			{
+				int32_t		blockID = currBlockItty->first.mID;
+				CBuf&		blockData = currBlockItty->second;
+				if( mStatusMessages )
+					fprintf( stdout, "Status: Processing 'BMAP' #%d %X (%d bytes)\n", blockID, blockID, blockData.size() );
+				fprintf( mXmlFile, "\t<!-- Processed 'BMAP' #%d (%d bytes) -->\n", blockID, blockData.size() );
+				picture		thePicture;
+				woba_decode( thePicture, blockData.buf() );
+				
+				char		fname[256];
+				sprintf( fname, "BMAP_%u.pbm", blockID );
+				thePicture.writebitmapandmasktopbm( fname );
+			}
+			else if( currBlockItty->first == CStackBlockIdentifier("BKGD") )
+			{
+				success = LoadLayerBlock( "BKGD", currBlockItty->first.mID, currBlockItty->second );
+			}
+		}
+	}
+		
 	#if MAC_CODE
 	SInt16		resRefNum = -1;
 	FSRef		fileRef;
@@ -1261,7 +971,7 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 				GetResInfo( currIcon, &theID, &theType, name );
 				char		fname[256];
 				
-				if( statusMessages )
+				if( mStatusMessages )
 					fprintf( stdout, "Status: Converting 'ICON' %d.\n", theID );
 				
 				picture		theIcon( 32, 32, 1, false );
@@ -1275,20 +985,20 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 				snprintf( fname, sizeof(fname), "ICON_%d.pbm", theID );
 				theIcon.writebitmapandmasktopbm( fname );
 				
-				fprintf( xmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<type>icon</type>\n\t\t<name>", theID );
+				fprintf( mXmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<type>icon</type>\n\t\t<name>", theID );
 				for( int n = 1; n <= name[0]; n++ )
 				{
 					char currCh = name[n];
 					if( currCh == '<' )
-						fprintf( xmlFile, "&lt;" );
+						fprintf( mXmlFile, "&lt;" );
 					else if( currCh == '>' )
-						fprintf( xmlFile, "&gt;" );
+						fprintf( mXmlFile, "&gt;" );
 					else if( currCh == '&' )
-						fprintf( xmlFile, "&amp;" );
+						fprintf( mXmlFile, "&amp;" );
 					else
-						fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
+						fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
 				}
-				fprintf( xmlFile, "</name>\n\t\t<file>ICON_%d.pbm</file>\n\t</media>\n", theID );
+				fprintf( mXmlFile, "</name>\n\t\t<file>ICON_%d.pbm</file>\n\t</media>\n", theID );
 			}
 
 			// Export all PICT images:
@@ -1302,7 +1012,7 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 				GetResInfo( currPicture, &theID, &theType, name );
 				char		fname[256];
 				
-				if( statusMessages )
+				if( mStatusMessages )
 					fprintf( stdout, "Status: Converting 'PICT' %d.\n", theID );
 
 				snprintf( fname, sizeof(fname), "PICT_%d.pict", theID );
@@ -1318,20 +1028,20 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 				fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
 				fclose( theFile );
 
-				fprintf( xmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<type>picture</type>\n\t\t<name>", theID );
+				fprintf( mXmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<type>picture</type>\n\t\t<name>", theID );
 				for( int n = 1; n <= name[0]; n++ )
 				{
 					char currCh = name[n];
 					if( currCh == '<' )
-						fprintf( xmlFile, "&lt;" );
+						fprintf( mXmlFile, "&lt;" );
 					else if( currCh == '>' )
-						fprintf( xmlFile, "&gt;" );
+						fprintf( mXmlFile, "&gt;" );
 					else if( currCh == '&' )
-						fprintf( xmlFile, "&amp;" );
+						fprintf( mXmlFile, "&amp;" );
 					else
-						fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
+						fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
 				}
-				fprintf( xmlFile, "</name>\n\t\t<file>PICT_%d.pict</file>\n\t</media>\n", theID );
+				fprintf( mXmlFile, "</name>\n\t\t<file>PICT_%d.pict</file>\n\t</media>\n", theID );
 			}
 
 			// Export all CURS cursors:
@@ -1345,7 +1055,7 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 				GetResInfo( currIcon, &theID, &theType, name );
 				char		fname[256];
 				
-				if( statusMessages )
+				if( mStatusMessages )
 					fprintf( stdout, "Status: Converting 'CURS' %d.\n", theID );
 				
 				snprintf( fname, sizeof(fname), "CURS_%d.pbm", theID );
@@ -1365,20 +1075,20 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 				printf("");
 				fclose( theFile );
 				
-				fprintf( xmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<type>cursor</type>\n\t\t<name>", theID );
+				fprintf( mXmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<type>cursor</type>\n\t\t<name>", theID );
 				for( int n = 1; n <= name[0]; n++ )
 				{
 					char currCh = name[n];
 					if( currCh == '<' )
-						fprintf( xmlFile, "&lt;" );
+						fprintf( mXmlFile, "&lt;" );
 					else if( currCh == '>' )
-						fprintf( xmlFile, "&gt;" );
+						fprintf( mXmlFile, "&gt;" );
 					else if( currCh == '&' )
-						fprintf( xmlFile, "&amp;" );
+						fprintf( mXmlFile, "&amp;" );
 					else
-						fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
+						fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
 				}
-				fprintf( xmlFile, "</name>\n\t\t<file>CURS_%d.pbm</file>\n\t\t<hotspot>\n\t\t\t<left>%d</left>\n\t\t\t<top>%d</top>\n\t\t</hotspot>\n\t</media>\n", theID, horzPos, vertPos );
+				fprintf( mXmlFile, "</name>\n\t\t<file>CURS_%d.pbm</file>\n\t\t<hotspot>\n\t\t\t<left>%d</left>\n\t\t\t<top>%d</top>\n\t\t</hotspot>\n\t</media>\n", theID, horzPos, vertPos );
 			}
 
 			// Export all 'snd ' sound resources:
@@ -1393,7 +1103,7 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 				GetResInfo( currIcon, &theID, &theType, name );
 				char		fname[256];
 
-				if( statusMessages )
+				if( mStatusMessages )
 					fprintf( stdout, "Status: Converting 'snd ' %d.\n", theID );
 
 				snprintf( fname, sizeof(fname), "snd_%d.aiff", theID );
@@ -1448,20 +1158,20 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 				
 				DisposeMovie( theMovie );
 				
-				fprintf( xmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<name>", theID );
+				fprintf( mXmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<name>", theID );
 				for( int n = 1; n <= name[0]; n++ )
 				{
 					char currCh = name[n];
 					if( currCh == '<' )
-						fprintf( xmlFile, "&lt;" );
+						fprintf( mXmlFile, "&lt;" );
 					else if( currCh == '>' )
-						fprintf( xmlFile, "&gt;" );
+						fprintf( mXmlFile, "&gt;" );
 					else if( currCh == '&' )
-						fprintf( xmlFile, "&amp;" );
+						fprintf( mXmlFile, "&amp;" );
 					else
-						fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
+						fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
 				}
-				fprintf( xmlFile, "</name>\n\t\t<file>snd_%d.aiff</file>\n\t\t<type>sound</type>\n\t</media>\n", theID );
+				fprintf( mXmlFile, "</name>\n\t\t<file>snd_%d.aiff</file>\n\t\t<type>sound</type>\n\t</media>\n", theID );
 			}
 			ExitMovies();
 			
@@ -1476,7 +1186,7 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 				GetResInfo( currIcon, &theID, &theType, name );
 				char		fname[256];
 				
-				if( statusMessages )
+				if( mStatusMessages )
 					fprintf( stdout, "Status: Converting AddColor 'HCbg' %d.\n", theID );
 				
 				snprintf( fname, sizeof(fname), "HCbg_%d.data", theID );
@@ -1486,12 +1196,12 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 				theData.memcpy( 0, *currIcon, 0, dataLen );
 				theData.tofile( fname );
 				
-				fprintf( xmlFile, "\t<addcolorbackground>\n\t\t<id>%d</id>\n", theID );
+				fprintf( mXmlFile, "\t<addcolorbackground>\n\t\t<id>%d</id>\n", theID );
 				
 				size_t	currOffs = 0;
 				while( currOffs < dataLen )
 				{
-					fprintf( xmlFile, "\t\t<addcolorobject>\n" );
+					fprintf( mXmlFile, "\t\t<addcolorobject>\n" );
 					int8_t	currType = theData[currOffs];
 					bool	vHidden = currType & (1 << 7);
 					currType &= ~(1 << 7);
@@ -1501,145 +1211,145 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 					{
 						case 0x01:	// Button
 						{
-							fprintf( xmlFile, "\t\t\t<type>button</type>\n" );
+							fprintf( mXmlFile, "\t\t\t<type>button</type>\n" );
 							int16_t		buttonID = 0, bevelDepth = 0;
 							uint16_t	r = 0, g = 0, b = 0;
 							buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<id>%d</id>\n", buttonID );
+							fprintf( mXmlFile, "\t\t\t<id>%d</id>\n", buttonID );
 							bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
-							fprintf( xmlFile, "\t\t\t<color>\n" );
+							fprintf( mXmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+							fprintf( mXmlFile, "\t\t\t<color>\n" );
 							r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<red>%d</red>\n", r );
+							fprintf( mXmlFile, "\t\t\t\t<red>%d</red>\n", r );
 							g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<green>%d</green>\n", g );
+							fprintf( mXmlFile, "\t\t\t\t<green>%d</green>\n", g );
 							b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
-							fprintf( xmlFile, "\t\t\t</color>\n" );
+							fprintf( mXmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
+							fprintf( mXmlFile, "\t\t\t</color>\n" );
 							break;
 						}
 
 						case 0x02:	// Field
 						{
-							fprintf( xmlFile, "\t\t\t<type>field</type>\n" );
+							fprintf( mXmlFile, "\t\t\t<type>field</type>\n" );
 							int16_t		buttonID = 0, bevelDepth = 0;
 							uint16_t	r = 0, g = 0, b = 0;
 							buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<id>%d</id>\n", buttonID );
+							fprintf( mXmlFile, "\t\t\t<id>%d</id>\n", buttonID );
 							bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
-							fprintf( xmlFile, "\t\t\t<color>\n" );
+							fprintf( mXmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+							fprintf( mXmlFile, "\t\t\t<color>\n" );
 							r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<red>%d</red>\n", r );
+							fprintf( mXmlFile, "\t\t\t\t<red>%d</red>\n", r );
 							g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<green>%d</green>\n", g );
+							fprintf( mXmlFile, "\t\t\t\t<green>%d</green>\n", g );
 							b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
-							fprintf( xmlFile, "\t\t\t</color>\n" );
+							fprintf( mXmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
+							fprintf( mXmlFile, "\t\t\t</color>\n" );
 							break;
 						}
 
 						case 0x03:	// Rectangle
 						{
-							fprintf( xmlFile, "\t\t\t<type>rectangle</type>\n" );
+							fprintf( mXmlFile, "\t\t\t<type>rectangle</type>\n" );
 							uint16_t	rc = 0, gc = 0, bc = 0;
 							int16_t		bevelDepth = 0;
 							int16_t		l, t, r, b;
-							fprintf( xmlFile, "\t\t\t<rect>\n" );
+							fprintf( mXmlFile, "\t\t\t<rect>\n" );
 							t = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<top>%d</top>\n", t );
+							fprintf( mXmlFile, "\t\t\t\t<top>%d</top>\n", t );
 							l = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<left>%d</left>\n", l );
+							fprintf( mXmlFile, "\t\t\t\t<left>%d</left>\n", l );
 							b = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
+							fprintf( mXmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
 							r = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<right>%d</right>\n", r );
-							fprintf( xmlFile, "\t\t\t</rect>\n" );
+							fprintf( mXmlFile, "\t\t\t\t<right>%d</right>\n", r );
+							fprintf( mXmlFile, "\t\t\t</rect>\n" );
 							bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<bevel>%d</bevel>\n", t );
-							fprintf( xmlFile, "\t\t\t<color>\n" );
+							fprintf( mXmlFile, "\t\t\t<bevel>%d</bevel>\n", t );
+							fprintf( mXmlFile, "\t\t\t<color>\n" );
 							rc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<red>%d</red>\n", rc );
+							fprintf( mXmlFile, "\t\t\t\t<red>%d</red>\n", rc );
 							gc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<green>%d</green>\n", gc );
+							fprintf( mXmlFile, "\t\t\t\t<green>%d</green>\n", gc );
 							bc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<blue>%d</blue>\n", bc );
-							fprintf( xmlFile, "\t\t\t</color>\n" );
+							fprintf( mXmlFile, "\t\t\t\t<blue>%d</blue>\n", bc );
+							fprintf( mXmlFile, "\t\t\t</color>\n" );
 							break;
 						}
 
 						case 0x04:	// Picture
 						{
-							fprintf( xmlFile, "\t\t\t<type>picture</type>\n" );
+							fprintf( mXmlFile, "\t\t\t<type>picture</type>\n" );
 							int16_t		l, t, r, b;
-							fprintf( xmlFile, "\t\t\t<rect>\n" );
+							fprintf( mXmlFile, "\t\t\t<rect>\n" );
 							t = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<top>%d</top>\n", t );
+							fprintf( mXmlFile, "\t\t\t\t<top>%d</top>\n", t );
 							l = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<left>%d</left>\n", l );
+							fprintf( mXmlFile, "\t\t\t\t<left>%d</left>\n", l );
 							b = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
+							fprintf( mXmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
 							r = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<right>%d</right>\n", r );
-							fprintf( xmlFile, "\t\t\t</rect>\n" );
+							fprintf( mXmlFile, "\t\t\t\t<right>%d</right>\n", r );
+							fprintf( mXmlFile, "\t\t\t</rect>\n" );
 
 							uint8_t	transparentFlag = theData[currOffs];
 							currOffs += 1;
-							fprintf( xmlFile, "\t\t\t<transparent> %s </transparent>\n", transparentFlag ? "<true />" : "<false />" );
+							fprintf( mXmlFile, "\t\t\t<transparent> %s </transparent>\n", transparentFlag ? "<true />" : "<false />" );
 							
 							uint8_t	imageNameLen = theData[currOffs];
 							currOffs += 1;
 							
-							fprintf( xmlFile, "\t\t\t<name>" );
+							fprintf( mXmlFile, "\t\t\t<name>" );
 							for( int n = 0; n < imageNameLen; n++ )
 							{
 								char currCh = theData[currOffs++];
 								if( currCh == '<' )
-									fprintf( xmlFile, "&lt;" );
+									fprintf( mXmlFile, "&lt;" );
 								else if( currCh == '>' )
-									fprintf( xmlFile, "&gt;" );
+									fprintf( mXmlFile, "&gt;" );
 								else if( currCh == '&' )
-									fprintf( xmlFile, "&amp;" );
+									fprintf( mXmlFile, "&amp;" );
 								else
-									fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
+									fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
 							}
-							fprintf( xmlFile, "</name>\n" );
+							fprintf( mXmlFile, "</name>\n" );
 							break;
 						}
 						
 						default:
-							fprintf( xmlFile, "\t\t\t<!-- Unknown type %x, aborting 'HCcd' resource %d. -->\n", currType, theID );
+							fprintf( mXmlFile, "\t\t\t<!-- Unknown type %x, aborting 'HCcd' resource %d. -->\n", currType, theID );
 							fprintf( stderr, "Error: Unknown type %x, aborting 'HCcd' resource %d.\n", currType, theID );
 							currOffs = dataLen;	// Can't read more. Skip the rest.
 							break;
 					}
-					fprintf( xmlFile, "\t\t\t<visible> %s </visible>\n", (vHidden ? "<false />" : "<true />") );
-					fprintf( xmlFile, "\t\t</addcolorobject>\n" );
+					fprintf( mXmlFile, "\t\t\t<visible> %s </visible>\n", (vHidden ? "<false />" : "<true />") );
+					fprintf( mXmlFile, "\t\t</addcolorobject>\n" );
 				}
 			
-				fprintf( xmlFile, "\t</addcolorbackground>\n" );
+				fprintf( mXmlFile, "\t</addcolorbackground>\n" );
 			}
 
 			// Export more AddColor resources:
@@ -1653,7 +1363,7 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 				GetResInfo( currIcon, &theID, &theType, name );
 				char		fname[256];
 				
-				if( statusMessages )
+				if( mStatusMessages )
 					fprintf( stdout, "Status: Converting AddColor 'HCcd' %d.\n", theID );
 
 				snprintf( fname, sizeof(fname), "HCcd_%d.data", theID );
@@ -1663,12 +1373,12 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 				theData.memcpy( 0, *currIcon, 0, dataLen );
 				//theData.tofile( fname );
 				
-				fprintf( xmlFile, "\t<addcolorcard>\n\t\t<id>%d</id>\n", theID );
+				fprintf( mXmlFile, "\t<addcolorcard>\n\t\t<id>%d</id>\n", theID );
 				
 				size_t	currOffs = 0;
 				while( currOffs < dataLen )
 				{
-					fprintf( xmlFile, "\t\t<addcolorobject>\n" );
+					fprintf( mXmlFile, "\t\t<addcolorobject>\n" );
 					int8_t	currType = theData[currOffs];
 					bool	vHidden = currType & (1 << 7);
 					currType &= ~(1 << 7);
@@ -1678,145 +1388,145 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 					{
 						case 0x01:	// Button
 						{
-							fprintf( xmlFile, "\t\t\t<type>button</type>\n" );
+							fprintf( mXmlFile, "\t\t\t<type>button</type>\n" );
 							int16_t		buttonID = 0, bevelDepth = 0;
 							uint16_t	r = 0, g = 0, b = 0;
 							buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<id>%d</id>\n", buttonID );
+							fprintf( mXmlFile, "\t\t\t<id>%d</id>\n", buttonID );
 							bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
-							fprintf( xmlFile, "\t\t\t<color>\n" );
+							fprintf( mXmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+							fprintf( mXmlFile, "\t\t\t<color>\n" );
 							r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<red>%d</red>\n", r );
+							fprintf( mXmlFile, "\t\t\t\t<red>%d</red>\n", r );
 							g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<green>%d</green>\n", g );
+							fprintf( mXmlFile, "\t\t\t\t<green>%d</green>\n", g );
 							b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
-							fprintf( xmlFile, "\t\t\t</color>\n" );
+							fprintf( mXmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
+							fprintf( mXmlFile, "\t\t\t</color>\n" );
 							break;
 						}
 
 						case 0x02:	// Field
 						{
-							fprintf( xmlFile, "\t\t\t<type>field</type>\n" );
+							fprintf( mXmlFile, "\t\t\t<type>field</type>\n" );
 							int16_t		buttonID = 0, bevelDepth = 0;
 							uint16_t	r = 0, g = 0, b = 0;
 							buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<id>%d</id>\n", buttonID );
+							fprintf( mXmlFile, "\t\t\t<id>%d</id>\n", buttonID );
 							bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
-							fprintf( xmlFile, "\t\t\t<color>\n" );
+							fprintf( mXmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+							fprintf( mXmlFile, "\t\t\t<color>\n" );
 							r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<red>%d</red>\n", r );
+							fprintf( mXmlFile, "\t\t\t\t<red>%d</red>\n", r );
 							g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<green>%d</green>\n", g );
+							fprintf( mXmlFile, "\t\t\t\t<green>%d</green>\n", g );
 							b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
-							fprintf( xmlFile, "\t\t\t</color>\n" );
+							fprintf( mXmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
+							fprintf( mXmlFile, "\t\t\t</color>\n" );
 							break;
 						}
 
 						case 0x03:	// Rectangle
 						{
-							fprintf( xmlFile, "\t\t\t<type>rectangle</type>\n" );
+							fprintf( mXmlFile, "\t\t\t<type>rectangle</type>\n" );
 							uint16_t	rc = 0, gc = 0, bc = 0;
 							int16_t		bevelDepth = 0;
 							int16_t		l, t, r, b;
-							fprintf( xmlFile, "\t\t\t<rect>\n" );
+							fprintf( mXmlFile, "\t\t\t<rect>\n" );
 							t = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<top>%d</top>\n", t );
+							fprintf( mXmlFile, "\t\t\t\t<top>%d</top>\n", t );
 							l = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<left>%d</left>\n", l );
+							fprintf( mXmlFile, "\t\t\t\t<left>%d</left>\n", l );
 							b = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
+							fprintf( mXmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
 							r = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<right>%d</right>\n", r );
-							fprintf( xmlFile, "\t\t\t</rect>\n" );
+							fprintf( mXmlFile, "\t\t\t\t<right>%d</right>\n", r );
+							fprintf( mXmlFile, "\t\t\t</rect>\n" );
 							bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
-							fprintf( xmlFile, "\t\t\t<color>\n" );
+							fprintf( mXmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+							fprintf( mXmlFile, "\t\t\t<color>\n" );
 							rc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<red>%d</red>\n", rc );
+							fprintf( mXmlFile, "\t\t\t\t<red>%d</red>\n", rc );
 							gc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<green>%d</green>\n", gc );
+							fprintf( mXmlFile, "\t\t\t\t<green>%d</green>\n", gc );
 							bc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<blue>%d</blue>\n", bc );
-							fprintf( xmlFile, "\t\t\t</color>\n" );
+							fprintf( mXmlFile, "\t\t\t\t<blue>%d</blue>\n", bc );
+							fprintf( mXmlFile, "\t\t\t</color>\n" );
 							break;
 						}
 
 						case 0x04:	// Picture
 						{
-							fprintf( xmlFile, "\t\t\t<type>picture</type>\n" );
+							fprintf( mXmlFile, "\t\t\t<type>picture</type>\n" );
 							int16_t		l, t, r, b;
-							fprintf( xmlFile, "\t\t\t<rect>\n" );
+							fprintf( mXmlFile, "\t\t\t<rect>\n" );
 							t = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<top>%d</top>\n", t );
+							fprintf( mXmlFile, "\t\t\t\t<top>%d</top>\n", t );
 							l = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<left>%d</left>\n", l );
+							fprintf( mXmlFile, "\t\t\t\t<left>%d</left>\n", l );
 							b = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
+							fprintf( mXmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
 							r = BIG_ENDIAN_16(theData.int16at( currOffs ));
 							currOffs += 2;
-							fprintf( xmlFile, "\t\t\t\t<right>%d</right>\n", r );
-							fprintf( xmlFile, "\t\t\t</rect>\n" );
+							fprintf( mXmlFile, "\t\t\t\t<right>%d</right>\n", r );
+							fprintf( mXmlFile, "\t\t\t</rect>\n" );
 
 							uint8_t	transparentFlag = theData[currOffs];
 							currOffs += 1;
-							fprintf( xmlFile, "\t\t\t<transparent> %s </transparent>\n", transparentFlag ? "<true />" : "<false />" );
+							fprintf( mXmlFile, "\t\t\t<transparent> %s </transparent>\n", transparentFlag ? "<true />" : "<false />" );
 							
 							uint8_t	imageNameLen = theData[currOffs];
 							currOffs += 1;
 							
-							fprintf( xmlFile, "\t\t\t<name>" );
+							fprintf( mXmlFile, "\t\t\t<name>" );
 							for( int n = 0; n < imageNameLen; n++ )
 							{
 								char currCh = theData[currOffs++];
 								if( currCh == '<' )
-									fprintf( xmlFile, "&lt;" );
+									fprintf( mXmlFile, "&lt;" );
 								else if( currCh == '>' )
-									fprintf( xmlFile, "&gt;" );
+									fprintf( mXmlFile, "&gt;" );
 								else if( currCh == '&' )
-									fprintf( xmlFile, "&amp;" );
+									fprintf( mXmlFile, "&amp;" );
 								else
-									fprintf( xmlFile, "%s", UniCharFromMacRoman(currCh) );
+									fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
 							}
-							fprintf( xmlFile, "</name>\n" );
+							fprintf( mXmlFile, "</name>\n" );
 							break;
 						}
 						
 						default:
-							fprintf( xmlFile, "\t\t\t<!-- Unknown type %x, aborting 'HCcd' resource %d. -->\n", currType, theID );
+							fprintf( mXmlFile, "\t\t\t<!-- Unknown type %x, aborting 'HCcd' resource %d. -->\n", currType, theID );
 							fprintf( stderr, "Error: Unknown type %x, aborting 'HCcd' resource %d.\n", currType, theID );
 							currOffs = dataLen;	// Can't read more. Skip the rest.
 							break;
 					}
-					fprintf( xmlFile, "\t\t\t<visible> %s </visible>\n", (vHidden ? "<false />" : "<true />") );
-					fprintf( xmlFile, "\t\t</addcolorobject>\n" );
+					fprintf( mXmlFile, "\t\t\t<visible> %s </visible>\n", (vHidden ? "<false />" : "<true />") );
+					fprintf( mXmlFile, "\t\t</addcolorobject>\n" );
 				}
 			
-				fprintf( xmlFile, "\t</addcolorcard>\n" );
+				fprintf( mXmlFile, "\t</addcolorcard>\n" );
 			}
 			
 			// Export all XCMD resources:
@@ -1848,7 +1558,7 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 				fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
 				fclose( theFile );
 
-				fprintf( xmlFile, "\t<externalcommand type=\"command\" platform=\"mac68k\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
+				fprintf( mXmlFile, "\t<externalcommand type=\"command\" platform=\"mac68k\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
 									theID, GetHandleSize( currPicture ), name, fname );
 			}
 			
@@ -1881,7 +1591,7 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 				fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
 				fclose( theFile );
 
-				fprintf( xmlFile, "\t<externalcommand type=\"function\" platform=\"mac68k\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
+				fprintf( mXmlFile, "\t<externalcommand type=\"function\" platform=\"mac68k\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
 									theID, GetHandleSize( currPicture ), name, fname );
 			}
 			
@@ -1914,7 +1624,7 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 				fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
 				fclose( theFile );
 
-				fprintf( xmlFile, "\t<externalcommand type=\"command\" platform=\"macppc\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
+				fprintf( mXmlFile, "\t<externalcommand type=\"command\" platform=\"macppc\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
 									theID, GetHandleSize( currPicture ), name, fname );
 			}
 			
@@ -1947,7 +1657,7 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 				fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
 				fclose( theFile );
 
-				fprintf( xmlFile, "\t<externalcommand type=\"function\" platform=\"macppc\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
+				fprintf( mXmlFile, "\t<externalcommand type=\"function\" platform=\"macppc\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
 									theID, GetHandleSize( currPicture ), name, fname );
 			}
 			
@@ -1958,9 +1668,9 @@ bool	CStackFile::LoadFile( const std::string& fpath, bool dumpRawBlockData, bool
 		fprintf( stderr, "Error: Error %d locating input file's resource fork.\n", (int)err );
 	#endif // MAC_CODE
 	
-	fprintf( xmlFile, "</stackfile>\n" );
-	if( xmlFile != stdout )
-		fclose( xmlFile );
+	fprintf( mXmlFile, "</stackfile>\n" );
+	if( mXmlFile != stdout )
+		fclose( mXmlFile );
 	
 	#if MAC_CODE
 	if( err != fnfErr && err != noErr )

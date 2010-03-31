@@ -22,6 +22,9 @@ CBuf::CBuf( size_t inSize )
 CBuf::CBuf( const CBuf& inTemplate, size_t startOffs, size_t amount )
 	: mShared(NULL)
 {
+	if( amount == SIZE_MAX )
+		amount = inTemplate.size() -startOffs;
+	
 	if( startOffs == 0 && amount == inTemplate.size() )
 	{
 		mShared = inTemplate.mShared;
@@ -29,9 +32,6 @@ CBuf::CBuf( const CBuf& inTemplate, size_t startOffs, size_t amount )
 	}
 	else
 	{
-		if( amount == SIZE_MAX )
-			amount = inTemplate.size() -startOffs;
-		
 		alloc_buffer( amount );
 		::memcpy( mShared->mBuffer, inTemplate.buf(startOffs, amount), amount );
 	}
