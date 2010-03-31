@@ -17,5 +17,5 @@ class CStackFile
 protected:
 	
 public:
-	bool	LoadFile( const std::string& fpath );
+	bool	LoadFile( const std::string& fpath, bool dumpRawBlockData, bool statusMessages );
 };
