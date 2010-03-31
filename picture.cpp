@@ -31,6 +31,7 @@
 #include <fstream>
 #include "picture.h"
 #include "woba.h"
+#include "CBuf.h"
 
 using namespace std;
 

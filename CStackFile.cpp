@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 #include "picture.h"
 #include "woba.h"
+#include "CBuf.h"
 #include "EndianStuff.h"
 #if MAC_CODE
 #include <Carbon/Carbon.h>

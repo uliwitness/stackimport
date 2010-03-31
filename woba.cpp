@@ -38,175 +38,18 @@
 #include "picture.h"
 #include "woba.h"
 #include "EndianStuff.h"
-
-CBuf::CBuf( size_t inSize )
-	: mBuffer(NULL), mSize(inSize)
-{
-	if( inSize > 0 )
-		mBuffer = new char[inSize];
-}
-
-
-CBuf::CBuf( const CBuf& inTemplate, size_t startOffs, size_t amount )
-{
-	if( amount == SIZE_MAX )
-		amount = inTemplate.size() -startOffs;
-	
-	mBuffer = new char[amount];
-	::memcpy( mBuffer, inTemplate.buf(startOffs, amount), amount );
-}
-
-
-CBuf::~CBuf()
-{
-	if( mBuffer )
-		delete [] mBuffer;
-	mBuffer = NULL;
-	mSize = 0;
-}
-
-
-void	CBuf::resize( size_t inSize )
-{
-	if( mBuffer )
-		delete [] mBuffer;
-	mBuffer = NULL;
-	if( inSize > 0 )
-		mBuffer = new char[inSize];
-	mSize = inSize;
-}
-
-void	CBuf::memcpy( size_t toOffs, const char* fromPtr, size_t fromOffs, size_t amount )
-{
-	char*		thePtr = mBuffer;
-	assert( (toOffs +amount) <= mSize );
-	
-	::memcpy( thePtr + toOffs, fromPtr +fromOffs, amount );
-}
-
-
-void	CBuf::memcpy( size_t toOffs, const CBuf& fromPtr, size_t fromOffs, size_t amount )
-{
-	if( amount == SIZE_MAX )
-		amount = fromPtr.size() -fromOffs;
-	memcpy( toOffs, fromPtr.buf(fromOffs,amount), 0, amount );
-}
-
-
-const char CBuf::operator [] ( int idx ) const
-{
-	assert( idx < mSize );
-	return mBuffer[idx];
-}
-
-
-char& CBuf::operator [] ( int idx )
-{
-	assert( idx < mSize );
-	return mBuffer[idx];
-}
-
-
-char*	CBuf::buf( size_t offs, size_t amount )
-{
-	if( amount == SIZE_MAX )
-		amount = mSize -offs;
-	assert(mBuffer != NULL);
-	assert( (amount +offs) <= mSize );
-	
-	return mBuffer + offs;
-}
-
-
-const char*	CBuf::buf( size_t offs, size_t amount ) const
-{
-	if( amount == SIZE_MAX )
-		amount = mSize -offs;
-	assert(mBuffer != NULL);
-	assert( (amount +offs) <= mSize );
-	
-	return mBuffer + offs;
-}
-
-
-void	CBuf::xornstr( size_t dstOffs, char * src, size_t srcOffs, size_t amount )
-{
-	assert(mBuffer != NULL);
-	assert( (amount +dstOffs) <= mSize );
-	::xornstr( mBuffer +dstOffs, src +srcOffs, amount );
-}
-
-
-void	CBuf::xornstr( size_t dstOffs, const CBuf& src, size_t srcOffs, size_t amount )
-{
-	assert(mBuffer != NULL);
-	assert( (amount +dstOffs) <= mSize );
-	::xornstr( mBuffer +dstOffs, src.buf(srcOffs,amount), amount );
-}
-
-
-void	CBuf::shiftnstr( size_t dstOffs, int amount, int shiftAmount )
-{
-	assert(mBuffer != NULL);
-	assert( (dstOffs +amount) <= mSize );
-	::shiftnstr( mBuffer +dstOffs, amount, shiftAmount );
-}
-
-
-void	CBuf::tofile( const std::string& fpath )
-{
-	FILE*	theFile = fopen( fpath.c_str(), "w" );
-	fwrite( mBuffer, 1, mSize, theFile );
-	fclose(theFile);
-}
+#include "CBuf.h"
+#include "byteutils.h"
 
 
 using namespace std;
 
 
-#if DEBUGOUTPUT
-char * __hex(int x)
-{
-	const char	*	hex = "0123456789ABCDEF";
-	char			h[] = "ab";
-	static char		buf[4] = { 0 };
-	
-	h[0] = hex[(x/16) % 16];
-	h[1] = hex[x % 16];
-	strcpy( buf, h );
-	
-	return buf;
-}
-#endif
-
 inline int __min(int x, int y)
 {
-	return (x>y) ? y : x;
+	return (x > y) ? y : x;
 }
 
-// X-Ors the bytes in dest with those in src:
-void xornstr(char * dest, const char * src, int n)
-{
-	int i = 0;
-	for (i=0; i<n; i++)
-	{
-		dest[i] ^= src[i];
-	}
-}
-
-void shiftnstr(char * s, int n, int sh)
-{
-	int i = 0;
-	int p = 1;
-	int x = 0;
-	for (i=0; i<sh; i++) { p += p; }	// Bitshift p by sh bits?
-	for (i=0; i<n; i++)
-	{
-		x += ((unsigned char)s[i] * 65536) / p;		// Bitshift by 2 bytes?
-		s[i] = x / 65536;							// Store low byte?
-		x = (x % 65536) * 256;						// Keep high byte?
-	}
-}
 
 
 void woba_decode(picture & p, char * woba)

@@ -16,6 +16,8 @@
 		3D0EA8100AD7027F00A66EA1 /* woba.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3D0EA80C0AD7027F00A66EA1 /* woba.h */; };
 		552FEF5F113F002A005742C8 /* QuickTime.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 552FEF5E113F002A005742C8 /* QuickTime.framework */; };
 		5542D08D113B159300555C64 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5542D08C113B159300555C64 /* Carbon.framework */; };
+		55C68B071163C0F800D8B44C /* CBuf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55C68B061163C0F800D8B44C /* CBuf.cpp */; };
+		55C68B0D1163C18B00D8B44C /* byteutils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55C68B0C1163C18B00D8B44C /* byteutils.cpp */; };
 		8DD76F650486A84900D96B5E /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 08FB7796FE84155DC02AAC07 /* main.cpp */; settings = {ATTRIBUTES = (); }; };
 		8DD76F6A0486A84900D96B5E /* stackimport.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C6859E8B029090EE04C91782 /* stackimport.1 */; };
 /* End PBXBuildFile section */
@@ -48,6 +50,10 @@
 		3D0EA80C0AD7027F00A66EA1 /* woba.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = woba.h; sourceTree = "<group>"; };
 		552FEF5E113F002A005742C8 /* QuickTime.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuickTime.framework; path = /System/Library/Frameworks/QuickTime.framework; sourceTree = "<absolute>"; };
 		5542D08C113B159300555C64 /* Carbon.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Carbon.framework; path = /System/Library/Frameworks/Carbon.framework; sourceTree = "<absolute>"; };
+		55C68B051163C0F800D8B44C /* CBuf.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CBuf.h; sourceTree = "<group>"; };
+		55C68B061163C0F800D8B44C /* CBuf.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CBuf.cpp; sourceTree = "<group>"; };
+		55C68B0B1163C18B00D8B44C /* byteutils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = byteutils.h; sourceTree = "<group>"; };
+		55C68B0C1163C18B00D8B44C /* byteutils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = byteutils.cpp; sourceTree = "<group>"; };
 		8DD76F6C0486A84900D96B5E /* stackimport */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = stackimport; sourceTree = BUILT_PRODUCTS_DIR; };
 		C6859E8B029090EE04C91782 /* stackimport.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = stackimport.1; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -84,6 +90,8 @@
 				08FB7796FE84155DC02AAC07 /* main.cpp */,
 				3D0EA7460AD6F65700A66EA1 /* CStackFile.h */,
 				3D0EA7470AD6F65700A66EA1 /* CStackFile.cpp */,
+				55C68B051163C0F800D8B44C /* CBuf.h */,
+				55C68B061163C0F800D8B44C /* CBuf.cpp */,
 				3D0EA8160AD7028800A66EA1 /* Jons Wobadecode */,
 			);
 			name = Source;
@@ -100,6 +108,8 @@
 		3D0EA8160AD7028800A66EA1 /* Jons Wobadecode */ = {
 			isa = PBXGroup;
 			children = (
+				55C68B0B1163C18B00D8B44C /* byteutils.h */,
+				55C68B0C1163C18B00D8B44C /* byteutils.cpp */,
 				3D0EA80A0AD7027F00A66EA1 /* picture.h */,
 				3D0EA8090AD7027F00A66EA1 /* picture.cpp */,
 				3D0EA80C0AD7027F00A66EA1 /* woba.h */,
@@ -163,6 +173,8 @@
 				3D0EA7490AD6F65700A66EA1 /* CStackFile.cpp in Sources */,
 				3D0EA80D0AD7027F00A66EA1 /* picture.cpp in Sources */,
 				3D0EA80F0AD7027F00A66EA1 /* woba.cpp in Sources */,
+				55C68B071163C0F800D8B44C /* CBuf.cpp in Sources */,
+				55C68B0D1163C18B00D8B44C /* byteutils.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
