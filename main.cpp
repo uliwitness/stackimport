@@ -6,7 +6,7 @@ void	RunTests();
 
 
 // Arguments as string for syntax info
-#define SYNTAXSTR "[--dumprawblocks] [--nostatus] <originalStackPath>"
+#define SYNTAXSTR "[--dumprawblocks] [--nostatus] [--noprogress] <originalStackPath>"
 
 
 int main( int argc, char * const argv[] )
@@ -39,15 +39,15 @@ int main( int argc, char * const argv[] )
 				fprintf( stderr, "Error: Unknown option %s, syntax is %s " SYNTAXSTR "\n", argv[x], argv[0] );
 				return 3;
 			}
-			else	
-				break;
+			else	// Doesn't start with a dash? Must be pathname!
+				break;	// End of options, exit loop.
 		}
 	}
 	
 	if( x >= argc )	// Only options, no file path?
 	{
 		fprintf( stderr, "Error: Syntax is %s " SYNTAXSTR "\n", argv[0] );
-		return 2;
+		return 4;
 	}
 	
 	const char*	fpath = argv[x];

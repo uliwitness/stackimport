@@ -20,7 +20,6 @@
 		55C68B0D1163C18B00D8B44C /* byteutils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55C68B0C1163C18B00D8B44C /* byteutils.cpp */; };
 		55C68BF41164062A00D8B44C /* Tests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55C68BF31164062A00D8B44C /* Tests.cpp */; };
 		8DD76F650486A84900D96B5E /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 08FB7796FE84155DC02AAC07 /* main.cpp */; settings = {ATTRIBUTES = (); }; };
-		8DD76F6A0486A84900D96B5E /* stackimport.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = C6859E8B029090EE04C91782 /* stackimport.1 */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -30,7 +29,6 @@
 			dstPath = /usr/share/man/man1/;
 			dstSubfolderSpec = 0;
 			files = (
-				8DD76F6A0486A84900D96B5E /* stackimport.1 in CopyFiles */,
 				3D0EA7480AD6F65700A66EA1 /* CStackFile.h in CopyFiles */,
 				3D0EA7E20AD6FE8100A66EA1 /* EndianStuff.h in CopyFiles */,
 				3D0EA80E0AD7027F00A66EA1 /* picture.h in CopyFiles */,
@@ -57,7 +55,6 @@
 		55C68B0C1163C18B00D8B44C /* byteutils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = byteutils.cpp; sourceTree = "<group>"; };
 		55C68BF31164062A00D8B44C /* Tests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Tests.cpp; sourceTree = "<group>"; };
 		8DD76F6C0486A84900D96B5E /* stackimport */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = stackimport; sourceTree = BUILT_PRODUCTS_DIR; };
-		C6859E8B029090EE04C91782 /* stackimport.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = stackimport.1; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -77,7 +74,6 @@
 			isa = PBXGroup;
 			children = (
 				08FB7795FE84155DC02AAC07 /* Source */,
-				C6859E8C029090F304C91782 /* Documentation */,
 				1AB674ADFE9D54B511CA2CBB /* Products */,
 				5542D08C113B159300555C64 /* Carbon.framework */,
 				552FEF5E113F002A005742C8 /* QuickTime.framework */,
@@ -88,12 +84,12 @@
 		08FB7795FE84155DC02AAC07 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				3D0EA7E10AD6FE8100A66EA1 /* EndianStuff.h */,
 				08FB7796FE84155DC02AAC07 /* main.cpp */,
 				3D0EA7460AD6F65700A66EA1 /* CStackFile.h */,
 				3D0EA7470AD6F65700A66EA1 /* CStackFile.cpp */,
 				55C68B051163C0F800D8B44C /* CBuf.h */,
 				55C68B061163C0F800D8B44C /* CBuf.cpp */,
+				3D0EA7E10AD6FE8100A66EA1 /* EndianStuff.h */,
 				3D0EA8160AD7028800A66EA1 /* Jons Wobadecode */,
 				55C68BF31164062A00D8B44C /* Tests.cpp */,
 			);
@@ -119,14 +115,6 @@
 				3D0EA80B0AD7027F00A66EA1 /* woba.cpp */,
 			);
 			name = "Jons Wobadecode";
-			sourceTree = "<group>";
-		};
-		C6859E8C029090F304C91782 /* Documentation */ = {
-			isa = PBXGroup;
-			children = (
-				C6859E8B029090EE04C91782 /* stackimport.1 */,
-			);
-			name = Documentation;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
