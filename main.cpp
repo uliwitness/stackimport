@@ -2,12 +2,19 @@
 #include "CStackFile.h"
 
 
+void	RunTests();
+
+
 // Arguments as string for syntax info
 #define SYNTAXSTR "[--dumprawblocks] [--nostatus] <originalStackPath>"
 
 
 int main( int argc, char * const argv[] )
 {
+	#if DEBUG
+	RunTests();
+	#endif
+	
     CStackFile		theStack;
 	
 	if( argc < 2 )
@@ -25,6 +32,8 @@ int main( int argc, char * const argv[] )
 				theStack.SetDumpRawBlockData( true );
 			else if( strcmp(argv[x],"--nostatus") == 0 )
 				theStack.SetStatusMessages( false );
+			else if( strcmp(argv[x],"--noprogress") == 0 )
+				theStack.SetProgressMessages( false );
 			else if( argv[x][0] == '-' )
 			{
 				fprintf( stderr, "Error: Unknown option %s, syntax is %s " SYNTAXSTR "\n", argv[x], argv[0] );

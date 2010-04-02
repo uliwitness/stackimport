@@ -2,8 +2,8 @@
  *  CStackFile.h
  *  stackimport
  *
- *  Created by Uli Kusterer on 06.10.06.
- *  Copyright 2006 M. Uli Kusterer. All rights reserved.
+ *  Created by Mr. Z. on 10/06/06.
+ *  Copyright 2006 Mr Z. All rights reserved.
  *
  */
 
@@ -30,6 +30,17 @@ public:
 			return false;
 		if( mID != inOther.mID && !mIsWildcard && !inOther.mIsWildcard )
 			return false;
+		
+		return true;
+	};
+	
+	virtual bool operator != ( const CStackBlockIdentifier& inOther ) const
+	{
+		if( strcmp( mType, inOther.mType ) == 0 )
+		{
+			if( mID == inOther.mID || mIsWildcard || inOther.mIsWildcard )
+				return false;
+		}
 		
 		return true;
 	};
@@ -73,8 +84,9 @@ public:
 	
 	bool	LoadFile( const std::string& fpath );
 	
-	void	SetDumpRawBlockData( bool inDumpToFiles ) 		{ mDumpRawBlockData = inDumpToFiles; };
-	void	SetStatusMessages( bool inPrintStatusMessages ) { mStatusMessages = inPrintStatusMessages; };
+	void	SetDumpRawBlockData( bool inDumpToFiles ) 			{ mDumpRawBlockData = inDumpToFiles; };
+	void	SetStatusMessages( bool inPrintStatusMessages ) 	{ mStatusMessages = inPrintStatusMessages; };
+	void	SetProgressMessages( bool inPrintProgressMessages ) { mProgressMessages = inPrintProgressMessages; };
 
 protected:
 	bool	LoadStackBlock( CBuf& blockData );
@@ -86,10 +98,15 @@ protected:
 	bool	LoadBackgroundBlock( int32_t blockID, CBuf& blockData );
 
 protected:
-	bool		mDumpRawBlockData;
-	bool		mStatusMessages;
-	FILE*		mXmlFile;
-	int32_t		mListBlockID;
-	int32_t		mCardBlockSize;
-	CBlockMap	mBlockMap;
+	bool		mDumpRawBlockData;	// Create .data files with the contents of each block.
+	bool		mStatusMessages;	// Output "Status: blah" messages to stdout.
+	bool		mProgressMessages;	// Output "Progress: 1 of N" messages to stdout.
+	FILE*		mXmlFile;			// FILE* for writing to output XML file (toc.xml)
+	int32_t		mListBlockID;		// ID of the LIST block, read from STAK block.
+	int32_t		mFontTableBlockID;	// ID of the FTBL block, read from STAK block.
+	int32_t		mStyleTableBlockID;	// ID of the STBL block, read from STAK block.
+	int32_t		mCardBlockSize;		// Size of the card entries in PAGE blocks, read from LIST block.
+	CBlockMap	mBlockMap;			// Associative map of type/id -> block data mappings for random access to blocks when actually parsing their contents.
+	int			mCurrentProgress;
+	int			mMaxProgress;
 };

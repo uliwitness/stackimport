@@ -2,12 +2,13 @@
  *  Tests.cpp
  *  stackimport
  *
- *  Created by Uli Kusterer on 01.04.10.
- *  Copyright 2010 The Void Software. All rights reserved.
+ *  Created by Mr. Z. on 10/06/06.
+ *  Copyright 2006 Mr Z. All rights reserved.
  *
  */
 
 #include "CStackFile.h"
+#include <assert.h>
 
 
 void	RunTests()
@@ -18,47 +19,47 @@ void	RunTests()
 	CStackBlockIdentifier		wildcardNo( "TOON" );
 	
 	// ==
-	bool	testState = a == b;
+	assert((a == b) == false);
 	
-	testState = a == wildcardYes;
-	testState = wildcardYes == a;
+	assert(a == wildcardYes);
+	assert(wildcardYes == a);
 	
-	testState = b == wildcardYes;
-	testState = wildcardYes == b;
+	assert(b == wildcardYes);
+	assert(b == wildcardYes);
 	
-	testState = a == wildcardNo;
-	testState = wildcardNo == a;
+	assert((a == wildcardNo) == false);
+	assert((wildcardNo == a) == false);
 	
-	testState = b == wildcardNo;
-	testState = wildcardNo == b;
+	assert((b == wildcardNo) == false);
+	assert((wildcardNo == b) == false);
 	
 	// <
-	testState = a < b;
+	assert( a < b );
 	
-	testState = a < wildcardYes;
-	testState = wildcardYes < a;
+	assert( (a < wildcardYes) == false );
+	assert( (wildcardYes < a) == false );
 	
-	testState = b < wildcardYes;
-	testState = wildcardYes < b;
+	assert( (b < wildcardYes) == false );
+	assert( (wildcardYes < b) == false );
 	
-	testState = a < wildcardNo;
-	testState = wildcardNo < a;
+	assert( a < wildcardNo );
+	assert( (wildcardNo < a) == false );
 	
-	testState = b < wildcardNo;
-	testState = wildcardNo < b;
+	assert( b < wildcardNo );
+	assert( (wildcardNo < b) == false );
 	
 	// >
-	testState = a > b;
+	assert( (a > b) == false );
 	
-	testState = a > wildcardYes;
-	testState = wildcardYes > a;
+	assert( (a > wildcardYes) == false );
+	assert( (wildcardYes > a) == false );
 	
-	testState = b > wildcardYes;
-	testState = wildcardYes > b;
+	assert( (b > wildcardYes) == false );
+	assert( (wildcardYes > b) == false );
 	
-	testState = a > wildcardNo;
-	testState = wildcardNo > a;
+	assert( (a > wildcardNo) == false );
+	assert( wildcardNo > a );
 	
-	testState = b > wildcardNo;
-	testState = wildcardNo > b;
+	assert( (b > wildcardNo) == false );
+	assert( wildcardNo > b );
 }

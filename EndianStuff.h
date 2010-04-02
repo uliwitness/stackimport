@@ -2,8 +2,8 @@
  *  EndianStuff.h
  *  stackimport
  *
- *  Created by Uli Kusterer on 06.10.06.
- *  Copyright 2006 M. Uli Kusterer. All rights reserved.
+ *  Created by Mr. Z. on 10/06/06.
+ *  Copyright 2006 Mr Z. All rights reserved.
  *
  */
 

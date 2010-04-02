@@ -2,8 +2,8 @@
  *  byteutils.cpp
  *  stackimport
  *
- *  Created by Uli Kusterer on 31.03.10.
- *  Copyright 2010 The Void Software. All rights reserved.
+ *  Created by Mr. Z. on 03/31/10.
+ *  Copyright 2010 Mr Z. All rights reserved.
  *
  */
 

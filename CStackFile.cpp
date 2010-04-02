@@ -2,8 +2,8 @@
  *  CStackFile.cpp
  *  stackimport
  *
- *  Created by Uli Kusterer on 06.10.06.
- *  Copyright 2006 M. Uli Kusterer. All rights reserved.
+ *  Created by Mr. Z. on 10/06/06.
+ *  Copyright 2006 Mr Z. All rights reserved.
  *
  */
 
@@ -102,6 +102,7 @@ void	NumVersionToStr( char numVersion[4], char outStr[16] )
 			break;
 	}
 	
+	// NumVersion is Binary-coded decimal, i.e. 0x10 is displayed as 10, not 16 decimal:
 	if( numVersion[3] == 0 )
 		snprintf( outStr, 16, "%x.%x.%x", numVersion[0], (numVersion[1] >> 4), (numVersion[1] & 0x0F) );
 	else
@@ -112,7 +113,8 @@ void	NumVersionToStr( char numVersion[4], char outStr[16] )
 
 CStackFile::CStackFile()
 	: mDumpRawBlockData(false), mStatusMessages(true), mXmlFile(NULL),
-	mCardBlockSize(-1), mListBlockID(-1)
+	mCardBlockSize(-1), mListBlockID(-1), mMaxProgress(0), mCurrentProgress(0),
+	mFontTableBlockID(-1), mStyleTableBlockID(-1), mProgressMessages(true)
 {
 	
 }
@@ -122,6 +124,7 @@ bool	CStackFile::LoadStackBlock( CBuf& blockData )
 {
 	if( mStatusMessages )
 		fprintf( stdout, "Status: Processing 'STAK' #-1 (%lu bytes)\n", blockData.size() );
+
 	fprintf( mXmlFile, "\t<stack>\n" );
 	
 	if( mDumpRawBlockData )
@@ -158,6 +161,10 @@ bool	CStackFile::LoadStackBlock( CBuf& blockData )
 	int32_t	version3 = blockData.int32at( 96 );
 	NumVersionToStr( (char*) &version3, versStr );
 	fprintf( mXmlFile, "\t\t<firstEditedVersion>%s</firstEditedVersion>\n", versStr );
+	mFontTableBlockID = BIG_ENDIAN_32(blockData.int32at( 420 ));
+	fprintf( mXmlFile, "\t\t<fontTableID>%d</fontTableID>\n", mFontTableBlockID );
+	mStyleTableBlockID = BIG_ENDIAN_32(blockData.int32at( 424 ));
+	fprintf( mXmlFile, "\t\t<styleTableID>%d</styleTableID>\n", mStyleTableBlockID );
 	int16_t	height = BIG_ENDIAN_16(blockData.int16at( 428 ));
 	if( height == 0 )
 		height = 342;
@@ -199,6 +206,9 @@ bool	CStackFile::LoadStackBlock( CBuf& blockData )
 	fprintf( mXmlFile, "</script>\n" );
 	fprintf( mXmlFile, "\t</stack>\n" );
 	
+	if( mProgressMessages )
+		fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
+	
 	return true;
 }
 
@@ -208,7 +218,6 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 	int32_t	vBlockSize = blockData.size();
 	if( mStatusMessages )
 		fprintf( stdout, "Status: Processing 'STBL' #%d %X (%d bytes)\n", blockID, blockID, vBlockSize );
-	fprintf( mXmlFile, "\t<!-- 'STBL' #%d (%d bytes) -->\n", blockID, vBlockSize );
 	
 	if( mDumpRawBlockData )
 	{
@@ -218,14 +227,25 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 	}
 	
 	size_t		currOffs = 4;
-	int32_t		numStyles = BIG_ENDIAN_32(blockData.int32at( currOffs ));
+	int32_t		styleCount = BIG_ENDIAN_32(blockData.int32at( currOffs ));
 	currOffs += 4;
+	fprintf( mXmlFile, "\t<!-- 'STBL' #%d (%d styles) -->\n", blockID, styleCount );
 	
-	for( int s = 0; s < numStyles; s++ )
+	currOffs += 2;
+	int16_t	nextStyleID = BIG_ENDIAN_16(blockData.int16at( currOffs ));
+	fprintf( mXmlFile, "\t<nextStyleID>%d</nextStyleID>\n", nextStyleID );
+	currOffs += 2;
+	currOffs += 2;
+	
+	for( int s = 0; s < styleCount; s++ )
 	{
-		currOffs += 16;
-		
 		fprintf( mXmlFile, "\t<styleentry>\n" );
+		
+		int16_t	styleID = BIG_ENDIAN_16(blockData.int16at( currOffs ));
+		fprintf( mXmlFile, "\t\t<id>%d</id>\n", styleID );
+		currOffs += 2;
+		currOffs += 8;
+		
 		int16_t	fontID = BIG_ENDIAN_16(blockData.int16at( currOffs ));
 		if( fontID != -1 )
 			fprintf( mXmlFile, "\t\t<font>%d</font>\n", fontID );
@@ -259,10 +279,13 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 		if( fontSize != -1 )
 			fprintf( mXmlFile, "\t\t<size>%d</size>\n", fontSize );
 		currOffs += 2;
-		currOffs += 2;	// 2 more padding?
+		currOffs += 8;	// 2 bytes padding?
 		
 		fprintf( mXmlFile, "\t</styleentry>\n" );
 	}
+
+	if( mProgressMessages )
+		fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 	
 	return true;
 }
@@ -272,6 +295,7 @@ bool	CStackFile::LoadFontTable( int32_t blockID, CBuf& blockData )
 	uint32_t	vBlockSize = blockData.size();
 	if( mStatusMessages )
 		fprintf( stdout, "Status: Processing 'FTBL' #%d %X (%d bytes)\n", blockID, blockID, vBlockSize );
+
 	fprintf( mXmlFile, "\t<!-- 'FTBL' #%d (%d bytes) -->\n", blockID, vBlockSize );
 	int16_t	numFonts = BIG_ENDIAN_16(blockData.int16at( 6 ));
 	size_t	currOffsIntoData = 8;
@@ -304,6 +328,9 @@ bool	CStackFile::LoadFontTable( int32_t blockID, CBuf& blockData )
 		fprintf( mXmlFile, "\t</font>\n" );
 	}
 	
+	if( mProgressMessages )
+		fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
+	
 	return true;
 }
 
@@ -314,6 +341,7 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 	
 	if( mStatusMessages )
 		fprintf( stdout, "Status: Processing '%4s' #%d %X (%d bytes)\n", vBlockType, blockID, blockID, vBlockSize );
+
 	fprintf( mXmlFile, "\t<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, blockID, vBlockSize );
 	if( strcmp( "BKGD", vBlockType ) == 0 )
 		fprintf( mXmlFile, "\t<background>\n" );
@@ -705,6 +733,9 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 		fprintf( mXmlFile, "\t</background>\n" );
 	else
 		fprintf( mXmlFile, "\t</card>\n" );
+
+	if( mProgressMessages )
+		fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 	
 	return true;
 }
@@ -716,6 +747,7 @@ bool	CStackFile::LoadBackgroundBlock( int32_t blockID, CBuf& blockData )
 	int			vBlockSize = blockData.size();
 	if( mStatusMessages )
 		fprintf( stdout, "Status: Processing '%4s' #%d %X (%d bytes)\n", vBlockType, blockID, blockID, vBlockSize );
+
 	fprintf( mXmlFile, "\t<!-- '%4s' #%d (%d bytes) -->\n", vBlockType, blockID, vBlockSize );
 	fprintf( mXmlFile, "\t<background>\n" );
 	fprintf( mXmlFile, "\t\t<id>%d</id>\n", blockID );
@@ -1088,8 +1120,10 @@ bool	CStackFile::LoadBackgroundBlock( int32_t blockID, CBuf& blockData )
 			fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
 	}
 	fprintf( mXmlFile, "</script>\n" );
-
 	fprintf( mXmlFile, "\t</background>\n" );
+	
+	if( mProgressMessages )
+		fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 	
 	return true;
 }
@@ -1100,7 +1134,7 @@ bool	CStackFile::LoadPageTable( int32_t blockID, CBuf& blockData )
 	bool	success = true;
 	
 	if( mStatusMessages )
-		fprintf( stdout, "Status: Processing 'PAGE' #%lu (%d bytes)\n", blockID, blockData.size() );
+		fprintf( stdout, "Status: Processing 'PAGE' #%d (%lu bytes)\n", blockID, blockData.size() );
 
 	if( mDumpRawBlockData )
 	{
@@ -1131,6 +1165,9 @@ bool	CStackFile::LoadPageTable( int32_t blockID, CBuf& blockData )
 	}
 	else
 		fprintf( stderr, "Warning: Couldn't parse 'PAGE' #%d (%lu bytes) because it preceded the page table list.\n", blockID, blockData.size() );
+
+	if( mProgressMessages )
+		fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 	
 	return success;
 }
@@ -1139,7 +1176,7 @@ bool	CStackFile::LoadPageTable( int32_t blockID, CBuf& blockData )
 bool	CStackFile::LoadListBlock( CBuf& blockData )
 {
 	if( mStatusMessages )
-		fprintf( stdout, "Status: Processing 'LIST' #%d (%d bytes)\n", mListBlockID, blockData.size() );
+		fprintf( stdout, "Status: Processing 'LIST' #%d (%lu bytes)\n", mListBlockID, blockData.size() );
 	
 	if( mDumpRawBlockData )
 	{
@@ -1158,7 +1195,7 @@ bool	CStackFile::LoadListBlock( CBuf& blockData )
 		currDataOffs += 2;
 		if( !blockData.hasdata( currDataOffs, sizeof(int32_t) ) )
 		{
-			fprintf( stderr, "Warning: Premature end of 'LIST' #%d (%d bytes)\n", mListBlockID, blockData.size() );
+			fprintf( stderr, "Warning: Premature end of 'LIST' #%d (%lu bytes)\n", mListBlockID, blockData.size() );
 			break;
 		}
 		
@@ -1168,6 +1205,9 @@ bool	CStackFile::LoadListBlock( CBuf& blockData )
 		
 		currDataOffs += 4;
 	}
+
+	if( mProgressMessages )
+		fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 	
 	return true;
 }
@@ -1234,9 +1274,15 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			theFile.read( blockData.buf(0,vBlockSize -12), vBlockSize -12 );
 			CStackBlockIdentifier	theTypeAndID(vBlockType,vBlockID);
 			mBlockMap[theTypeAndID] = blockData;
-			printf( "Status: Located block %s %d - (%d)\n", vBlockType, vBlockID, mBlockMap.size() );
+//			if( mStatusMessages )
+//				fprintf( stdout, "Status: Located block %s %d - (%lu)\n", vBlockType, vBlockID, mBlockMap.size() );
 		}
 	}
+	
+	mMaxProgress = mBlockMap.size();
+	mCurrentProgress = 0;
+	if( mProgressMessages )
+		fprintf( stdout, "Progress: %d of %d\n", mCurrentProgress, mMaxProgress );
 	
 	// Load some "table of contents"-style blocks other blocks need to refer to:
 	CBlockMap::iterator		stackItty = mBlockMap.find(CStackBlockIdentifier("STAK"));
@@ -1244,9 +1290,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		fprintf( stderr, "Error: Couldn't find stack block." );
 	bool	success = LoadStackBlock( stackItty->second );
 	if( success )
-		success = LoadFontTable( -1, mBlockMap[CStackBlockIdentifier("FTBL")] );
+		success = LoadFontTable( mFontTableBlockID, mBlockMap[CStackBlockIdentifier("FTBL",mFontTableBlockID)] );
 	if( success )
-		success = LoadStyleTable( -1, mBlockMap[CStackBlockIdentifier("STBL")] );
+		success = LoadStyleTable( mStyleTableBlockID, mBlockMap[CStackBlockIdentifier("STBL",mStyleTableBlockID)] );
 	if( success )
 		success = LoadListBlock( mBlockMap[CStackBlockIdentifier("LIST",mListBlockID)] );
 	
@@ -1261,19 +1307,33 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				int32_t		blockID = currBlockItty->first.mID;
 				CBuf&		blockData = currBlockItty->second;
 				if( mStatusMessages )
-					fprintf( stdout, "Status: Processing 'BMAP' #%d %X (%d bytes)\n", blockID, blockID, blockData.size() );
-				fprintf( mXmlFile, "\t<!-- Processed 'BMAP' #%d (%d bytes) -->\n", blockID, blockData.size() );
+					fprintf( stdout, "Status: Processing 'BMAP' #%d %X (%lu bytes)\n", blockID, blockID, blockData.size() );
+				fprintf( mXmlFile, "\t<!-- Processed 'BMAP' #%d (%lu bytes) -->\n", blockID, blockData.size() );
 				picture		thePicture;
 				woba_decode( thePicture, blockData.buf() );
 				
 				char		fname[256];
 				sprintf( fname, "BMAP_%u.pbm", blockID );
 				thePicture.writebitmapandmasktopbm( fname );
+				
+				if( mProgressMessages )
+					fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 			}
 			else if( currBlockItty->first == CStackBlockIdentifier("BKGD") )
 			{
 				//success = LoadLayerBlock( "BKGD", currBlockItty->first.mID, currBlockItty->second );
 				success = LoadBackgroundBlock( currBlockItty->first.mID, currBlockItty->second );
+			}
+			else if( currBlockItty->first != CStackBlockIdentifier("CARD")
+					&& currBlockItty->first != CStackBlockIdentifier("LIST")
+					&& currBlockItty->first != CStackBlockIdentifier("PAGE")
+					&& currBlockItty->first != CStackBlockIdentifier("STAK")
+					&& currBlockItty->first != CStackBlockIdentifier("FTBL")
+					&& currBlockItty->first != CStackBlockIdentifier("STBL") )
+			{
+				fprintf( stderr, "Warning: Skipping block %4s #%d,\n", currBlockItty->first.mType, currBlockItty->first.mID );
+				if( mProgressMessages )
+					fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 			}
 		}
 	}
@@ -1293,6 +1353,14 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		}
 		else
 		{
+			mMaxProgress = Count1Resources( 'ICON' ) +Count1Resources( 'PICT' ) +Count1Resources( 'CURS' )
+							+Count1Resources( 'snd ' ) +Count1Resources( 'HCbg' ) +Count1Resources( 'HCcd' )
+							+Count1Resources( 'XCMD' ) +Count1Resources( 'XFCN' ) +Count1Resources( 'xcmd' )
+							+Count1Resources( 'xfcn' );
+			mCurrentProgress = 0;
+			if( mProgressMessages )
+				fprintf( stdout, "Progress: %d of %d\n", mCurrentProgress, mMaxProgress );
+			
 			// Export all B/W icons:
 			SInt16		numIcons = Count1Resources( 'ICON' );
 			for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
@@ -1332,6 +1400,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 						fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
 				}
 				fprintf( mXmlFile, "</name>\n\t\t<file>ICON_%d.pbm</file>\n\t</media>\n", theID );
+				
+				if( mProgressMessages )
+					fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 			}
 
 			// Export all PICT images:
@@ -1375,6 +1446,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 						fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
 				}
 				fprintf( mXmlFile, "</name>\n\t\t<file>PICT_%d.pict</file>\n\t</media>\n", theID );
+				
+				if( mProgressMessages )
+					fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 			}
 
 			// Export all CURS cursors:
@@ -1422,6 +1496,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 						fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
 				}
 				fprintf( mXmlFile, "</name>\n\t\t<file>CURS_%d.pbm</file>\n\t\t<hotspot>\n\t\t\t<left>%d</left>\n\t\t\t<top>%d</top>\n\t\t</hotspot>\n\t</media>\n", theID, horzPos, vertPos );
+				
+				if( mProgressMessages )
+					fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 			}
 
 			// Export all 'snd ' sound resources:
@@ -1505,6 +1582,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 						fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
 				}
 				fprintf( mXmlFile, "</name>\n\t\t<file>snd_%d.aiff</file>\n\t\t<type>sound</type>\n\t</media>\n", theID );
+				
+				if( mProgressMessages )
+					fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 			}
 			ExitMovies();
 			
@@ -1683,6 +1763,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				}
 			
 				fprintf( mXmlFile, "\t</addcolorbackground>\n" );
+				
+				if( mProgressMessages )
+					fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 			}
 
 			// Export more AddColor resources:
@@ -1860,6 +1943,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				}
 			
 				fprintf( mXmlFile, "\t</addcolorcard>\n" );
+				
+				if( mProgressMessages )
+					fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 			}
 			
 			// Export all XCMD resources:
@@ -1893,6 +1979,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 
 				fprintf( mXmlFile, "\t<externalcommand type=\"command\" platform=\"mac68k\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
 									theID, GetHandleSize( currPicture ), name, fname );
+				
+				if( mProgressMessages )
+					fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 			}
 			
 			// Export all XFCN resources:
@@ -1926,6 +2015,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 
 				fprintf( mXmlFile, "\t<externalcommand type=\"function\" platform=\"mac68k\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
 									theID, GetHandleSize( currPicture ), name, fname );
+				
+				if( mProgressMessages )
+					fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 			}
 			
 			// Export all xcmd resources:
@@ -1959,6 +2051,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 
 				fprintf( mXmlFile, "\t<externalcommand type=\"command\" platform=\"macppc\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
 									theID, GetHandleSize( currPicture ), name, fname );
+				
+				if( mProgressMessages )
+					fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 			}
 			
 			// Export all XFCN resources:
@@ -1992,6 +2087,9 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 
 				fprintf( mXmlFile, "\t<externalcommand type=\"function\" platform=\"macppc\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
 									theID, GetHandleSize( currPicture ), name, fname );
+					
+				if( mProgressMessages )
+					fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 			}
 			
 			CloseResFile( resRefNum );
