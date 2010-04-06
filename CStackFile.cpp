@@ -612,8 +612,23 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 
 	for( int n = 0; n < numContents; n++ )
 	{
+		/*
+			Contents are a complicated thing. Essentially, they're a storage for card-specific data
+			used by background objects, though for simplicity, card parts also use contents to store
+			that same data. There are a few specialties, though:
+			
+			If the contents of a button start with a number > 32767, the number -32768 is the legth
+			of style data (including this length information) at the start of the content text, and
+			the actual text follows afterwards.
+			
+			Button contents can only be the same for all cards on a background. However, if there is
+			a contents entry for a background button on a card, it contains a "1" as plain text if
+			the button is highlighted and sharedHighlight is FALSE.
+		*/
+		
 		int16_t		partID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
 		int16_t		partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +2 ));
+		bool		isBgButtonContents = false;
 		
 		fprintf( mXmlFile, "\t\t<content>\n" );
 		
@@ -655,41 +670,60 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 			theText.memcpy( 0, blockData, currOffsIntoData +4 +stylesLength,
 								partLength -stylesLength );
 			theText[theText.size()-1] = 0;
+			
+			std::vector<int32_t>&	buttonIDs = mButtonIDsPerBg[owner];
+			for( size_t x = 0; x < buttonIDs.size(); x++ )
+			{
+				if( buttonIDs[x] == partID )
+				{
+					isBgButtonContents = true;
+					break;
+				}
+			}
+
 		}
 		
-		fprintf( mXmlFile, "\t\t\t<text>" );
-		size_t	numChars = theText.size();
-		for( int x = 0; x < numChars; x++ )
+		if( !isBgButtonContents )	// Bg buttons have no per-card contents in HC.
 		{
-			char currCh = theText[x];
-			if( currCh == '<' )
-				fprintf( mXmlFile, "&lt;" );
-			else if( currCh == '>' )
-				fprintf( mXmlFile, "&gt;" );
-			else if( currCh == '&' )
-				fprintf( mXmlFile, "&amp;" );
-			else
-				fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
-		}
-		fprintf( mXmlFile, "</text>\n" );
-		if( theStyles.size() > 0 )
-		{
-//			char sfn[256] = { 0 };
-//			snprintf( sfn, sizeof(sfn), "style_runs_%d_%d.styl", blockID, partID );
-//			theStyles.tofile( sfn );
-			
-			for( size_t x = 0; x < theStyles.size(); )
+			fprintf( mXmlFile, "\t\t\t<text>" );
+			size_t	numChars = theText.size();
+			for( int x = 1; x < numChars && theText[x] != 0; x++ )	// Skip leading 0 byte.
 			{
-				int16_t	startOffset = BIG_ENDIAN_16(theStyles.int16at( x ));
-				x += sizeof(int16_t);
-				int16_t	styleID = BIG_ENDIAN_16(theStyles.int16at( x ));
-				x += sizeof(int16_t);
-				
-				fprintf( mXmlFile, "\t\t\t<stylerun>\n" );
-				fprintf( mXmlFile, "\t\t\t\t<offset>%u</offset>\n", startOffset );
-				fprintf( mXmlFile, "\t\t\t\t<id>%u</id>\n", styleID );
-				fprintf( mXmlFile, "\t\t\t</stylerun>\n" );
+				char currCh = theText[x];
+				if( currCh == '<' )
+					fprintf( mXmlFile, "&lt;" );
+				else if( currCh == '>' )
+					fprintf( mXmlFile, "&gt;" );
+				else if( currCh == '&' )
+					fprintf( mXmlFile, "&amp;" );
+				else
+					fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
 			}
+			fprintf( mXmlFile, "</text>\n" );
+			if( theStyles.size() > 0 )
+			{
+	//			char sfn[256] = { 0 };
+	//			snprintf( sfn, sizeof(sfn), "style_runs_%d_%d.styl", blockID, partID );
+	//			theStyles.tofile( sfn );
+				
+				for( size_t x = 0; x < theStyles.size(); )
+				{
+					int16_t	startOffset = BIG_ENDIAN_16(theStyles.int16at( x ));
+					x += sizeof(int16_t);
+					int16_t	styleID = BIG_ENDIAN_16(theStyles.int16at( x ));
+					x += sizeof(int16_t);
+					
+					fprintf( mXmlFile, "\t\t\t<stylerun>\n" );
+					fprintf( mXmlFile, "\t\t\t\t<offset>%u</offset>\n", startOffset );
+					fprintf( mXmlFile, "\t\t\t\t<id>%u</id>\n", styleID );
+					fprintf( mXmlFile, "\t\t\t</stylerun>\n" );
+				}
+			}
+		}
+		else	// Bg button? May have highlight on the card:
+		{
+			if( theText.size() == 3 && theText[0] == 0 && theText[1] == '1' && theText[2] == 0 )	// If "shared Highlight" is FALSE, a button's highlight is stored as the content string "1".
+				fprintf( mXmlFile, "\t\t\t<highlight> <true /> </highlight>\n" );
 		}
 		
 		currOffsIntoData += partLength +4 +(partLength % 2);	// Align on even byte.
@@ -768,6 +802,7 @@ bool	CStackFile::LoadBackgroundBlock( int32_t blockID, CBuf& blockData )
 	int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( 0x18 ));
 	int16_t	numContents = BIG_ENDIAN_16(blockData.int16at( 0x20 ));
 	size_t	currOffsIntoData = 38;
+	std::vector<int32_t>	buttonIDs;
 	for( int n = 0; n < numParts; n++ )
 	{
 		int16_t	partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
@@ -779,6 +814,8 @@ bool	CStackFile::LoadBackgroundBlock( int32_t blockID, CBuf& blockData )
 		int16_t	partType = flagsAndType >> 8;
 		bool	isButton = partType == 1;
 		fprintf( mXmlFile, "\t\t\t<type>%s</type>\n", isButton ? "button" : "field" );
+		if( isButton )
+			buttonIDs.push_back( partID );
 		fprintf( mXmlFile, "\t\t\t<visible> %s </visible>\n", (flagsAndType & (1 << 7)) ? "<false />" : "<true />" );	// Really "hidden" flag.
 		if( !isButton )
 			fprintf( mXmlFile, "\t\t\t<dontWrap> %s </dontWrap>\n", (flagsAndType & (1 << 5)) ? "<true />" : "<false />" );
@@ -1002,6 +1039,8 @@ bool	CStackFile::LoadBackgroundBlock( int32_t blockID, CBuf& blockData )
 		currOffsIntoData += partLength;
 		currOffsIntoData += (currOffsIntoData % 2);	// Align on even byte.
 	}
+	
+	mButtonIDsPerBg[blockID] = buttonIDs;
 
 	for( int n = 0; n < numContents; n++ )
 	{
@@ -1050,7 +1089,7 @@ bool	CStackFile::LoadBackgroundBlock( int32_t blockID, CBuf& blockData )
 		
 		fprintf( mXmlFile, "\t\t\t<text>" );
 		size_t	numChars = theText.size();
-		for( int x = 0; x < numChars; x++ )
+		for( int x = 1; x < numChars && theText[x] != 0; x++ )
 		{
 			char currCh = theText[x];
 			if( currCh == '<' )
@@ -1293,8 +1332,6 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		success = LoadFontTable( mFontTableBlockID, mBlockMap[CStackBlockIdentifier("FTBL",mFontTableBlockID)] );
 	if( success )
 		success = LoadStyleTable( mStyleTableBlockID, mBlockMap[CStackBlockIdentifier("STBL",mStyleTableBlockID)] );
-	if( success )
-		success = LoadListBlock( mBlockMap[CStackBlockIdentifier("LIST",mListBlockID)] );
 	
 	// Now load all backgrounds and bitmaps:
 	if( success )
@@ -1337,6 +1374,10 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			}
 		}
 	}
+	
+	// Now actually load the cards, which depend on knowledge from backgrounds, stack, style table etc.:
+	if( success )
+		success = LoadListBlock( mBlockMap[CStackBlockIdentifier("LIST",mListBlockID)] );
 		
 	#if MAC_CODE
 	SInt16		resRefNum = -1;

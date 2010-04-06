@@ -7,8 +7,8 @@
  *
  */
 
-#include <deque>
 #include <map>
+#include <vector>
 #include <stdint.h>
 #include "CBuf.h"
 
@@ -74,7 +74,8 @@ public:
 };
 
 
-typedef std::map<CStackBlockIdentifier,CBuf> CBlockMap;
+typedef std::map<CStackBlockIdentifier,CBuf> 	CBlockMap;
+typedef std::map<int32_t,std::vector<int32_t> >	CBtnIDsPerBgMap;
 
 
 class CStackFile
@@ -98,15 +99,16 @@ protected:
 	bool	LoadBackgroundBlock( int32_t blockID, CBuf& blockData );
 
 protected:
-	bool		mDumpRawBlockData;	// Create .data files with the contents of each block.
-	bool		mStatusMessages;	// Output "Status: blah" messages to stdout.
-	bool		mProgressMessages;	// Output "Progress: 1 of N" messages to stdout.
-	FILE*		mXmlFile;			// FILE* for writing to output XML file (toc.xml)
-	int32_t		mListBlockID;		// ID of the LIST block, read from STAK block.
-	int32_t		mFontTableBlockID;	// ID of the FTBL block, read from STAK block.
-	int32_t		mStyleTableBlockID;	// ID of the STBL block, read from STAK block.
-	int32_t		mCardBlockSize;		// Size of the card entries in PAGE blocks, read from LIST block.
-	CBlockMap	mBlockMap;			// Associative map of type/id -> block data mappings for random access to blocks when actually parsing their contents.
-	int			mCurrentProgress;
-	int			mMaxProgress;
+	bool			mDumpRawBlockData;	// Create .data files with the contents of each block.
+	bool			mStatusMessages;	// Output "Status: blah" messages to stdout.
+	bool			mProgressMessages;	// Output "Progress: 1 of N" messages to stdout.
+	FILE*			mXmlFile;			// FILE* for writing to output XML file (toc.xml)
+	int32_t			mListBlockID;		// ID of the LIST block, read from STAK block.
+	int32_t			mFontTableBlockID;	// ID of the FTBL block, read from STAK block.
+	int32_t			mStyleTableBlockID;	// ID of the STBL block, read from STAK block.
+	int32_t			mCardBlockSize;		// Size of the card entries in PAGE blocks, read from LIST block.
+	CBlockMap		mBlockMap;			// Associative map of type/id -> block data mappings for random access to blocks when actually parsing their contents.
+	int				mCurrentProgress;
+	int				mMaxProgress;
+	CBtnIDsPerBgMap	mButtonIDsPerBg;
 };
