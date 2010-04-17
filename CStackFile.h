@@ -76,7 +76,7 @@ public:
 
 typedef std::map<CStackBlockIdentifier,CBuf> 	CBlockMap;
 typedef std::map<int32_t,std::vector<int32_t> >	CBtnIDsPerBgMap;
-
+typedef std::map<int16_t,std::string>			CFontTable;
 
 class CStackFile
 {
@@ -103,12 +103,15 @@ protected:
 	bool			mStatusMessages;	// Output "Status: blah" messages to stdout.
 	bool			mProgressMessages;	// Output "Progress: 1 of N" messages to stdout.
 	FILE*			mXmlFile;			// FILE* for writing to output XML file (toc.xml)
+	FILE*			mStackXmlFile;		// FILE* for writing to output XML file (stack_1.xml)
 	int32_t			mListBlockID;		// ID of the LIST block, read from STAK block.
 	int32_t			mFontTableBlockID;	// ID of the FTBL block, read from STAK block.
 	int32_t			mStyleTableBlockID;	// ID of the STBL block, read from STAK block.
 	int32_t			mCardBlockSize;		// Size of the card entries in PAGE blocks, read from LIST block.
 	CBlockMap		mBlockMap;			// Associative map of type/id -> block data mappings for random access to blocks when actually parsing their contents.
-	int				mCurrentProgress;
-	int				mMaxProgress;
-	CBtnIDsPerBgMap	mButtonIDsPerBg;
+	int				mCurrentProgress;	// Current value for progress output.
+	int				mMaxProgress;		// Maximum value for progress output.
+	CBtnIDsPerBgMap	mButtonIDsPerBg;	// Table that holds the IDs of all BG buttons on each background. Used to detect what card-level button contents entries are actually sharedHighlight entries for a bg button.
+	std::string		mBasePath;			// Path to package folder, in which we'll put all the XML files and graphics'n stuff.
+	CFontTable		mFontTable;			// Actual, parsed font ID -> name mappings from FTBL block.
 };
