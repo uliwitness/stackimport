@@ -8,9 +8,6 @@
  */
 
 
-#define MAC_CODE		1
-
-
 #include "CStackFile.h"
 #include <iostream>
 #include <fstream>
@@ -19,10 +16,6 @@
 #include "woba.h"
 #include "CBuf.h"
 #include "EndianStuff.h"
-#if MAC_CODE
-#include <Carbon/Carbon.h>
-#include <QuickTime/QuickTime.h>
-#endif
 
 
 // Table of C-strings for converting the non-ASCII MacRoman characters (above 127)
@@ -779,15 +772,193 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 			fprintf( vFile, "%s", UniCharFromMacRoman(currCh) );
 	}
 	fprintf( vFile, "</script>\n" );
+	
+	if( mProgressMessages )
+		fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 
+	// Read AddColor data:
+#if MAC_CODE
+	Handle		currIcon = Get1Resource( 'HCcd', blockID );
+	if( currIcon && GetHandleSize(currIcon) <= 0 )
+		fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
+	else if( currIcon && GetHandleSize(currIcon) > 0 )
+	{		
+		if( mStatusMessages )
+			fprintf( stdout, "Status: Converting AddColor 'HCcd' %d.\n", blockID );
+		
+		size_t	dataLen = GetHandleSize( currIcon );
+		CBuf	theData( dataLen );
+		theData.memcpy( 0, *currIcon, 0, dataLen );
+		
+		size_t	currOffs = 0;
+		while( currOffs < dataLen )
+		{
+			fprintf( vFile, "\t<addcolorobject>\n" );
+			int8_t	currType = theData[currOffs];
+			bool	vHidden = currType & (1 << 7);
+			currType &= ~(1 << 7);
+			currOffs += 1;
+			
+			switch( currType )
+			{
+				case 0x01:	// Button
+				{
+					fprintf( vFile, "\t\t<type>button</type>\n" );
+					int16_t		buttonID = 0, bevelDepth = 0;
+					uint16_t	r = 0, g = 0, b = 0;
+					buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t<id>%d</id>\n", buttonID );
+					bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t<bevel>%d</bevel>\n", bevelDepth );
+					fprintf( vFile, "\t\t<color>\n" );
+					r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<red>%d</red>\n", r );
+					g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<green>%d</green>\n", g );
+					b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<blue>%d</blue>\n", b );
+					fprintf( vFile, "\t\t</color>\n" );
+					break;
+				}
+
+				case 0x02:	// Field
+				{
+					fprintf( vFile, "\t\t<type>field</type>\n" );
+					int16_t		buttonID = 0, bevelDepth = 0;
+					uint16_t	r = 0, g = 0, b = 0;
+					buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t<id>%d</id>\n", buttonID );
+					bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t<bevel>%d</bevel>\n", bevelDepth );
+					fprintf( vFile, "\t\t<color>\n" );
+					r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<red>%d</red>\n", r );
+					g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<green>%d</green>\n", g );
+					b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<blue>%d</blue>\n", b );
+					fprintf( vFile, "\t\t</color>\n" );
+					break;
+				}
+
+				case 0x03:	// Rectangle
+				{
+					fprintf( vFile, "\t\t<type>rectangle</type>\n" );
+					uint16_t	rc = 0, gc = 0, bc = 0;
+					int16_t		bevelDepth = 0;
+					int16_t		l, t, r, b;
+					fprintf( vFile, "\t\t<rect>\n" );
+					t = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<top>%d</top>\n", t );
+					l = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<left>%d</left>\n", l );
+					b = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<bottom>%d</bottom>\n", b );
+					r = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<right>%d</right>\n", r );
+					fprintf( vFile, "\t\t</rect>\n" );
+					bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t<bevel>%d</bevel>\n", bevelDepth );
+					fprintf( vFile, "\t\t<color>\n" );
+					rc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<red>%d</red>\n", rc );
+					gc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<green>%d</green>\n", gc );
+					bc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<blue>%d</blue>\n", bc );
+					fprintf( vFile, "\t\t</color>\n" );
+					break;
+				}
+
+				case 0x04:	// Picture Resource
+				case 0x05:	// Picture file
+				{
+					fprintf( vFile, "\t\t<type>picture</type>\n" );
+					int16_t		l, t, r, b;
+					fprintf( vFile, "\t\t<rect>\n" );
+					t = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<top>%d</top>\n", t );
+					l = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<left>%d</left>\n", l );
+					b = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<bottom>%d</bottom>\n", b );
+					r = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<right>%d</right>\n", r );
+					fprintf( vFile, "\t\t</rect>\n" );
+
+					uint8_t	transparentFlag = theData[currOffs];
+					currOffs += 1;
+					fprintf( vFile, "\t\t<transparent> %s </transparent>\n", transparentFlag ? "<true />" : "<false />" );
+					
+					uint8_t	imageNameLen = theData[currOffs];
+					currOffs += 1;
+					
+					if( currType == 0x05 )
+						fprintf( vFile, "\t\t<file>" );
+					else
+						fprintf( vFile, "\t\t<name>" );
+					for( int n = 0; n < imageNameLen; n++ )
+					{
+						char currCh = theData[currOffs++];
+						if( currCh == '<' )
+							fprintf( vFile, "&lt;" );
+						else if( currCh == '>' )
+							fprintf( vFile, "&gt;" );
+						else if( currCh == '&' )
+							fprintf( vFile, "&amp;" );
+						else
+							fprintf( vFile, "%s", UniCharFromMacRoman(currCh) );
+					}
+					if( currType == 0x05 )
+						fprintf( vFile, "</file>\n" );
+					else
+						fprintf( vFile, "</name>\n" );
+					currOffs++;	// Skip filler byte.
+					break;
+				}
+				
+				default:
+					fprintf( vFile, "\t\t<!-- Unknown type %x, aborting 'HCbg' resource %d. -->\n", currType, blockID );
+					fprintf( stderr, "Error: Unknown type %x, aborting 'HCbg' resource %d.\n", currType, blockID );
+					currOffs = dataLen;	// Can't read more. Skip the rest.
+					break;
+			}
+			fprintf( vFile, "\t\t<visible> %s </visible>\n", (vHidden ? "<false />" : "<true />") );
+			fprintf( vFile, "\t</addcolorobject>\n" );
+		}
+		
+		if( mProgressMessages )
+			fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
+	}
+#endif //MAC_CODE
+		
 	if( strcmp( "BKGD", vBlockType ) == 0 )
 		fprintf( vFile, "</background>\n" );
 	else
 		fprintf( vFile, "</card>\n" );
 
-	if( mProgressMessages )
-		fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
-	
 	fclose( vFile );
 	
 	return true;
@@ -1147,9 +1318,9 @@ bool	CStackFile::LoadBackgroundBlock( int32_t blockID, CBuf& blockData )
 				fprintf( vFile, "\t\t</stylerun>\n" );
 			}
 			
-//					char sfn[256] = { 0 };
-//					snprintf( sfn, sizeof(sfn), "style_runs_%d_%d.styl", blockID, partID );
-//					theStyles.tofile( sfn );
+//			char sfn[256] = { 0 };
+//			snprintf( sfn, sizeof(sfn), "style_runs_%d_%d.styl", blockID, partID );
+//			theStyles.tofile( sfn );
 		}
 		
 		currOffsIntoData += partLength +4 +(partLength % 2);	// Align on even byte.
@@ -1188,10 +1359,189 @@ bool	CStackFile::LoadBackgroundBlock( int32_t blockID, CBuf& blockData )
 			fprintf( vFile, "%s", UniCharFromMacRoman(currCh) );
 	}
 	fprintf( vFile, "</script>\n" );
-	fprintf( vFile, "</background>\n" );
 	
 	if( mProgressMessages )
 		fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
+
+	// Parse AddColor data for this background:
+#if MAC_CODE
+	Handle		currIcon = Get1Resource( 'HCbg', blockID );
+	if( currIcon && GetHandleSize(currIcon) <= 0 )
+		fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
+	else if( currIcon && GetHandleSize(currIcon) > 0 )
+	{		
+		if( mStatusMessages )
+			fprintf( stdout, "Status: Converting AddColor 'HCbg' %d.\n", blockID );
+
+		size_t	dataLen = GetHandleSize( currIcon );
+		CBuf	theData( dataLen );
+		theData.memcpy( 0, *currIcon, 0, dataLen );
+		
+		size_t	currOffs = 0;
+		while( currOffs < dataLen )
+		{
+			fprintf( vFile, "\t<addcolorobject>\n" );
+			int8_t	currType = theData[currOffs];
+			bool	vHidden = currType & (1 << 7);
+			currType &= ~(1 << 7);
+			currOffs += 1;
+			
+			switch( currType )
+			{
+				case 0x01:	// Button
+				{
+					fprintf( vFile, "\t\t<type>button</type>\n" );
+					int16_t		buttonID = 0, bevelDepth = 0;
+					uint16_t	r = 0, g = 0, b = 0;
+					buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t<id>%d</id>\n", buttonID );
+					bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t<bevel>%d</bevel>\n", bevelDepth );
+					fprintf( vFile, "\t\t<color>\n" );
+					r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<red>%d</red>\n", r );
+					g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<green>%d</green>\n", g );
+					b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<blue>%d</blue>\n", b );
+					fprintf( vFile, "\t\t</color>\n" );
+					break;
+				}
+
+				case 0x02:	// Field
+				{
+					fprintf( vFile, "\t\t<type>field</type>\n" );
+					int16_t		buttonID = 0, bevelDepth = 0;
+					uint16_t	r = 0, g = 0, b = 0;
+					buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t<id>%d</id>\n", buttonID );
+					bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t<bevel>%d</bevel>\n", bevelDepth );
+					fprintf( vFile, "\t\t<color>\n" );
+					r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<red>%d</red>\n", r );
+					g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<green>%d</green>\n", g );
+					b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<blue>%d</blue>\n", b );
+					fprintf( vFile, "\t\t</color>\n" );
+					break;
+				}
+
+				case 0x03:	// Rectangle
+				{
+					fprintf( vFile, "\t\t<type>rectangle</type>\n" );
+					uint16_t	rc = 0, gc = 0, bc = 0;
+					int16_t		bevelDepth = 0;
+					int16_t		l, t, r, b;
+					fprintf( vFile, "\t\t<rect>\n" );
+					t = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<top>%d</top>\n", t );
+					l = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<left>%d</left>\n", l );
+					b = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<bottom>%d</bottom>\n", b );
+					r = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<right>%d</right>\n", r );
+					fprintf( vFile, "\t\t</rect>\n" );
+					bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t<bevel>%d</bevel>\n", t );
+					fprintf( vFile, "\t\t<color>\n" );
+					rc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<red>%d</red>\n", rc );
+					gc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<green>%d</green>\n", gc );
+					bc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<blue>%d</blue>\n", bc );
+					fprintf( vFile, "\t\t</color>\n" );
+					break;
+				}
+
+				case 0x04:	// Picture Resource
+				case 0x05:	// Picture file
+				{
+					fprintf( vFile, "\t\t<type>picture</type>\n" );
+					int16_t		l, t, r, b;
+					fprintf( vFile, "\t\t<rect>\n" );
+					t = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<top>%d</top>\n", t );
+					l = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<left>%d</left>\n", l );
+					b = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<bottom>%d</bottom>\n", b );
+					r = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					currOffs += 2;
+					fprintf( vFile, "\t\t\t<right>%d</right>\n", r );
+					fprintf( vFile, "\t\t</rect>\n" );
+
+					uint8_t	transparentFlag = theData[currOffs];
+					currOffs += 1;
+					fprintf( vFile, "\t\t<transparent> %s </transparent>\n", transparentFlag ? "<true />" : "<false />" );
+					
+					uint8_t	imageNameLen = theData[currOffs];
+					currOffs += 1;
+					
+					if( currType == 0x05 )
+						fprintf( vFile, "\t\t<file>" );
+					else
+						fprintf( vFile, "\t\t<name>" );
+					for( int n = 0; n < imageNameLen; n++ )
+					{
+						char currCh = theData[currOffs++];
+						if( currCh == '<' )
+							fprintf( vFile, "&lt;" );
+						else if( currCh == '>' )
+							fprintf( vFile, "&gt;" );
+						else if( currCh == '&' )
+							fprintf( vFile, "&amp;" );
+						else
+							fprintf( vFile, "%s", UniCharFromMacRoman(currCh) );
+					}
+					if( currType == 0x05 )
+						fprintf( vFile, "</file>\n" );
+					else
+						fprintf( vFile, "</name>\n" );
+					currOffs++;	// Skip filler byte.
+					break;
+				}
+				
+				default:
+					fprintf( vFile, "\t\t<!-- Unknown type %x, aborting 'HCcd' resource %d. -->\n", currType, blockID );
+					fprintf( stderr, "Error: Unknown type %x, aborting 'HCcd' resource %d.\n", currType, blockID );
+					currOffs = dataLen;	// Can't read more. Skip the rest.
+					break;
+			}
+			fprintf( vFile, "\t\t<visible> %s </visible>\n", (vHidden ? "<false />" : "<true />") );
+			fprintf( vFile, "\t</addcolorobject>\n" );
+		}
+		
+		if( mProgressMessages )
+			fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
+	}
+#endif //MAC_CODE
+	
+	fprintf( vFile, "</background>\n" );
 	
 	fclose( vFile );
 	
@@ -1283,6 +1633,793 @@ bool	CStackFile::LoadListBlock( CBuf& blockData )
 }
 
 
+#if MAC_CODE
+bool	CStackFile::LoadBWIcons()
+{
+	// Export all B/W icons:
+	SInt16		numIcons = Count1Resources( 'ICON' );
+	for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+	{
+		Handle		currIcon = Get1IndResource( 'ICON', x );
+		ResID       theID = 0;
+		ResType		theType = 0L;
+		Str255		name;
+		GetResInfo( currIcon, &theID, &theType, name );
+		char		fname[256];
+		
+		if( mStatusMessages )
+			fprintf( stdout, "Status: Converting 'ICON' %d.\n", theID );
+		
+		picture		theIcon( 32, 32, 1, false );
+		theIcon.memcopyin( *currIcon, 0, 4 * 32 );
+		
+		theIcon.buildmaskfromsurroundings();
+		
+//		snprintf( fname, sizeof(fname), "ICON_%d_mask.pbm", theID );
+//		theIcon.writemasktopbm( fname );
+		
+		snprintf( fname, sizeof(fname), "ICON_%d.pbm", theID );
+		theIcon.writebitmapandmasktopbm( fname );
+		
+		fprintf( mXmlFile, "\t<media>\n\t\t<id>%d</id>\n"
+							"\t\t<type>icon</type>\n"
+							"\t\t<name>", theID );
+		for( int n = 1; n <= name[0]; n++ )
+		{
+			char currCh = name[n];
+			if( currCh == '<' )
+				fprintf( mXmlFile, "&lt;" );
+			else if( currCh == '>' )
+				fprintf( mXmlFile, "&gt;" );
+			else if( currCh == '&' )
+				fprintf( mXmlFile, "&amp;" );
+			else
+				fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
+		}
+		fprintf( mXmlFile, "</name>\n"
+							"\t\t<file>ICON_%d.pbm</file>\n"
+							"\t</media>\n", theID );
+		
+		if( mProgressMessages )
+			fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
+	}
+	
+	return true;
+}
+#endif //MAC_CODE
+
+#if MAC_CODE
+bool	CStackFile::LoadPictures()
+{
+	// Export all PICT images:
+	SInt16	numIcons = Count1Resources( 'PICT' );
+	for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+	{
+		Handle		currPicture = Get1IndResource( 'PICT', x );
+		ResID       theID = 0;
+		ResType		theType = 0L;
+		Str255		name;
+		GetResInfo( currPicture, &theID, &theType, name );
+		char		fname[256];
+		
+		if( mStatusMessages )
+			fprintf( stdout, "Status: Converting 'PICT' %d.\n", theID );
+
+		snprintf( fname, sizeof(fname), "PICT_%d.pict", theID );
+		FILE*		theFile = fopen( fname, "w" );
+		if( !theFile )
+		{
+			fprintf( stderr, "Error: Couldn't create file '%s' for 'PICT' %d.\n", fname, theID );
+			return false;
+		}
+		
+		for( int n = 0; n < 8; n++ )
+			fputs( "BILL_ATKINSON_ERIC_CARLSON_KEVIN_CALHOUN_DANIEL_THOME_HYPERCARD_", theFile );	// 64 bytes repeated 8 times is a neat 512 byte header.
+		fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
+		fclose( theFile );
+
+		fprintf( mXmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<type>picture</type>\n\t\t<name>", theID );
+		for( int n = 1; n <= name[0]; n++ )
+		{
+			char currCh = name[n];
+			if( currCh == '<' )
+				fprintf( mXmlFile, "&lt;" );
+			else if( currCh == '>' )
+				fprintf( mXmlFile, "&gt;" );
+			else if( currCh == '&' )
+				fprintf( mXmlFile, "&amp;" );
+			else
+				fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
+		}
+		fprintf( mXmlFile, "</name>\n\t\t<file>PICT_%d.pict</file>\n\t</media>\n", theID );
+		
+		if( mProgressMessages )
+			fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
+	}
+	
+	return true;
+}
+#endif //MAC_CODE
+
+#if MAC_CODE
+bool	CStackFile::LoadCursors()
+{
+	SInt16	numIcons = Count1Resources( 'CURS' );
+	for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+	{
+		Handle		currIcon = Get1IndResource( 'CURS', x );
+		ResID       theID = 0;
+		ResType		theType = 0L;
+		Str255		name;
+		GetResInfo( currIcon, &theID, &theType, name );
+		char		fname[256];
+		
+		if( mStatusMessages )
+			fprintf( stdout, "Status: Converting 'CURS' %d.\n", theID );
+		
+		snprintf( fname, sizeof(fname), "CURS_%d.pbm", theID );
+		FILE*		theFile = fopen( fname, "w" );
+		if( !theFile )
+		{
+			fprintf( stderr, "Error: Couldn't create file '%s' for 'CURS' %d.\n", fname, theID );
+			return false;
+		}
+		
+		fputs( "P4\n16 16\n", theFile );
+		fwrite( *currIcon, 2 * 16, 1, theFile );
+		fputs( "\nP4\n16 16\n", theFile );
+		fwrite( (*currIcon) +(2 * 16), 2 * 16, 1, theFile );
+		int16_t	vertPos = * (int16_t*) ((*currIcon) +(2 * 16) +(2 * 16));
+		int16_t	horzPos = * (int16_t*) ((*currIcon) +(2 * 16) +(2 * 16) +2);
+		printf("");
+		fclose( theFile );
+		
+		fprintf( mXmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<type>cursor</type>\n\t\t<name>", theID );
+		for( int n = 1; n <= name[0]; n++ )
+		{
+			char currCh = name[n];
+			if( currCh == '<' )
+				fprintf( mXmlFile, "&lt;" );
+			else if( currCh == '>' )
+				fprintf( mXmlFile, "&gt;" );
+			else if( currCh == '&' )
+				fprintf( mXmlFile, "&amp;" );
+			else
+				fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
+		}
+		fprintf( mXmlFile, "</name>\n\t\t<file>CURS_%d.pbm</file>\n\t\t<hotspot>\n\t\t\t<left>%d</left>\n\t\t\t<top>%d</top>\n\t\t</hotspot>\n\t</media>\n", theID, horzPos, vertPos );
+		
+		if( mProgressMessages )
+			fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
+	}
+	
+	return true;
+}
+#endif //MAC_CODE
+
+#if MAC_CODE
+bool	CStackFile::LoadSounds()
+{
+	EnterMovies();
+	SInt16	numIcons = Count1Resources( 'snd ' );
+	for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+	{
+		Handle		currIcon = Get1IndResource( 'snd ', x );
+		ResID       theID = 0;
+		ResType		theType = 0L;
+		Str255		name;
+		GetResInfo( currIcon, &theID, &theType, name );
+		char		fname[256];
+
+		if( mStatusMessages )
+			fprintf( stdout, "Status: Converting 'snd ' %d.\n", theID );
+
+		snprintf( fname, sizeof(fname), "snd_%d.aiff", theID );
+		Handle		myHandle = NewHandleClear(0);
+		Handle		myDataRef = NewHandleClear( sizeof(Handle) );
+		BlockMove( &myHandle, *myDataRef, sizeof(Handle) );
+		
+		Movie	theMovie = NewMovie( newMovieActive );
+		OSErr	resErr = GetMoviesError();
+		if( !theMovie || resErr != noErr )
+		{
+			fprintf( stderr, "Error: Error %d creating QuickTime container for 'snd ' %d.\n", (int)resErr, theID );
+			return false;
+		}
+		
+		resErr = SetMovieDefaultDataRef( theMovie, myDataRef, HandleDataHandlerSubType);
+		if( !theMovie || resErr != noErr )
+		{
+			fprintf( stderr, "Error: Error %d specifying data reference for 'snd ' %d.\n", (int)resErr, theID );
+			return false;
+		}
+		
+		resErr = PasteHandleIntoMovie( currIcon, 'snd ', theMovie, 0L, NULL );
+		if( resErr != noErr )
+		{
+			fprintf( stderr, "Error: Error %d inserting data of 'snd ' %d into QuickTime container.\n", (int)resErr, theID );
+			return false;
+		}
+		
+		FSRef		packageRef;
+		resErr = FSPathMakeRef( (UInt8*) mBasePath.c_str(), &packageRef, NULL );
+		if( resErr != noErr )
+		{
+			fprintf( stderr, "Error: Error %d creating reference to package to export 'snd ' %d.\n", (int)resErr, theID );
+			return false;
+		}
+		FSSpec		theSpec = { 0 };
+		resErr = FSGetCatalogInfo( &packageRef, kFSCatInfoNone, NULL, NULL, &theSpec, NULL );
+		if( resErr != noErr )
+		{
+			fprintf( stderr, "Error: Error %d converting reference to package to export 'snd ' %d.\n", (int)resErr, theID );
+			return false;
+		}
+		theSpec.name[0] = strlen(fname);
+		strcpy( ((char*)theSpec.name) +1, fname );
+		resErr = ConvertMovieToFile( theMovie, NULL, &theSpec, kQTFileTypeAIFF, 'TVOD', smSystemScript, NULL, createMovieFileDeleteCurFile | movieToFileOnlyExport, NULL );
+		if( resErr != noErr )
+		{
+			fprintf( stderr, "Error: Error %d converting 'snd ' %d to AIFF.\n", (int)resErr, theID );
+			return false;
+		}
+		
+		DisposeMovie( theMovie );
+		
+		fprintf( mXmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<name>", theID );
+		for( int n = 1; n <= name[0]; n++ )
+		{
+			char currCh = name[n];
+			if( currCh == '<' )
+				fprintf( mXmlFile, "&lt;" );
+			else if( currCh == '>' )
+				fprintf( mXmlFile, "&gt;" );
+			else if( currCh == '&' )
+				fprintf( mXmlFile, "&amp;" );
+			else
+				fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
+		}
+		fprintf( mXmlFile, "</name>\n\t\t<file>snd_%d.aiff</file>\n\t\t<type>sound</type>\n\t</media>\n", theID );
+		
+		if( mProgressMessages )
+			fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
+	}
+	ExitMovies();
+	
+	return true;
+}
+#endif //MAC_CODE
+
+//#if MAC_CODE
+//bool	CStackFile::LoadAddColorBackgrounds()
+//{
+//	SInt16	numIcons = Count1Resources( 'HCbg' );
+//	for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+//	{
+//		Handle		currIcon = Get1IndResource( 'HCbg', x );
+//		ResID       theID = 0;
+//		ResType		theType = 0L;
+//		Str255		name;
+//		GetResInfo( currIcon, &theID, &theType, name );
+//		char		fname[256];
+//		
+//		if( mStatusMessages )
+//			fprintf( stdout, "Status: Converting AddColor 'HCbg' %d.\n", theID );
+//		
+//		snprintf( fname, sizeof(fname), "HCbg_%d.data", theID );
+//
+//		size_t	dataLen = GetHandleSize( currIcon );
+//		CBuf	theData( dataLen );
+//		theData.memcpy( 0, *currIcon, 0, dataLen );
+//		theData.tofile( fname );
+//		
+//		fprintf( mXmlFile, "\t<addcolorbackground>\n\t\t<id>%d</id>\n", theID );
+//		
+//		size_t	currOffs = 0;
+//		while( currOffs < dataLen )
+//		{
+//			fprintf( mXmlFile, "\t\t<addcolorobject>\n" );
+//			int8_t	currType = theData[currOffs];
+//			bool	vHidden = currType & (1 << 7);
+//			currType &= ~(1 << 7);
+//			currOffs += 1;
+//			
+//			switch( currType )
+//			{
+//				case 0x01:	// Button
+//				{
+//					fprintf( mXmlFile, "\t\t\t<type>button</type>\n" );
+//					int16_t		buttonID = 0, bevelDepth = 0;
+//					uint16_t	r = 0, g = 0, b = 0;
+//					buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t<id>%d</id>\n", buttonID );
+//					bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+//					fprintf( mXmlFile, "\t\t\t<color>\n" );
+//					r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<red>%d</red>\n", r );
+//					g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<green>%d</green>\n", g );
+//					b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
+//					fprintf( mXmlFile, "\t\t\t</color>\n" );
+//					break;
+//				}
+//
+//				case 0x02:	// Field
+//				{
+//					fprintf( mXmlFile, "\t\t\t<type>field</type>\n" );
+//					int16_t		buttonID = 0, bevelDepth = 0;
+//					uint16_t	r = 0, g = 0, b = 0;
+//					buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t<id>%d</id>\n", buttonID );
+//					bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+//					fprintf( mXmlFile, "\t\t\t<color>\n" );
+//					r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<red>%d</red>\n", r );
+//					g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<green>%d</green>\n", g );
+//					b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
+//					fprintf( mXmlFile, "\t\t\t</color>\n" );
+//					break;
+//				}
+//
+//				case 0x03:	// Rectangle
+//				{
+//					fprintf( mXmlFile, "\t\t\t<type>rectangle</type>\n" );
+//					uint16_t	rc = 0, gc = 0, bc = 0;
+//					int16_t		bevelDepth = 0;
+//					int16_t		l, t, r, b;
+//					fprintf( mXmlFile, "\t\t\t<rect>\n" );
+//					t = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<top>%d</top>\n", t );
+//					l = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<left>%d</left>\n", l );
+//					b = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
+//					r = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<right>%d</right>\n", r );
+//					fprintf( mXmlFile, "\t\t\t</rect>\n" );
+//					bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t<bevel>%d</bevel>\n", t );
+//					fprintf( mXmlFile, "\t\t\t<color>\n" );
+//					rc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<red>%d</red>\n", rc );
+//					gc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<green>%d</green>\n", gc );
+//					bc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<blue>%d</blue>\n", bc );
+//					fprintf( mXmlFile, "\t\t\t</color>\n" );
+//					break;
+//				}
+//
+//				case 0x04:	// Picture
+//				{
+//					fprintf( mXmlFile, "\t\t\t<type>picture</type>\n" );
+//					int16_t		l, t, r, b;
+//					fprintf( mXmlFile, "\t\t\t<rect>\n" );
+//					t = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<top>%d</top>\n", t );
+//					l = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<left>%d</left>\n", l );
+//					b = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
+//					r = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<right>%d</right>\n", r );
+//					fprintf( mXmlFile, "\t\t\t</rect>\n" );
+//
+//					uint8_t	transparentFlag = theData[currOffs];
+//					currOffs += 1;
+//					fprintf( mXmlFile, "\t\t\t<transparent> %s </transparent>\n", transparentFlag ? "<true />" : "<false />" );
+//					
+//					uint8_t	imageNameLen = theData[currOffs];
+//					currOffs += 1;
+//					
+//					fprintf( mXmlFile, "\t\t\t<name>" );
+//					for( int n = 0; n < imageNameLen; n++ )
+//					{
+//						char currCh = theData[currOffs++];
+//						if( currCh == '<' )
+//							fprintf( mXmlFile, "&lt;" );
+//						else if( currCh == '>' )
+//							fprintf( mXmlFile, "&gt;" );
+//						else if( currCh == '&' )
+//							fprintf( mXmlFile, "&amp;" );
+//						else
+//							fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
+//					}
+//					fprintf( mXmlFile, "</name>\n" );
+//					break;
+//				}
+//				
+//				default:
+//					fprintf( mXmlFile, "\t\t\t<!-- Unknown type %x, aborting 'HCcd' resource %d. -->\n", currType, theID );
+//					fprintf( stderr, "Error: Unknown type %x, aborting 'HCcd' resource %d.\n", currType, theID );
+//					currOffs = dataLen;	// Can't read more. Skip the rest.
+//					break;
+//			}
+//			fprintf( mXmlFile, "\t\t\t<visible> %s </visible>\n", (vHidden ? "<false />" : "<true />") );
+//			fprintf( mXmlFile, "\t\t</addcolorobject>\n" );
+//		}
+//	
+//		fprintf( mXmlFile, "\t</addcolorbackground>\n" );
+//		
+//		if( mProgressMessages )
+//			fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
+//	}
+//	
+//	return true;
+//}
+//#endif //MAC_CODE
+//
+//#if MAC_CODE
+//bool	CStackFile::LoadAddColorCards()
+//{
+//	SInt16	numIcons = Count1Resources( 'HCcd' );
+//	for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+//	{
+//		Handle		currIcon = Get1IndResource( 'HCcd', x );
+//		ResID       theID = 0;
+//		ResType		theType = 0L;
+//		Str255		name;
+//		GetResInfo( currIcon, &theID, &theType, name );
+//		char		fname[256];
+//		
+//		if( mStatusMessages )
+//			fprintf( stdout, "Status: Converting AddColor 'HCcd' %d.\n", theID );
+//
+//		snprintf( fname, sizeof(fname), "HCcd_%d.data", theID );
+//		
+//		size_t	dataLen = GetHandleSize( currIcon );
+//		CBuf	theData( dataLen );
+//		theData.memcpy( 0, *currIcon, 0, dataLen );
+//		//theData.tofile( fname );
+//		
+//		fprintf( mXmlFile, "\t<addcolorcard>\n\t\t<id>%d</id>\n", theID );
+//		
+//		size_t	currOffs = 0;
+//		while( currOffs < dataLen )
+//		{
+//			fprintf( mXmlFile, "\t\t<addcolorobject>\n" );
+//			int8_t	currType = theData[currOffs];
+//			bool	vHidden = currType & (1 << 7);
+//			currType &= ~(1 << 7);
+//			currOffs += 1;
+//			
+//			switch( currType )
+//			{
+//				case 0x01:	// Button
+//				{
+//					fprintf( mXmlFile, "\t\t\t<type>button</type>\n" );
+//					int16_t		buttonID = 0, bevelDepth = 0;
+//					uint16_t	r = 0, g = 0, b = 0;
+//					buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t<id>%d</id>\n", buttonID );
+//					bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+//					fprintf( mXmlFile, "\t\t\t<color>\n" );
+//					r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<red>%d</red>\n", r );
+//					g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<green>%d</green>\n", g );
+//					b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
+//					fprintf( mXmlFile, "\t\t\t</color>\n" );
+//					break;
+//				}
+//
+//				case 0x02:	// Field
+//				{
+//					fprintf( mXmlFile, "\t\t\t<type>field</type>\n" );
+//					int16_t		buttonID = 0, bevelDepth = 0;
+//					uint16_t	r = 0, g = 0, b = 0;
+//					buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t<id>%d</id>\n", buttonID );
+//					bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+//					fprintf( mXmlFile, "\t\t\t<color>\n" );
+//					r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<red>%d</red>\n", r );
+//					g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<green>%d</green>\n", g );
+//					b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
+//					fprintf( mXmlFile, "\t\t\t</color>\n" );
+//					break;
+//				}
+//
+//				case 0x03:	// Rectangle
+//				{
+//					fprintf( mXmlFile, "\t\t\t<type>rectangle</type>\n" );
+//					uint16_t	rc = 0, gc = 0, bc = 0;
+//					int16_t		bevelDepth = 0;
+//					int16_t		l, t, r, b;
+//					fprintf( mXmlFile, "\t\t\t<rect>\n" );
+//					t = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<top>%d</top>\n", t );
+//					l = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<left>%d</left>\n", l );
+//					b = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
+//					r = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<right>%d</right>\n", r );
+//					fprintf( mXmlFile, "\t\t\t</rect>\n" );
+//					bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
+//					fprintf( mXmlFile, "\t\t\t<color>\n" );
+//					rc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<red>%d</red>\n", rc );
+//					gc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<green>%d</green>\n", gc );
+//					bc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<blue>%d</blue>\n", bc );
+//					fprintf( mXmlFile, "\t\t\t</color>\n" );
+//					break;
+//				}
+//
+//				case 0x04:	// Picture
+//				{
+//					fprintf( mXmlFile, "\t\t\t<type>picture</type>\n" );
+//					int16_t		l, t, r, b;
+//					fprintf( mXmlFile, "\t\t\t<rect>\n" );
+//					t = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<top>%d</top>\n", t );
+//					l = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<left>%d</left>\n", l );
+//					b = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
+//					r = BIG_ENDIAN_16(theData.int16at( currOffs ));
+//					currOffs += 2;
+//					fprintf( mXmlFile, "\t\t\t\t<right>%d</right>\n", r );
+//					fprintf( mXmlFile, "\t\t\t</rect>\n" );
+//
+//					uint8_t	transparentFlag = theData[currOffs];
+//					currOffs += 1;
+//					fprintf( mXmlFile, "\t\t\t<transparent> %s </transparent>\n", transparentFlag ? "<true />" : "<false />" );
+//					
+//					uint8_t	imageNameLen = theData[currOffs];
+//					currOffs += 1;
+//					
+//					fprintf( mXmlFile, "\t\t\t<name>" );
+//					for( int n = 0; n < imageNameLen; n++ )
+//					{
+//						char currCh = theData[currOffs++];
+//						if( currCh == '<' )
+//							fprintf( mXmlFile, "&lt;" );
+//						else if( currCh == '>' )
+//							fprintf( mXmlFile, "&gt;" );
+//						else if( currCh == '&' )
+//							fprintf( mXmlFile, "&amp;" );
+//						else
+//							fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
+//					}
+//					fprintf( mXmlFile, "</name>\n" );
+//					break;
+//				}
+//				
+//				default:
+//					fprintf( mXmlFile, "\t\t\t<!-- Unknown type %x, aborting 'HCcd' resource %d. -->\n", currType, theID );
+//					fprintf( stderr, "Error: Unknown type %x, aborting 'HCcd' resource %d.\n", currType, theID );
+//					currOffs = dataLen;	// Can't read more. Skip the rest.
+//					break;
+//			}
+//			fprintf( mXmlFile, "\t\t\t<visible> %s </visible>\n", (vHidden ? "<false />" : "<true />") );
+//			fprintf( mXmlFile, "\t\t</addcolorobject>\n" );
+//		}
+//	
+//		fprintf( mXmlFile, "\t</addcolorcard>\n" );
+//		
+//		if( mProgressMessages )
+//			fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
+//	}
+//	
+//	return true;
+//}
+//#endif //MAC_CODE
+
+#if MAC_CODE
+bool	CStackFile::Load68000Resources()
+{
+	SInt16	numIcons = Count1Resources( 'XCMD' );
+	for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+	{
+		Handle		currPicture = Get1IndResource( 'XCMD', x );
+		ResID       theID = 0;
+		ResType		theType = 0L;
+		Str255		name;
+		GetResInfo( currPicture, &theID, &theType, name );
+		char		fname[256];
+		int			nameLen = name[0];
+		
+		// Pascal String -> C-String:
+		memmove( name, name +1, nameLen );
+		name[nameLen] = 0;
+		
+		fprintf( stderr, "Warning: Skipping code resource 'XCMD' %d \"%s\".\n", theID, name );
+
+		snprintf( fname, sizeof(fname), "XCMD_68k_%d_%s.data", theID, name );
+		FILE*		theFile = fopen( fname, "w" );
+		if( !theFile )
+		{
+			fprintf( stderr, "Error: Couldn't create file '%s' for 'XCMD' %d.\n", fname, theID );
+			return false;
+		}
+		
+		fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
+		fclose( theFile );
+
+		fprintf( mXmlFile, "\t<externalcommand type=\"command\" platform=\"mac68k\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
+							theID, GetHandleSize( currPicture ), name, fname );
+		
+		if( mProgressMessages )
+			fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
+	}
+	
+	// Export all XFCN resources:
+	numIcons = Count1Resources( 'XFCN' );
+	for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+	{
+		Handle		currPicture = Get1IndResource( 'XFCN', x );
+		ResID       theID = 0;
+		ResType		theType = 0L;
+		Str255		name;
+		GetResInfo( currPicture, &theID, &theType, name );
+		char		fname[256];
+		int			nameLen = name[0];
+		
+		// Pascal String -> C-String:
+		memmove( name, name +1, nameLen );
+		name[nameLen] = 0;
+		
+		fprintf( stderr, "Warning: Skipping code resource 'XFCN' %d \"%s\".\n", theID, name );
+
+		snprintf( fname, sizeof(fname), "XFCN_68k_%d_%s.data", theID, name );
+		FILE*		theFile = fopen( fname, "w" );
+		if( !theFile )
+		{
+			fprintf( stderr, "Error: Couldn't create file '%s' for 'XFCN' %d.\n", fname, theID );
+			return false;
+		}
+		
+		fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
+		fclose( theFile );
+
+		fprintf( mXmlFile, "\t<externalcommand type=\"function\" platform=\"mac68k\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
+							theID, GetHandleSize( currPicture ), name, fname );
+		
+		if( mProgressMessages )
+			fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
+	}
+	
+	return true;
+}
+#endif //MAC_CODE
+
+#if MAC_CODE
+bool	CStackFile::LoadPowerPCResources()
+{
+	// Export all xcmd resources:
+	SInt16	numIcons = Count1Resources( 'xcmd' );
+	for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+	{
+		Handle		currPicture = Get1IndResource( 'xcmd', x );
+		ResID       theID = 0;
+		ResType		theType = 0L;
+		Str255		name;
+		GetResInfo( currPicture, &theID, &theType, name );
+		char		fname[256];
+		int			nameLen = name[0];
+		
+		// Pascal String -> C-String:
+		memmove( name, name +1, nameLen );
+		name[nameLen] = 0;
+		
+		fprintf( stderr, "Warning: Skipping code resource 'xcmd' %d \"%s\".\n", theID, name );
+
+		snprintf( fname, sizeof(fname), "xcmd_ppc_%d_%s.data", theID, name );
+		FILE*		theFile = fopen( fname, "w" );
+		if( !theFile )
+		{
+			fprintf( stderr, "Error: Couldn't create file '%s' for 'xcmd' %d.\n", fname, theID );
+			return false;
+		}
+		
+		fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
+		fclose( theFile );
+
+		fprintf( mXmlFile, "\t<externalcommand type=\"command\" platform=\"macppc\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
+							theID, GetHandleSize( currPicture ), name, fname );
+		
+		if( mProgressMessages )
+			fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
+	}
+	
+	// Export all XFCN resources:
+	numIcons = Count1Resources( 'xfcn' );
+	for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
+	{
+		Handle		currPicture = Get1IndResource( 'xfcn', x );
+		ResID       theID = 0;
+		ResType		theType = 0L;
+		Str255		name;
+		GetResInfo( currPicture, &theID, &theType, name );
+		char		fname[256];
+		int			nameLen = name[0];
+		
+		// Pascal String -> C-String:
+		memmove( name, name +1, nameLen );
+		name[nameLen] = 0;
+		
+		fprintf( stderr, "Warning: Skipping code resource 'xfcn' %d \"%s\".\n", theID, name );
+
+		snprintf( fname, sizeof(fname), "xfcn_ppc_%d_%s.data", theID, name );
+		FILE*		theFile = fopen( fname, "w" );
+		if( !theFile )
+		{
+			fprintf( stderr, "Error: Couldn't create file '%s' for 'xfcn' %d.\n", fname, theID );
+			return false;
+		}
+		
+		fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
+		fclose( theFile );
+
+		fprintf( mXmlFile, "\t<externalcommand type=\"function\" platform=\"macppc\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
+							theID, GetHandleSize( currPicture ), name, fname );
+			
+		if( mProgressMessages )
+			fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
+	}
+
+	return true;
+}
+#endif //MAC_CODE
+
+
 bool	CStackFile::LoadFile( const std::string& fpath )
 {
 	std::ifstream		theFile( fpath.c_str() );
@@ -1320,14 +2457,14 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 	}
 		
 	#if MAC_CODE
-	SInt16		resRefNum = -1;
 	FSRef		fileRef;
+	mResRefNum = -1;
 	
 	OSStatus	resErr = FSPathMakeRef( (const UInt8*) fpath.c_str(), &fileRef, NULL );
 	if( resErr == noErr )
 	{
-		resRefNum = FSOpenResFile( &fileRef, fsRdPerm );
-		if( resRefNum < 0 )
+		mResRefNum = FSOpenResFile( &fileRef, fsRdPerm );
+		if( mResRefNum < 0 )
 		{
 			fprintf( stderr, "Warning: No Mac resource fork to import.\n" );
 			resErr = fnfErr;
@@ -1336,7 +2473,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 	else
 	{
 		fprintf( stderr, "Error: Error %d locating input file's resource fork.\n", (int)resErr );
-		resRefNum = -1;
+		mResRefNum = -1;
 	}
 	#endif //MAC_CODE
 	
@@ -1354,6 +2491,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 	char		vBlockType[5] = { 0 };
 	u_int32_t	vBlockSize = 0;
 	int32_t		vBlockID = 0;
+	int			numBlocks = 0;
 	
 	// Read all blocks so we can random-access them. Yes, I know there are more
 	//	efficient ways, but honestly, who cares?
@@ -1367,6 +2505,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		theFile.read( vBlockType, 4 );
 		theFile.read( (char*) &vBlockID, sizeof(vBlockID) );
 		vBlockID = BIG_ENDIAN_32(vBlockID);
+		
+		numBlocks++;
 		
 		if( strcmp(vBlockType,"TAIL") == 0 && vBlockID == 0xffffffff )	// End marker block?
 			break;
@@ -1387,8 +2527,22 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		}
 	}
 	
+	fprintf( stdout, "Status: Found %d blocks in file.\n", numBlocks);
+	
 	mMaxProgress = mBlockMap.size();
 	mCurrentProgress = 0;
+	
+	#if MAC_CODE
+	if( mResRefNum > 0 )
+	{
+		int		numResources = Count1Resources( 'ICON' ) +Count1Resources( 'PICT' ) +Count1Resources( 'CURS' )
+						+Count1Resources( 'snd ' ) +Count1Resources( 'HCbg' ) +Count1Resources( 'HCcd' )
+						+Count1Resources( 'XCMD' ) +Count1Resources( 'XFCN' ) +Count1Resources( 'xcmd' )
+						+Count1Resources( 'xfcn' );
+		mMaxProgress += numResources;
+		fprintf( stdout, "Status: Found %d resources in file.\n", numResources);
+	}
+	#endif // MAC_CODE
 	if( mProgressMessages )
 		fprintf( stdout, "Progress: %d of %d\n", mCurrentProgress, mMaxProgress );
 	
@@ -1449,748 +2603,18 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		success = LoadListBlock( mBlockMap[CStackBlockIdentifier("LIST",mListBlockID)] );
 		
 	#if MAC_CODE
-	if( resRefNum > 0 )
+	if( mResRefNum > 0 )
 	{
-		mMaxProgress = Count1Resources( 'ICON' ) +Count1Resources( 'PICT' ) +Count1Resources( 'CURS' )
-						+Count1Resources( 'snd ' ) +Count1Resources( 'HCbg' ) +Count1Resources( 'HCcd' )
-						+Count1Resources( 'XCMD' ) +Count1Resources( 'XFCN' ) +Count1Resources( 'xcmd' )
-						+Count1Resources( 'xfcn' );
-		mCurrentProgress = 0;
-		if( mProgressMessages )
-			fprintf( stdout, "Progress: %d of %d\n", mCurrentProgress, mMaxProgress );
+		LoadBWIcons();
+		LoadPictures();
+		LoadCursors();
+		LoadSounds();
+		//LoadAddColorBackgrounds();
+		//LoadAddColorCards();
+		Load68000Resources();
+		LoadPowerPCResources();
 		
-		// Export all B/W icons:
-		SInt16		numIcons = Count1Resources( 'ICON' );
-		for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
-		{
-			Handle		currIcon = Get1IndResource( 'ICON', x );
-			ResID       theID = 0;
-			ResType		theType = 0L;
-			Str255		name;
-			GetResInfo( currIcon, &theID, &theType, name );
-			char		fname[256];
-			
-			if( mStatusMessages )
-				fprintf( stdout, "Status: Converting 'ICON' %d.\n", theID );
-			
-			picture		theIcon( 32, 32, 1, false );
-			theIcon.memcopyin( *currIcon, 0, 4 * 32 );
-			
-			theIcon.buildmaskfromsurroundings();
-			
-//				snprintf( fname, sizeof(fname), "ICON_%d_mask.pbm", theID );
-//				theIcon.writemasktopbm( fname );
-			
-			snprintf( fname, sizeof(fname), "ICON_%d.pbm", theID );
-			theIcon.writebitmapandmasktopbm( fname );
-			
-			fprintf( mXmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<type>icon</type>\n\t\t<name>", theID );
-			for( int n = 1; n <= name[0]; n++ )
-			{
-				char currCh = name[n];
-				if( currCh == '<' )
-					fprintf( mXmlFile, "&lt;" );
-				else if( currCh == '>' )
-					fprintf( mXmlFile, "&gt;" );
-				else if( currCh == '&' )
-					fprintf( mXmlFile, "&amp;" );
-				else
-					fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
-			}
-			fprintf( mXmlFile, "</name>\n\t\t<file>ICON_%d.pbm</file>\n\t</media>\n", theID );
-			
-			if( mProgressMessages )
-				fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
-		}
-
-		// Export all PICT images:
-		numIcons = Count1Resources( 'PICT' );
-		for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
-		{
-			Handle		currPicture = Get1IndResource( 'PICT', x );
-			ResID       theID = 0;
-			ResType		theType = 0L;
-			Str255		name;
-			GetResInfo( currPicture, &theID, &theType, name );
-			char		fname[256];
-			
-			if( mStatusMessages )
-				fprintf( stdout, "Status: Converting 'PICT' %d.\n", theID );
-
-			snprintf( fname, sizeof(fname), "PICT_%d.pict", theID );
-			FILE*		theFile = fopen( fname, "w" );
-			if( !theFile )
-			{
-				fprintf( stderr, "Error: Couldn't create file '%s' for 'PICT' %d.\n", fname, theID );
-				return false;
-			}
-			
-			for( int n = 0; n < 8; n++ )
-				fputs( "BILL_ATKINSON_ERIC_CARLSON_KEVIN_CALHOUN_DANIEL_THOME_HYPERCARD_", theFile );	// 64 bytes repeated 8 times is a neat 512 byte header.
-			fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
-			fclose( theFile );
-
-			fprintf( mXmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<type>picture</type>\n\t\t<name>", theID );
-			for( int n = 1; n <= name[0]; n++ )
-			{
-				char currCh = name[n];
-				if( currCh == '<' )
-					fprintf( mXmlFile, "&lt;" );
-				else if( currCh == '>' )
-					fprintf( mXmlFile, "&gt;" );
-				else if( currCh == '&' )
-					fprintf( mXmlFile, "&amp;" );
-				else
-					fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
-			}
-			fprintf( mXmlFile, "</name>\n\t\t<file>PICT_%d.pict</file>\n\t</media>\n", theID );
-			
-			if( mProgressMessages )
-				fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
-		}
-
-		// Export all CURS cursors:
-		numIcons = Count1Resources( 'CURS' );
-		for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
-		{
-			Handle		currIcon = Get1IndResource( 'CURS', x );
-			ResID       theID = 0;
-			ResType		theType = 0L;
-			Str255		name;
-			GetResInfo( currIcon, &theID, &theType, name );
-			char		fname[256];
-			
-			if( mStatusMessages )
-				fprintf( stdout, "Status: Converting 'CURS' %d.\n", theID );
-			
-			snprintf( fname, sizeof(fname), "CURS_%d.pbm", theID );
-			FILE*		theFile = fopen( fname, "w" );
-			if( !theFile )
-			{
-				fprintf( stderr, "Error: Couldn't create file '%s' for 'CURS' %d.\n", fname, theID );
-				return false;
-			}
-			
-			fputs( "P4\n16 16\n", theFile );
-			fwrite( *currIcon, 2 * 16, 1, theFile );
-			fputs( "\nP4\n16 16\n", theFile );
-			fwrite( (*currIcon) +(2 * 16), 2 * 16, 1, theFile );
-			int16_t	vertPos = * (int16_t*) ((*currIcon) +(2 * 16) +(2 * 16));
-			int16_t	horzPos = * (int16_t*) ((*currIcon) +(2 * 16) +(2 * 16) +2);
-			printf("");
-			fclose( theFile );
-			
-			fprintf( mXmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<type>cursor</type>\n\t\t<name>", theID );
-			for( int n = 1; n <= name[0]; n++ )
-			{
-				char currCh = name[n];
-				if( currCh == '<' )
-					fprintf( mXmlFile, "&lt;" );
-				else if( currCh == '>' )
-					fprintf( mXmlFile, "&gt;" );
-				else if( currCh == '&' )
-					fprintf( mXmlFile, "&amp;" );
-				else
-					fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
-			}
-			fprintf( mXmlFile, "</name>\n\t\t<file>CURS_%d.pbm</file>\n\t\t<hotspot>\n\t\t\t<left>%d</left>\n\t\t\t<top>%d</top>\n\t\t</hotspot>\n\t</media>\n", theID, horzPos, vertPos );
-			
-			if( mProgressMessages )
-				fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
-		}
-
-		// Export all 'snd ' sound resources:
-		EnterMovies();
-		numIcons = Count1Resources( 'snd ' );
-		for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
-		{
-			Handle		currIcon = Get1IndResource( 'snd ', x );
-			ResID       theID = 0;
-			ResType		theType = 0L;
-			Str255		name;
-			GetResInfo( currIcon, &theID, &theType, name );
-			char		fname[256];
-
-			if( mStatusMessages )
-				fprintf( stdout, "Status: Converting 'snd ' %d.\n", theID );
-
-			snprintf( fname, sizeof(fname), "snd_%d.aiff", theID );
-			Handle		myHandle = NewHandleClear(0);
-			Handle		myDataRef = NewHandleClear( sizeof(Handle) );
-			BlockMove( &myHandle, *myDataRef, sizeof(Handle) );
-			
-			Movie	theMovie = NewMovie( newMovieActive );
-			resErr = GetMoviesError();
-			if( !theMovie || resErr != noErr )
-			{
-				fprintf( stderr, "Error: Error %d creating QuickTime container for 'snd ' %d.\n", (int)resErr, theID );
-				return false;
-			}
-			
-			resErr = SetMovieDefaultDataRef( theMovie, myDataRef, HandleDataHandlerSubType);
-			if( !theMovie || resErr != noErr )
-			{
-				fprintf( stderr, "Error: Error %d specifying data reference for 'snd ' %d.\n", (int)resErr, theID );
-				return false;
-			}
-			
-			resErr = PasteHandleIntoMovie( currIcon, 'snd ', theMovie, 0L, NULL );
-			if( resErr != noErr )
-			{
-				fprintf( stderr, "Error: Error %d inserting data of 'snd ' %d into QuickTime container.\n", (int)resErr, theID );
-				return false;
-			}
-			
-			FSRef		packageRef;
-			resErr = FSPathMakeRef( (UInt8*) packagePath.c_str(), &packageRef, NULL );
-			if( resErr != noErr )
-			{
-				fprintf( stderr, "Error: Error %d creating reference to package to export 'snd ' %d.\n", (int)resErr, theID );
-				return false;
-			}
-			FSSpec		theSpec = { 0 };
-			resErr = FSGetCatalogInfo( &packageRef, kFSCatInfoNone, NULL, NULL, &theSpec, NULL );
-			if( resErr != noErr )
-			{
-				fprintf( stderr, "Error: Error %d converting reference to package to export 'snd ' %d.\n", (int)resErr, theID );
-				return false;
-			}
-			theSpec.name[0] = strlen(fname);
-			strcpy( ((char*)theSpec.name) +1, fname );
-			resErr = ConvertMovieToFile( theMovie, NULL, &theSpec, kQTFileTypeAIFF, 'TVOD', smSystemScript, NULL, createMovieFileDeleteCurFile | movieToFileOnlyExport, NULL );
-			if( resErr != noErr )
-			{
-				fprintf( stderr, "Error: Error %d converting 'snd ' %d to AIFF.\n", (int)resErr, theID );
-				return false;
-			}
-			
-			DisposeMovie( theMovie );
-			
-			fprintf( mXmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<name>", theID );
-			for( int n = 1; n <= name[0]; n++ )
-			{
-				char currCh = name[n];
-				if( currCh == '<' )
-					fprintf( mXmlFile, "&lt;" );
-				else if( currCh == '>' )
-					fprintf( mXmlFile, "&gt;" );
-				else if( currCh == '&' )
-					fprintf( mXmlFile, "&amp;" );
-				else
-					fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
-			}
-			fprintf( mXmlFile, "</name>\n\t\t<file>snd_%d.aiff</file>\n\t\t<type>sound</type>\n\t</media>\n", theID );
-			
-			if( mProgressMessages )
-				fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
-		}
-		ExitMovies();
-		
-		// Export AddColor resources:
-		numIcons = Count1Resources( 'HCbg' );
-		for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
-		{
-			Handle		currIcon = Get1IndResource( 'HCbg', x );
-			ResID       theID = 0;
-			ResType		theType = 0L;
-			Str255		name;
-			GetResInfo( currIcon, &theID, &theType, name );
-			char		fname[256];
-			
-			if( mStatusMessages )
-				fprintf( stdout, "Status: Converting AddColor 'HCbg' %d.\n", theID );
-			
-			snprintf( fname, sizeof(fname), "HCbg_%d.data", theID );
-
-			size_t	dataLen = GetHandleSize( currIcon );
-			CBuf	theData( dataLen );
-			theData.memcpy( 0, *currIcon, 0, dataLen );
-			theData.tofile( fname );
-			
-			fprintf( mXmlFile, "\t<addcolorbackground>\n\t\t<id>%d</id>\n", theID );
-			
-			size_t	currOffs = 0;
-			while( currOffs < dataLen )
-			{
-				fprintf( mXmlFile, "\t\t<addcolorobject>\n" );
-				int8_t	currType = theData[currOffs];
-				bool	vHidden = currType & (1 << 7);
-				currType &= ~(1 << 7);
-				currOffs += 1;
-				
-				switch( currType )
-				{
-					case 0x01:	// Button
-					{
-						fprintf( mXmlFile, "\t\t\t<type>button</type>\n" );
-						int16_t		buttonID = 0, bevelDepth = 0;
-						uint16_t	r = 0, g = 0, b = 0;
-						buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t<id>%d</id>\n", buttonID );
-						bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
-						fprintf( mXmlFile, "\t\t\t<color>\n" );
-						r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<red>%d</red>\n", r );
-						g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<green>%d</green>\n", g );
-						b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
-						fprintf( mXmlFile, "\t\t\t</color>\n" );
-						break;
-					}
-
-					case 0x02:	// Field
-					{
-						fprintf( mXmlFile, "\t\t\t<type>field</type>\n" );
-						int16_t		buttonID = 0, bevelDepth = 0;
-						uint16_t	r = 0, g = 0, b = 0;
-						buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t<id>%d</id>\n", buttonID );
-						bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
-						fprintf( mXmlFile, "\t\t\t<color>\n" );
-						r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<red>%d</red>\n", r );
-						g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<green>%d</green>\n", g );
-						b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
-						fprintf( mXmlFile, "\t\t\t</color>\n" );
-						break;
-					}
-
-					case 0x03:	// Rectangle
-					{
-						fprintf( mXmlFile, "\t\t\t<type>rectangle</type>\n" );
-						uint16_t	rc = 0, gc = 0, bc = 0;
-						int16_t		bevelDepth = 0;
-						int16_t		l, t, r, b;
-						fprintf( mXmlFile, "\t\t\t<rect>\n" );
-						t = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<top>%d</top>\n", t );
-						l = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<left>%d</left>\n", l );
-						b = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
-						r = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<right>%d</right>\n", r );
-						fprintf( mXmlFile, "\t\t\t</rect>\n" );
-						bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t<bevel>%d</bevel>\n", t );
-						fprintf( mXmlFile, "\t\t\t<color>\n" );
-						rc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<red>%d</red>\n", rc );
-						gc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<green>%d</green>\n", gc );
-						bc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<blue>%d</blue>\n", bc );
-						fprintf( mXmlFile, "\t\t\t</color>\n" );
-						break;
-					}
-
-					case 0x04:	// Picture
-					{
-						fprintf( mXmlFile, "\t\t\t<type>picture</type>\n" );
-						int16_t		l, t, r, b;
-						fprintf( mXmlFile, "\t\t\t<rect>\n" );
-						t = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<top>%d</top>\n", t );
-						l = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<left>%d</left>\n", l );
-						b = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
-						r = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<right>%d</right>\n", r );
-						fprintf( mXmlFile, "\t\t\t</rect>\n" );
-
-						uint8_t	transparentFlag = theData[currOffs];
-						currOffs += 1;
-						fprintf( mXmlFile, "\t\t\t<transparent> %s </transparent>\n", transparentFlag ? "<true />" : "<false />" );
-						
-						uint8_t	imageNameLen = theData[currOffs];
-						currOffs += 1;
-						
-						fprintf( mXmlFile, "\t\t\t<name>" );
-						for( int n = 0; n < imageNameLen; n++ )
-						{
-							char currCh = theData[currOffs++];
-							if( currCh == '<' )
-								fprintf( mXmlFile, "&lt;" );
-							else if( currCh == '>' )
-								fprintf( mXmlFile, "&gt;" );
-							else if( currCh == '&' )
-								fprintf( mXmlFile, "&amp;" );
-							else
-								fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
-						}
-						fprintf( mXmlFile, "</name>\n" );
-						break;
-					}
-					
-					default:
-						fprintf( mXmlFile, "\t\t\t<!-- Unknown type %x, aborting 'HCcd' resource %d. -->\n", currType, theID );
-						fprintf( stderr, "Error: Unknown type %x, aborting 'HCcd' resource %d.\n", currType, theID );
-						currOffs = dataLen;	// Can't read more. Skip the rest.
-						break;
-				}
-				fprintf( mXmlFile, "\t\t\t<visible> %s </visible>\n", (vHidden ? "<false />" : "<true />") );
-				fprintf( mXmlFile, "\t\t</addcolorobject>\n" );
-			}
-		
-			fprintf( mXmlFile, "\t</addcolorbackground>\n" );
-			
-			if( mProgressMessages )
-				fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
-		}
-
-		// Export more AddColor resources:
-		numIcons = Count1Resources( 'HCcd' );
-		for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
-		{
-			Handle		currIcon = Get1IndResource( 'HCcd', x );
-			ResID       theID = 0;
-			ResType		theType = 0L;
-			Str255		name;
-			GetResInfo( currIcon, &theID, &theType, name );
-			char		fname[256];
-			
-			if( mStatusMessages )
-				fprintf( stdout, "Status: Converting AddColor 'HCcd' %d.\n", theID );
-
-			snprintf( fname, sizeof(fname), "HCcd_%d.data", theID );
-			
-			size_t	dataLen = GetHandleSize( currIcon );
-			CBuf	theData( dataLen );
-			theData.memcpy( 0, *currIcon, 0, dataLen );
-			//theData.tofile( fname );
-			
-			fprintf( mXmlFile, "\t<addcolorcard>\n\t\t<id>%d</id>\n", theID );
-			
-			size_t	currOffs = 0;
-			while( currOffs < dataLen )
-			{
-				fprintf( mXmlFile, "\t\t<addcolorobject>\n" );
-				int8_t	currType = theData[currOffs];
-				bool	vHidden = currType & (1 << 7);
-				currType &= ~(1 << 7);
-				currOffs += 1;
-				
-				switch( currType )
-				{
-					case 0x01:	// Button
-					{
-						fprintf( mXmlFile, "\t\t\t<type>button</type>\n" );
-						int16_t		buttonID = 0, bevelDepth = 0;
-						uint16_t	r = 0, g = 0, b = 0;
-						buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t<id>%d</id>\n", buttonID );
-						bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
-						fprintf( mXmlFile, "\t\t\t<color>\n" );
-						r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<red>%d</red>\n", r );
-						g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<green>%d</green>\n", g );
-						b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
-						fprintf( mXmlFile, "\t\t\t</color>\n" );
-						break;
-					}
-
-					case 0x02:	// Field
-					{
-						fprintf( mXmlFile, "\t\t\t<type>field</type>\n" );
-						int16_t		buttonID = 0, bevelDepth = 0;
-						uint16_t	r = 0, g = 0, b = 0;
-						buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t<id>%d</id>\n", buttonID );
-						bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
-						fprintf( mXmlFile, "\t\t\t<color>\n" );
-						r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<red>%d</red>\n", r );
-						g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<green>%d</green>\n", g );
-						b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<blue>%d</blue>\n", b );
-						fprintf( mXmlFile, "\t\t\t</color>\n" );
-						break;
-					}
-
-					case 0x03:	// Rectangle
-					{
-						fprintf( mXmlFile, "\t\t\t<type>rectangle</type>\n" );
-						uint16_t	rc = 0, gc = 0, bc = 0;
-						int16_t		bevelDepth = 0;
-						int16_t		l, t, r, b;
-						fprintf( mXmlFile, "\t\t\t<rect>\n" );
-						t = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<top>%d</top>\n", t );
-						l = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<left>%d</left>\n", l );
-						b = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
-						r = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<right>%d</right>\n", r );
-						fprintf( mXmlFile, "\t\t\t</rect>\n" );
-						bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t<bevel>%d</bevel>\n", bevelDepth );
-						fprintf( mXmlFile, "\t\t\t<color>\n" );
-						rc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<red>%d</red>\n", rc );
-						gc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<green>%d</green>\n", gc );
-						bc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<blue>%d</blue>\n", bc );
-						fprintf( mXmlFile, "\t\t\t</color>\n" );
-						break;
-					}
-
-					case 0x04:	// Picture
-					{
-						fprintf( mXmlFile, "\t\t\t<type>picture</type>\n" );
-						int16_t		l, t, r, b;
-						fprintf( mXmlFile, "\t\t\t<rect>\n" );
-						t = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<top>%d</top>\n", t );
-						l = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<left>%d</left>\n", l );
-						b = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<bottom>%d</bottom>\n", b );
-						r = BIG_ENDIAN_16(theData.int16at( currOffs ));
-						currOffs += 2;
-						fprintf( mXmlFile, "\t\t\t\t<right>%d</right>\n", r );
-						fprintf( mXmlFile, "\t\t\t</rect>\n" );
-
-						uint8_t	transparentFlag = theData[currOffs];
-						currOffs += 1;
-						fprintf( mXmlFile, "\t\t\t<transparent> %s </transparent>\n", transparentFlag ? "<true />" : "<false />" );
-						
-						uint8_t	imageNameLen = theData[currOffs];
-						currOffs += 1;
-						
-						fprintf( mXmlFile, "\t\t\t<name>" );
-						for( int n = 0; n < imageNameLen; n++ )
-						{
-							char currCh = theData[currOffs++];
-							if( currCh == '<' )
-								fprintf( mXmlFile, "&lt;" );
-							else if( currCh == '>' )
-								fprintf( mXmlFile, "&gt;" );
-							else if( currCh == '&' )
-								fprintf( mXmlFile, "&amp;" );
-							else
-								fprintf( mXmlFile, "%s", UniCharFromMacRoman(currCh) );
-						}
-						fprintf( mXmlFile, "</name>\n" );
-						break;
-					}
-					
-					default:
-						fprintf( mXmlFile, "\t\t\t<!-- Unknown type %x, aborting 'HCcd' resource %d. -->\n", currType, theID );
-						fprintf( stderr, "Error: Unknown type %x, aborting 'HCcd' resource %d.\n", currType, theID );
-						currOffs = dataLen;	// Can't read more. Skip the rest.
-						break;
-				}
-				fprintf( mXmlFile, "\t\t\t<visible> %s </visible>\n", (vHidden ? "<false />" : "<true />") );
-				fprintf( mXmlFile, "\t\t</addcolorobject>\n" );
-			}
-		
-			fprintf( mXmlFile, "\t</addcolorcard>\n" );
-			
-			if( mProgressMessages )
-				fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
-		}
-		
-		// Export all XCMD resources:
-		numIcons = Count1Resources( 'XCMD' );
-		for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
-		{
-			Handle		currPicture = Get1IndResource( 'XCMD', x );
-			ResID       theID = 0;
-			ResType		theType = 0L;
-			Str255		name;
-			GetResInfo( currPicture, &theID, &theType, name );
-			char		fname[256];
-			int			nameLen = name[0];
-			
-			// Pascal String -> C-String:
-			memmove( name, name +1, nameLen );
-			name[nameLen] = 0;
-			
-			fprintf( stderr, "Warning: Skipping code resource 'XCMD' %d \"%s\".\n", theID, name );
-
-			snprintf( fname, sizeof(fname), "XCMD_68k_%d_%s.data", theID, name );
-			FILE*		theFile = fopen( fname, "w" );
-			if( !theFile )
-			{
-				fprintf( stderr, "Error: Couldn't create file '%s' for 'XCMD' %d.\n", fname, theID );
-				return false;
-			}
-			
-			fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
-			fclose( theFile );
-
-			fprintf( mXmlFile, "\t<externalcommand type=\"command\" platform=\"mac68k\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
-								theID, GetHandleSize( currPicture ), name, fname );
-			
-			if( mProgressMessages )
-				fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
-		}
-		
-		// Export all XFCN resources:
-		numIcons = Count1Resources( 'XFCN' );
-		for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
-		{
-			Handle		currPicture = Get1IndResource( 'XFCN', x );
-			ResID       theID = 0;
-			ResType		theType = 0L;
-			Str255		name;
-			GetResInfo( currPicture, &theID, &theType, name );
-			char		fname[256];
-			int			nameLen = name[0];
-			
-			// Pascal String -> C-String:
-			memmove( name, name +1, nameLen );
-			name[nameLen] = 0;
-			
-			fprintf( stderr, "Warning: Skipping code resource 'XFCN' %d \"%s\".\n", theID, name );
-
-			snprintf( fname, sizeof(fname), "XFCN_68k_%d_%s.data", theID, name );
-			FILE*		theFile = fopen( fname, "w" );
-			if( !theFile )
-			{
-				fprintf( stderr, "Error: Couldn't create file '%s' for 'XFCN' %d.\n", fname, theID );
-				return false;
-			}
-			
-			fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
-			fclose( theFile );
-
-			fprintf( mXmlFile, "\t<externalcommand type=\"function\" platform=\"mac68k\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
-								theID, GetHandleSize( currPicture ), name, fname );
-			
-			if( mProgressMessages )
-				fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
-		}
-		
-		// Export all xcmd resources:
-		numIcons = Count1Resources( 'xcmd' );
-		for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
-		{
-			Handle		currPicture = Get1IndResource( 'xcmd', x );
-			ResID       theID = 0;
-			ResType		theType = 0L;
-			Str255		name;
-			GetResInfo( currPicture, &theID, &theType, name );
-			char		fname[256];
-			int			nameLen = name[0];
-			
-			// Pascal String -> C-String:
-			memmove( name, name +1, nameLen );
-			name[nameLen] = 0;
-			
-			fprintf( stderr, "Warning: Skipping code resource 'xcmd' %d \"%s\".\n", theID, name );
-
-			snprintf( fname, sizeof(fname), "xcmd_ppc_%d_%s.data", theID, name );
-			FILE*		theFile = fopen( fname, "w" );
-			if( !theFile )
-			{
-				fprintf( stderr, "Error: Couldn't create file '%s' for 'xcmd' %d.\n", fname, theID );
-				return false;
-			}
-			
-			fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
-			fclose( theFile );
-
-			fprintf( mXmlFile, "\t<externalcommand type=\"command\" platform=\"macppc\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
-								theID, GetHandleSize( currPicture ), name, fname );
-			
-			if( mProgressMessages )
-				fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
-		}
-		
-		// Export all XFCN resources:
-		numIcons = Count1Resources( 'xfcn' );
-		for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
-		{
-			Handle		currPicture = Get1IndResource( 'xfcn', x );
-			ResID       theID = 0;
-			ResType		theType = 0L;
-			Str255		name;
-			GetResInfo( currPicture, &theID, &theType, name );
-			char		fname[256];
-			int			nameLen = name[0];
-			
-			// Pascal String -> C-String:
-			memmove( name, name +1, nameLen );
-			name[nameLen] = 0;
-			
-			fprintf( stderr, "Warning: Skipping code resource 'xfcn' %d \"%s\".\n", theID, name );
-
-			snprintf( fname, sizeof(fname), "xfcn_ppc_%d_%s.data", theID, name );
-			FILE*		theFile = fopen( fname, "w" );
-			if( !theFile )
-			{
-				fprintf( stderr, "Error: Couldn't create file '%s' for 'xfcn' %d.\n", fname, theID );
-				return false;
-			}
-			
-			fwrite( *currPicture, GetHandleSize( currPicture ), 1, theFile );
-			fclose( theFile );
-
-			fprintf( mXmlFile, "\t<externalcommand type=\"function\" platform=\"macppc\" id=\"%d\" size=\"%ld\" name=\"%s\" file=\"%s\" />\n",
-								theID, GetHandleSize( currPicture ), name, fname );
-				
-			if( mProgressMessages )
-				fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
-		}
-		
-		CloseResFile( resRefNum );
+		CloseResFile( mResRefNum );
 	}
 	#endif // MAC_CODE
 	

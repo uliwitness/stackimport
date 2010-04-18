@@ -7,10 +7,20 @@
  *
  */
 
+// If you're not compiling for a platform where the Mac resource manager is
+//	available, set the following to 0 to remove that code from compilation:
+#define MAC_CODE		1
+
+
 #include <map>
 #include <vector>
 #include <stdint.h>
 #include "CBuf.h"
+
+#if MAC_CODE
+#include <Carbon/Carbon.h>
+#include <QuickTime/QuickTime.h>
+#endif
 
 
 class CStackBlockIdentifier
@@ -97,6 +107,17 @@ protected:
 	bool	LoadStyleTable( int32_t blockID, CBuf& blockData );
 	bool	LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& blockData );	// Card or Bkgd.
 	bool	LoadBackgroundBlock( int32_t blockID, CBuf& blockData );
+	
+#if MAC_CODE
+	bool	LoadBWIcons();
+	bool	LoadPictures();
+	bool	LoadCursors();
+	bool	LoadSounds();
+//	bool	LoadAddColorBackgrounds();
+//	bool	LoadAddColorCards();
+	bool	Load68000Resources();
+	bool	LoadPowerPCResources();
+#endif //MAC_CODE
 
 protected:
 	bool			mDumpRawBlockData;	// Create .data files with the contents of each block.
@@ -114,4 +135,7 @@ protected:
 	CBtnIDsPerBgMap	mButtonIDsPerBg;	// Table that holds the IDs of all BG buttons on each background. Used to detect what card-level button contents entries are actually sharedHighlight entries for a bg button.
 	std::string		mBasePath;			// Path to package folder, in which we'll put all the XML files and graphics'n stuff.
 	CFontTable		mFontTable;			// Actual, parsed font ID -> name mappings from FTBL block.
+#if MAC_CODE
+	SInt16			mResRefNum;
+#endif
 };
