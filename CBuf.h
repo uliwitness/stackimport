@@ -56,7 +56,9 @@ public:
 	bool			hasdata( size_t offs, size_t amount )	{ return (mShared->mBuffer != NULL) && (amount +offs) <= mShared->mSize; };
 	
 	void			tofile( const std::string& fpath );
-
+	
+	void			debug_print()		{ if( !mShared ) printf( "NULL\n" ); else { printf("CBuf %p { size = %zd, refCount = %d, \"%-*s\" }\n", this, mShared->mSize, mShared->mRefCount, (int)mShared->mSize, mShared->mBuffer ); } };
+	
 	virtual CBuf&	operator = ( const CBuf& inTemplate );
 
 protected:
