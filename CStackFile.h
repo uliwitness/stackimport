@@ -106,15 +106,12 @@ protected:
 	bool	LoadFontTable( int32_t blockID, CBuf& blockData );
 	bool	LoadStyleTable( int32_t blockID, CBuf& blockData );
 	bool	LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& blockData );	// Card or Bkgd.
-	bool	LoadBackgroundBlock( int32_t blockID, CBuf& blockData );
 	
 #if MAC_CODE
 	bool	LoadBWIcons();
 	bool	LoadPictures();
 	bool	LoadCursors();
 	bool	LoadSounds();
-//	bool	LoadAddColorBackgrounds();
-//	bool	LoadAddColorCards();
 	bool	Load68000Resources();
 	bool	LoadPowerPCResources();
 #endif //MAC_CODE
