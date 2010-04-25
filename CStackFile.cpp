@@ -1535,7 +1535,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		return false;
 	}
 		
-	#if MAC_CODE
+  #if MAC_CODE
 	FSRef		fileRef;
 	mResRefNum = -1;
 	
@@ -1554,7 +1554,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		fprintf( stderr, "Error: Error %d locating input file's resource fork.\n", (int)resErr );
 		mResRefNum = -1;
 	}
-	#endif //MAC_CODE
+  #endif //MAC_CODE
 	
 	if( mStatusMessages )
 		fprintf( stdout, "Status: Output package name is '%s'\n", packagePath.c_str() );
@@ -1611,7 +1611,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 	mMaxProgress = mBlockMap.size();
 	mCurrentProgress = 0;
 	
-	#if MAC_CODE
+  #if MAC_CODE
 	if( mResRefNum > 0 )
 	{
 		int		numResources = Count1Resources( 'ICON' ) +Count1Resources( 'PICT' ) +Count1Resources( 'CURS' )
@@ -1621,7 +1621,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		mMaxProgress += numResources;
 		fprintf( stdout, "Status: Found %d resources in file.\n", numResources);
 	}
-	#endif // MAC_CODE
+  #endif // MAC_CODE
 	if( mProgressMessages )
 		fprintf( stdout, "Progress: %d of %d\n", mCurrentProgress, mMaxProgress );
 	
@@ -1660,11 +1660,11 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			}
 			else if( currBlockItty->first == CStackBlockIdentifier("BKGD") )
 			{
-				#if 1
+			  #if 1
 				success = LoadLayerBlock( "BKGD", currBlockItty->first.mID, currBlockItty->second );
-				#else
+			  #else
 				success = LoadBackgroundBlock( currBlockItty->first.mID, currBlockItty->second );
-				#endif
+			  #endif
 			}
 			else if( currBlockItty->first != CStackBlockIdentifier("CARD")
 					&& currBlockItty->first != CStackBlockIdentifier("LIST")
@@ -1684,7 +1684,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 	if( success )
 		success = LoadListBlock( mBlockMap[CStackBlockIdentifier("LIST",mListBlockID)] );
 		
-	#if MAC_CODE
+  #if MAC_CODE
 	if( mResRefNum > 0 )
 	{
 		LoadBWIcons();
@@ -1696,7 +1696,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		
 		CloseResFile( mResRefNum );
 	}
-	#endif // MAC_CODE
+  #endif // MAC_CODE
 	
 	fprintf( mXmlFile, "</stackfile>\n" );
 	if( mXmlFile != stdout )
@@ -1706,13 +1706,13 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 	if( mStackXmlFile != stdout )
 		fclose( mStackXmlFile );
 	
-	#if MAC_CODE
+  #if MAC_CODE
 	if( resErr != fnfErr && resErr != noErr )
 	{
 		fprintf( stderr, "Error: During conversion of Macintosh fork of stack.\n" );
 		return false;
 	}
-	#endif // MAC_CODE
+  #endif // MAC_CODE
 	
 	return true;
 }
