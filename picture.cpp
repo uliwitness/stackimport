@@ -151,16 +151,17 @@ unsigned int picture::coordbitmask( int x, int y )
 		switch (depth)
 		{
 			case 1:
-				i= 7-(x%8);
+				m = 1 << (7 -(x % 8));
 				break;
 			case 2:
 				i=2*(3-(x%4));
+				m <<= i;
 				break;
 			case 4:
 				i=4*(1-(x%2));
+				m <<= i;
 				break;
 		}
-		m <<= i;
 	}
 	return m;
 }
@@ -269,30 +270,42 @@ void picture::maskmemfill(char ch, int x, int y, int count)
 
 void picture::buildmaskfromsurroundings()
 {
+	//debugprint();
+	
 	maskmemfill( 0xFF, 0, rowlength * height );		// All black.
+	
+	//debugprint();
 	
 	int x = 0, y = 0;
 	for( x = 0; x < width; x++ )
 		scanstartingatpixel( x, y );
 	
+	//debugprint();
+	
 	y = height -1;
 	for( x = 0; x < width; x++ )
 		scanstartingatpixel( x, y );
+	
+	//debugprint();
 	
 	x = 0;
 	for( y = 0; y < height; y++ )
 		scanstartingatpixel( x, y );
 	
+	//debugprint();
+	
 	x = width -1;
 	for( y = 0; y < height; y++ )
 		scanstartingatpixel( x, y );
+	
+	//debugprint();
 }
 
 
 void picture::scanstartingatpixel( int x, int y )
 {
 	// We've not fallen off the edge, have we?
-	if( x < 0 || y < 0 || x > width || y > height )
+	if( x < 0 || y < 0 || x >= width || y >= height )
 		return;
 	
 	// This is a white pixel and the mask for it is still opaque?
@@ -307,6 +320,31 @@ void picture::scanstartingatpixel( int x, int y )
 		scanstartingatpixel( x, y -1 );
 		scanstartingatpixel( x, y +1 );
 	}
+}
+
+
+void	picture::debugprint()
+{
+	int	x = 0, y = 0;
+	for( y = 0; y < width; y++ )
+	{
+		for( x = 0; x < width; x++ )
+		{
+			printf( "%c", getpixel( x, y ) ? 'X' : ' ' );
+		}
+		printf("\n");
+	}
+	
+	for( y = 0; y < width; y++ )
+	{
+		for( x = 0; x < width; x++ )
+		{
+			printf( "%c", maskgetpixel( x, y ) ? 'X' : ' ' );
+		}
+		printf("\n");
+	}
+	
+	printf("\n");
 }
 
 
@@ -349,23 +387,25 @@ unsigned int picture::dupcolor(unsigned int c)
 
 unsigned int picture::getpixel(int x, int y)
 {
-	unsigned int p,p1;
-	int i = coordbyteoffset(x,y);
+	int byteIndex = coordbyteoffset(x,y);
 	int j;
-	if (depth < 8) {
-		p = __pow2(depth);
-		p1 = p-1;
-		i = bitmap[i] & coordbitmask(x,y);
-		while (i && (!(i & p1))) { i /= p; }
-		return i;
-	} else if (depth == 8) {
-		return (unsigned char)bitmap[i];
-	} else {
+	if (depth < 8)
+	{
+		if( bitmap[byteIndex] & coordbitmask(x,y) )
+			return 1;
+		else
+			return 0;
+	}
+	else if (depth == 8)
+	{
+		return (unsigned char)bitmap[byteIndex];
+	}
+	else {
 		j = depth / 8;
-		p1 = 0;
+		int	p1 = 0;
 		while (j) {
-			p1 = (p1*256)+(unsigned char)bitmap[i];
-			i++;
+			p1 = (p1*256)+(unsigned char)bitmap[byteIndex];
+			byteIndex++;
 			j--;
 		}
 		return p1;

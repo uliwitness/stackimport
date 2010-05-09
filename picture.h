@@ -84,6 +84,7 @@ class picture
 	
 	void buildmaskfromsurroundings();
 	void scanstartingatpixel( int x, int y );
+	void debugprint();
 	
 	void copyrow(int, int);
 	void maskcopyrow(int, int);
