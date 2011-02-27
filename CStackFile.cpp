@@ -113,20 +113,21 @@ CStackFile::CStackFile()
 }
 
 
-bool	CStackFile::LoadStackBlock( CBuf& blockData )
+bool	CStackFile::LoadStackBlock( int32_t stackID, CBuf& blockData )
 {
 	if( mStatusMessages )
 		fprintf( stdout, "Status: Processing 'STAK' #-1 (%lu bytes)\n", blockData.size() );
 
-	fprintf( mXmlFile, "\t<stack id=\"-1\" file=\"stack_-1.xml\" />\n" );
+	fprintf( mXmlFile, "\t<stack id=\"%d\" file=\"stack_%d.xml\" />\n", stackID, stackID );
 	
 	if( mDumpRawBlockData )
 	{
 		char sfn[256] = { 0 };
-		snprintf( sfn, sizeof(sfn), "STAK_-1.data" );
+		snprintf( sfn, sizeof(sfn), "STAK_%d.data", stackID );
 		blockData.tofile( sfn );
 	}
 	
+	fprintf( mStackXmlFile, "\t<id>%d</id>\n", stackID );
 	int32_t	numberOfCards = BIG_ENDIAN_32(blockData.int32at( 32 ));
 	fprintf( mStackXmlFile, "\t<cardCount>%d</cardCount>\n", numberOfCards );
 	int32_t	cardID = BIG_ENDIAN_32(blockData.int32at( 36 ));
@@ -1629,7 +1630,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 	CBlockMap::iterator		stackItty = mBlockMap.find(CStackBlockIdentifier("STAK"));
 	if( stackItty == mBlockMap.end() )
 		fprintf( stderr, "Error: Couldn't find stack block." );
-	bool	success = LoadStackBlock( stackItty->second );
+	bool	success = LoadStackBlock( -1, stackItty->second );	// It's always -1 in HC, but in the XML format, we may want to support other IDs.
 	if( success )
 		success = LoadFontTable( mFontTableBlockID, mBlockMap[CStackBlockIdentifier("FTBL",mFontTableBlockID)] );
 	if( success )

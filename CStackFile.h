@@ -100,7 +100,7 @@ public:
 	void	SetProgressMessages( bool inPrintProgressMessages ) { mProgressMessages = inPrintProgressMessages; };
 
 protected:
-	bool	LoadStackBlock( CBuf& blockData );
+	bool	LoadStackBlock( int32_t stackID, CBuf& blockData );
 	bool	LoadListBlock( CBuf& blockData );
 	bool	LoadPageTable( int32_t blockID, CBuf& blockData );
 	bool	LoadFontTable( int32_t blockID, CBuf& blockData );
