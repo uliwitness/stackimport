@@ -75,7 +75,7 @@ const unsigned char*	UniCharFromMacRoman( unsigned char c )
 }
 
 
-void	NumVersionToStr( char numVersion[4], char outStr[16] )
+void	NumVersionToStr( unsigned char numVersion[4], char outStr[16] )
 {
 	char	theCh = 'v';
 	
@@ -96,9 +96,13 @@ void	NumVersionToStr( char numVersion[4], char outStr[16] )
 	}
 	
 	// NumVersion is Binary-coded decimal, i.e. 0x10 is displayed as 10, not 16 decimal:
-	if( numVersion[3] == 0 )
+	if( numVersion[3] == 0 && (numVersion[1] & 0x0F) == 0 )	// N.N version
+		snprintf( outStr, 16, "%x.%x", numVersion[0], (numVersion[1] >> 4) );
+	else if( (numVersion[1] & 0x0F) == 0 )	// N.NxN version
+		snprintf( outStr, 16, "%x.%x%c%d", numVersion[0], (numVersion[1] >> 4), theCh, numVersion[3] );
+	else if( numVersion[3] == 0 )	// N.N.N version
 		snprintf( outStr, 16, "%x.%x.%x", numVersion[0], (numVersion[1] >> 4), (numVersion[1] & 0x0F) );
-	else
+	else	// N.N.NxN version
 		snprintf( outStr, 16, "%x.%x.%x%c%d", numVersion[0], (numVersion[1] >> 4), (numVersion[1] & 0x0F), theCh, numVersion[3] );
 }
 
@@ -144,16 +148,16 @@ bool	CStackFile::LoadStackBlock( int32_t stackID, CBuf& blockData )
 	fprintf( mXmlFile, "\t<cantPeek> %s </cantPeek>\n", (flags & (1 << 10)) ? "<true />" : "<false />" );
 	char		versStr[16] = { 0 };
 	int32_t	version0 = blockData.int32at( 84 );
-	NumVersionToStr( (char*) &version0, versStr );
+	NumVersionToStr( (unsigned char*) &version0, versStr );
 	fprintf( mXmlFile, "\t<createdByVersion>HyperCard %s</createdByVersion>\n", versStr );
 	int32_t	version1 = blockData.int32at( 88 );
-	NumVersionToStr( (char*) &version1, versStr );
+	NumVersionToStr( (unsigned char*) &version1, versStr );
 	fprintf( mXmlFile, "\t<lastCompactedVersion>HyperCard %s</lastCompactedVersion>\n", versStr );
 	int32_t	version2 = blockData.int32at( 92 );
-	NumVersionToStr( (char*) &version2, versStr );
+	NumVersionToStr( (unsigned char*) &version2, versStr );
 	fprintf( mXmlFile, "\t<lastEditedVersion>HyperCard %s</lastEditedVersion>\n", versStr );
 	int32_t	version3 = blockData.int32at( 96 );
-	NumVersionToStr( (char*) &version3, versStr );
+	NumVersionToStr( (unsigned char*) &version3, versStr );
 	fprintf( mXmlFile, "\t<firstEditedVersion>HyperCard %s</firstEditedVersion>\n", versStr );
 	mFontTableBlockID = BIG_ENDIAN_32(blockData.int32at( 420 ));
 	fprintf( mXmlFile, "\t<fontTableID>%d</fontTableID>\n", mFontTableBlockID );
