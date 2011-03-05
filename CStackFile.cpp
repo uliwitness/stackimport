@@ -544,7 +544,7 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 			if( titleWidth <= 0 )
 				titleWidth = iconID;
 			
-			fprintf( vFile, "\t\t<selectedLines>\n", titleWidth );
+			fprintf( vFile, "\t\t<selectedLines>\n" );
 			for( int d = iconID; d <= titleWidth; d++ )
 				fprintf( vFile, "\t\t\t<integer>%d</integer>\n", d );
 			fprintf( vFile, "\t\t</selectedLines>\n" );
@@ -677,7 +677,7 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 		if( partID < 0 )	// It's a card part's contents:
 		{
 			partID = -partID;
-			fprintf( vFile, "\t\t<layer>card</layer>\n", partID );
+			fprintf( vFile, "\t\t<layer>card</layer>\n" );
 			fprintf( vFile, "\t\t<id>%d</id>\n", partID );
 			
 			uint16_t	stylesLength = BIG_ENDIAN_16(blockData.uint16at( currOffsIntoData +4 ));
@@ -1223,7 +1223,6 @@ bool	CStackFile::LoadCursors()
 		fwrite( (*currIcon) +(2 * 16), 2 * 16, 1, theFile );
 		int16_t	vertPos = * (int16_t*) ((*currIcon) +(2 * 16) +(2 * 16));
 		int16_t	horzPos = * (int16_t*) ((*currIcon) +(2 * 16) +(2 * 16) +2);
-		printf("");
 		fclose( theFile );
 		
 		fprintf( mXmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<type>cursor</type>\n\t\t<name>", theID );
