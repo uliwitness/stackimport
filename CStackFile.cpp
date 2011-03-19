@@ -360,7 +360,7 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 	else
 		fprintf( mStackXmlFile, "\t<card id=\"%d\" file=\"%s\" />\n", blockID, vFileName +1 );
 	
-	fprintf( vFile, "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n" );	// +++ Add background case.
+	fprintf( vFile, "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n" );
 	if( !isCard )
 	{
 		fprintf( vFile, "<!DOCTYPE background PUBLIC \"-//Apple, Inc.//DTD background V 2.0//EN\" \"\" >\n" );
