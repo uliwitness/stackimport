@@ -358,7 +358,7 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 	if( !isCard )
 		fprintf( mStackXmlFile, "\t<background id=\"%d\" file=\"%s\" />\n", blockID, vFileName +1 );
 	else
-		fprintf( mStackXmlFile, "\t<card id=\"%d\" file=\"%s\" />\n", blockID, vFileName +1 );
+		fprintf( mStackXmlFile, "\t<card id=\"%d\" file=\"%s\" marked=\"%s\"/>\n", blockID, vFileName +1, ((inFlags & 16) ? "true" : "false") );
 	
 	fprintf( vFile, "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n" );
 	if( !isCard )
