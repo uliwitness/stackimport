@@ -90,7 +90,7 @@
 				55C68B051163C0F800D8B44C /* CBuf.h */,
 				55C68B061163C0F800D8B44C /* CBuf.cpp */,
 				3D0EA7E10AD6FE8100A66EA1 /* EndianStuff.h */,
-				3D0EA8160AD7028800A66EA1 /* Jons Wobadecode */,
+				3D0EA8160AD7028800A66EA1 /* Rebeccas Wobadecode */,
 				55C68BF31164062A00D8B44C /* Tests.cpp */,
 			);
 			name = Source;
@@ -104,7 +104,7 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		3D0EA8160AD7028800A66EA1 /* Jons Wobadecode */ = {
+		3D0EA8160AD7028800A66EA1 /* Rebeccas Wobadecode */ = {
 			isa = PBXGroup;
 			children = (
 				55C68B0B1163C18B00D8B44C /* byteutils.h */,
@@ -114,7 +114,7 @@
 				3D0EA80C0AD7027F00A66EA1 /* woba.h */,
 				3D0EA80B0AD7027F00A66EA1 /* woba.cpp */,
 			);
-			name = "Jons Wobadecode";
+			name = "Rebeccas Wobadecode";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -145,7 +145,11 @@
 			isa = PBXProject;
 			buildConfigurationList = 1DEB923508733DC60010E9CD /* Build configuration list for PBXProject "stackimport" */;
 			compatibilityVersion = "Xcode 2.4";
+			developmentRegion = English;
 			hasScannedForEncodings = 1;
+			knownRegions = (
+				en,
+			);
 			mainGroup = 08FB7794FE84155DC02AAC07 /* stackimport */;
 			projectDirPath = "";
 			projectRoot = "";
