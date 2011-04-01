@@ -337,7 +337,7 @@ bool	CStackFile::LoadFontTable( int32_t blockID, CBuf& blockData )
 }
 
 
-bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& blockData )
+bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& blockData, uint8_t inFlags )
 {
 	int32_t		vBlockSize = blockData.size();
 	std::string	vLayerFilePath = mBasePath;
@@ -400,6 +400,9 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 		owner = BIG_ENDIAN_32(blockData.int32at( currOffsIntoData ));
 		fprintf( vFile, "\t<owner>%d</owner>\n", owner );
 		currOffsIntoData += 4;
+		
+		if( inFlags & 16 )
+			fprintf( vFile, "\t<marked><true /></marked>\n" );
 	}
 	int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
 	currOffsIntoData += 2;
@@ -1033,8 +1036,9 @@ bool	CStackFile::LoadPageTable( int32_t blockID, CBuf& blockData )
 			int32_t		currCardID = BIG_ENDIAN_32( blockData.int32at( currDataOffs ) );
 			if( currCardID == 0 )
 				break;	// End of page list. (Sentinel)
+			uint8_t		cardFlags = blockData[currDataOffs +4];
 			
-			success = LoadLayerBlock( "CARD", currCardID, mBlockMap[CStackBlockIdentifier("CARD",currCardID)] );
+			success = LoadLayerBlock( "CARD", currCardID, mBlockMap[CStackBlockIdentifier("CARD",currCardID)], cardFlags );
 			
 			currDataOffs += mCardBlockSize;
 		}
@@ -1665,7 +1669,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 			else if( currBlockItty->first == CStackBlockIdentifier("BKGD") )
 			{
 			  #if 1
-				success = LoadLayerBlock( "BKGD", currBlockItty->first.mID, currBlockItty->second );
+				success = LoadLayerBlock( "BKGD", currBlockItty->first.mID, currBlockItty->second, 0 );
 			  #else
 				success = LoadBackgroundBlock( currBlockItty->first.mID, currBlockItty->second );
 			  #endif

@@ -105,7 +105,7 @@ protected:
 	bool	LoadPageTable( int32_t blockID, CBuf& blockData );
 	bool	LoadFontTable( int32_t blockID, CBuf& blockData );
 	bool	LoadStyleTable( int32_t blockID, CBuf& blockData );
-	bool	LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& blockData );	// Card or Bkgd.
+	bool	LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& blockData, uint8_t inFlags );	// Card or Bkgd.
 	
 #if MAC_CODE
 	bool	LoadBWIcons();
