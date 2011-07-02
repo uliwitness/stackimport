@@ -223,6 +223,8 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 		blockData.tofile( sfn );
 	}
 	
+	std::vector<struct CStyleEntry>	styles;
+	
 	size_t		currOffs = 4;
 	int32_t		styleCount = BIG_ENDIAN_32(blockData.int32at( currOffs ));
 	currOffs += 4;
@@ -236,16 +238,21 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 	
 	for( int s = 0; s < styleCount; s++ )
 	{
+		CStyleEntry		style;
+		
 		fprintf( mXmlFile, "\t<styleentry>\n" );
 		
-		int16_t	styleID = BIG_ENDIAN_16(blockData.int16at( currOffs ));
-		fprintf( mXmlFile, "\t\t<id>%d</id>\n", styleID );
+		style.mStyleID = BIG_ENDIAN_16(blockData.int16at( currOffs ));
+		fprintf( mXmlFile, "\t\t<id>%d</id>\n", style.mStyleID );
 		currOffs += 2;
 		currOffs += 8;
 		
-		int16_t	fontID = BIG_ENDIAN_16(blockData.int16at( currOffs ));
-		if( fontID != -1 )
-			fprintf( mXmlFile, "\t\t<font>%s</font>\n", mFontTable[fontID].c_str() );
+		style.mFontID = BIG_ENDIAN_16(blockData.int16at( currOffs ));
+		if( style.mFontID != -1 )
+		{
+			style.mFontName = mFontTable[style.mFontID];
+			fprintf( mXmlFile, "\t\t<font>%s</font>\n", style.mFontName.c_str() );
+		}
 		currOffs += 2;
 		
 		int16_t	textStyleFlags = BIG_ENDIAN_16(blockData.int16at( currOffs ));
@@ -256,29 +263,58 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 		else if( textStyleFlags != -1 )	// -1 means use field style.
 		{
 			if( textStyleFlags & (1 << 15) )
+			{
 				fprintf( mXmlFile, "\t\t<textStyle>group</textStyle>\n" );
+				style.mGroup = true;
+			}
 			if( textStyleFlags & (1 << 14) )
+			{
 				fprintf( mXmlFile, "\t\t<textStyle>extend</textStyle>\n" );
+				style.mExtend = true;
+			}
 			if( textStyleFlags & (1 << 13) )
+			{
 				fprintf( mXmlFile, "\t\t<textStyle>condense</textStyle>\n" );
+				style.mCondense = true;
+			}
 			if( textStyleFlags & (1 << 12) )
+			{
 				fprintf( mXmlFile, "\t\t<textStyle>shadow</textStyle>\n" );
+				style.mShadow = true;
+			}
 			if( textStyleFlags & (1 << 11) )
+			{
 				fprintf( mXmlFile, "\t\t<textStyle>outline</textStyle>\n" );
+				style.mOutline = true;
+			}
 			if( textStyleFlags & (1 << 10) )
+			{
 				fprintf( mXmlFile, "\t\t<textStyle>underline</textStyle>\n" );
+				style.mUnderline = true;
+			}
 			if( textStyleFlags & (1 << 9) )
+			{
 				fprintf( mXmlFile, "\t\t<textStyle>italic</textStyle>\n" );
+				style.mItalic = true;
+			}
 			if( textStyleFlags & (1 << 8) )
+			{
 				fprintf( mXmlFile, "\t\t<textStyle>bold</textStyle>\n" );
+				style.mBold = true;
+			}
 		}
 		int16_t	fontSize = BIG_ENDIAN_16(blockData.int16at( currOffs ));
 		if( fontSize != -1 )
+		{
 			fprintf( mXmlFile, "\t\t<size>%d</size>\n", fontSize );
+			style.mFontSize = fontSize;
+		}
 		currOffs += 2;
 		currOffs += 8;	// 2 bytes padding?
 		
 		fprintf( mXmlFile, "\t</styleentry>\n" );
+		
+		mStyles[style.mStyleID] = style;
 	}
 
 	if( mProgressMessages )
@@ -768,6 +804,28 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 					fprintf( vFile, "\t\t<stylerun>\n" );
 					fprintf( vFile, "\t\t\t<offset>%u</offset>\n", startOffset );
 					fprintf( vFile, "\t\t\t<id>%u</id>\n", styleID );
+					const CStyleEntry&	style = mStyles[styleID];
+					fprintf( vFile, "\t\t\t<font>%s</font>\n", style.mFontName.c_str() );
+					if( style.mGroup )
+						fprintf( vFile, "\t\t\t<textStyle>group</textStyle>\n" );
+					if( style.mExtend )
+						fprintf( vFile, "\t\t\t<textStyle>extend</textStyle>\n" );
+					if( style.mCondense )
+						fprintf( vFile, "\t\t\t<textStyle>condense</textStyle>\n" );
+					if( style.mShadow )
+						fprintf( vFile, "\t\t\t<textStyle>shadow</textStyle>\n" );
+					if( style.mOutline )
+						fprintf( vFile, "\t\t\t<textStyle>outline</textStyle>\n" );
+					if( style.mUnderline )
+						fprintf( vFile, "\t\t\t<textStyle>underline</textStyle>\n" );
+					if( style.mItalic )
+						fprintf( vFile, "\t\t\t<textStyle>italic</textStyle>\n" );
+					if( style.mBold )
+						fprintf( vFile, "\t\t\t<textStyle>bold</textStyle>\n" );
+					if( !style.mGroup && !style.mExtend && !style.mCondense && !style.mShadow
+						&& !style.mOutline && !style.mUnderline && !style.mItalic && !style.mBold )
+						fprintf( vFile, "\t\t\t<textStyle>plain</textStyle>\n" );
+					fprintf( vFile, "\t\t\t<size>%d</size>\n", style.mFontSize );
 					fprintf( vFile, "\t\t</stylerun>\n" );
 				}
 			}

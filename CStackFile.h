@@ -88,6 +88,28 @@ typedef std::map<CStackBlockIdentifier,CBuf> 	CBlockMap;
 typedef std::map<int32_t,std::vector<int32_t> >	CBtnIDsPerBgMap;
 typedef std::map<int16_t,std::string>			CFontTable;
 
+class CStyleEntry
+{
+public:
+	int16_t		mStyleID;
+	int16_t		mFontID;
+	std::string	mFontName;
+	bool		mGroup;
+	bool		mExtend;
+	bool		mCondense;
+	bool		mShadow;
+	bool		mOutline;
+	bool		mUnderline;
+	bool		mItalic;
+	bool		mBold;
+	int16_t		mFontSize;
+	
+	CStyleEntry() : mStyleID(0), mFontID(0), mGroup(false), mExtend(false), 
+		mCondense(false), mShadow(false), mOutline(false), mUnderline(false),
+		mItalic(false), mBold(false), mFontSize(12)	{};
+};
+
+
 class CStackFile
 {
 public:
@@ -135,4 +157,5 @@ protected:
 #if MAC_CODE
 	SInt16			mResRefNum;
 #endif
+	std::map<int16_t,CStyleEntry>	mStyles;
 };
