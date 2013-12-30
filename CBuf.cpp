@@ -106,7 +106,8 @@ void	CBuf::memcpy( size_t toOffs, const char* fromPtr, size_t fromOffs, size_t a
 	make_buffer_exclusive();
 	
 	char*		thePtr = mShared->mBuffer;
-	assert( (toOffs +amount) <= mShared->mSize );
+	if( (toOffs +amount) > mShared->mSize )
+		return;
 	
 	::memcpy( thePtr + toOffs, fromPtr +fromOffs, amount );
 }
@@ -122,14 +123,17 @@ void	CBuf::memcpy( size_t toOffs, const CBuf& fromPtr, size_t fromOffs, size_t a
 
 const char CBuf::operator [] ( int idx ) const
 {
-	assert( idx < mShared->mSize );
+	if( idx >= mShared->mSize )
+		return 0;
 	return mShared->mBuffer[idx];
 }
 
 
 char& CBuf::operator [] ( int idx )
 {
-	assert( idx < mShared->mSize );
+	static char		dummy[2048] = {0};
+	if( idx >= mShared->mSize )
+		return dummy[0];
 	
 	make_buffer_exclusive();
 	return mShared->mBuffer[idx];
@@ -141,7 +145,9 @@ char*	CBuf::buf( size_t offs, size_t amount )
 	if( amount == SIZE_MAX )
 		amount = mShared->mSize -offs;
 	assert( mShared->mBuffer != NULL );
-	assert( (amount +offs) <= mShared->mSize );
+	static char		dummy[2048] = {0};
+	if( (amount +offs) > mShared->mSize )
+		return dummy;
 	
 	make_buffer_exclusive();
 	return mShared->mBuffer + offs;
@@ -150,10 +156,12 @@ char*	CBuf::buf( size_t offs, size_t amount )
 
 const char*	CBuf::buf( size_t offs, size_t amount ) const
 {
+	static char		dummy[2048] = {0};
 	if( amount == SIZE_MAX )
 		amount = mShared->mSize -offs;
 	assert( mShared->mBuffer != NULL );
-	assert( (amount +offs) <= mShared->mSize );
+	if( (amount +offs) > mShared->mSize )
+		return dummy;
 	
 	return mShared->mBuffer + offs;
 }
