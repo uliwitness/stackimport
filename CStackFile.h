@@ -11,6 +11,10 @@
 //	available, set the following to 0 to remove that code from compilation:
 #define MAC_CODE		1
 
+// If you're compiling for 64 bit, you don't have access to QuickTime, which
+//	we use to create AIFF files from 'snd ' resources. So turn this off.
+#define USE_QUICKTIME	(!__LP64__)
+
 
 #include <map>
 #include <vector>

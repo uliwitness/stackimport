@@ -19,6 +19,7 @@
 		55C68B071163C0F800D8B44C /* CBuf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55C68B061163C0F800D8B44C /* CBuf.cpp */; };
 		55C68B0D1163C18B00D8B44C /* byteutils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55C68B0C1163C18B00D8B44C /* byteutils.cpp */; };
 		55C68BF41164062A00D8B44C /* Tests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55C68BF31164062A00D8B44C /* Tests.cpp */; };
+		55CD60A818721F6A002450E2 /* CSndResource.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55CD60A618721F69002450E2 /* CSndResource.cpp */; };
 		8DD76F650486A84900D96B5E /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 08FB7796FE84155DC02AAC07 /* main.cpp */; settings = {ATTRIBUTES = (); }; };
 /* End PBXBuildFile section */
 
@@ -54,6 +55,8 @@
 		55C68B0B1163C18B00D8B44C /* byteutils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = byteutils.h; sourceTree = "<group>"; };
 		55C68B0C1163C18B00D8B44C /* byteutils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = byteutils.cpp; sourceTree = "<group>"; };
 		55C68BF31164062A00D8B44C /* Tests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Tests.cpp; sourceTree = "<group>"; };
+		55CD60A618721F69002450E2 /* CSndResource.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CSndResource.cpp; sourceTree = "<group>"; };
+		55CD60A718721F6A002450E2 /* CSndResource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSndResource.h; sourceTree = "<group>"; };
 		8DD76F6C0486A84900D96B5E /* stackimport */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = stackimport; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -89,6 +92,8 @@
 				3D0EA7470AD6F65700A66EA1 /* CStackFile.cpp */,
 				55C68B051163C0F800D8B44C /* CBuf.h */,
 				55C68B061163C0F800D8B44C /* CBuf.cpp */,
+				55CD60A718721F6A002450E2 /* CSndResource.h */,
+				55CD60A618721F69002450E2 /* CSndResource.cpp */,
 				3D0EA7E10AD6FE8100A66EA1 /* EndianStuff.h */,
 				3D0EA8160AD7028800A66EA1 /* Rebeccas Wobadecode */,
 				55C68BF31164062A00D8B44C /* Tests.cpp */,
@@ -168,6 +173,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				8DD76F650486A84900D96B5E /* main.cpp in Sources */,
+				55CD60A818721F6A002450E2 /* CSndResource.cpp in Sources */,
 				3D0EA7490AD6F65700A66EA1 /* CStackFile.cpp in Sources */,
 				3D0EA80D0AD7027F00A66EA1 /* picture.cpp in Sources */,
 				3D0EA80F0AD7027F00A66EA1 /* woba.cpp in Sources */,

@@ -1314,24 +1314,29 @@ bool	CStackFile::LoadCursors()
 }
 #endif //MAC_CODE
 
+
 #if MAC_CODE
 bool	CStackFile::LoadSounds()
 {
+#if USE_QUICKTIME
 	EnterMovies();
+#endif
 	SInt16	numIcons = Count1Resources( 'snd ' );
 	for( SInt16 x = 1; x <= numIcons; x++ )	// Get1IndResource uses 1-based indexes.
 	{
-		Handle		currIcon = Get1IndResource( 'snd ', x );
+		Handle		currSound = Get1IndResource( 'snd ', x );
 		ResID       theID = 0;
 		ResType		theType = 0L;
 		Str255		name;
-		GetResInfo( currIcon, &theID, &theType, name );
+		GetResInfo( currSound, &theID, &theType, name );
 		char		fname[256];
 
 		if( mStatusMessages )
 			fprintf( stdout, "Status: Converting 'snd ' %d.\n", theID );
 
+		#if USE_QUICKTIME
 		snprintf( fname, sizeof(fname), "snd_%d.aiff", theID );
+		
 		Handle		myHandle = NewHandleClear(0);
 		Handle		myDataRef = NewHandleClear( sizeof(Handle) );
 		BlockMove( &myHandle, *myDataRef, sizeof(Handle) );
@@ -1351,7 +1356,7 @@ bool	CStackFile::LoadSounds()
 			return false;
 		}
 		
-		resErr = PasteHandleIntoMovie( currIcon, 'snd ', theMovie, 0L, NULL );
+		resErr = PasteHandleIntoMovie( currSound, 'snd ', theMovie, 0L, NULL );
 		if( resErr != noErr )
 		{
 			fprintf( stderr, "Error: Error %d inserting data of 'snd ' %d into QuickTime container.\n", (int)resErr, theID );
@@ -1382,6 +1387,101 @@ bool	CStackFile::LoadSounds()
 		}
 		
 		DisposeMovie( theMovie );
+	#else	// !USE_QUICKTIME
+		
+		// Undef this for now, as the Resource Manager pre-swaps the 'snd ' resource for us:
+		//	But once we're using our own res-fork-reading code, map these to BIG_ENDIAN_xx.
+		#define BE16(n)		n
+		#define BE32(n)		n
+		
+		std::string		fpath( mBasePath );
+		
+		const char*	currSoundData = *currSound;
+		
+		uint16_t		soundType = BE16((*(uint16_t*)currSoundData));
+		uint16_t		numSoundCommands = 0;
+		switch( soundType )
+		{
+			case 1:	// System sound format.
+			{
+				fprintf( stderr, "Warning: Sound is format 1, can't do that yet.\n" );
+				snprintf( fname, sizeof(fname), "snd_%d.bin", theID );
+				fpath.append(1,'/');
+				fpath.append(fname);
+				
+				FILE	*	theFile = fopen( fpath.c_str(), "w" );
+				fwrite( *currSound, GetHandleSize(currSound), 1, theFile );
+				fclose( theFile );
+				break;
+			}
+			
+			case 2:	// HyperCard sound format.
+				snprintf( fname, sizeof(fname), "snd_%d.aiff", theID );
+				currSoundData += 4;
+				numSoundCommands = BE16((*(uint16_t*)currSoundData));
+				currSoundData += 2;
+				for( int y = 0; y < numSoundCommands; y++ )
+				{
+					uint16_t		soundCmd = BE16((*(uint16_t*)currSoundData));
+					switch( soundCmd )
+					{
+						case 0x8050:	// soundCmd
+						case 0x8051:	// bufferCmd
+						{
+							currSoundData += 2;	// Skip command type.
+							currSoundData += 2;	// Skip param1 (0).
+							uint32_t	soundHeaderOffset = BE32((*(uint32_t*)currSoundData));
+							currSoundData += 4;	// Skip offset to sound header
+							
+							const char*	soundData = (*currSound) +soundHeaderOffset;
+							soundData += 4;	// Skip pointer (only used in RAM)
+							uint32_t	numBytesInSample = BE32((*(uint32_t*)soundData));
+							soundData += 4;
+							uint32_t	sampleRate = BE32((*(uint32_t*)soundData));
+							soundData += 4;
+							uint32_t	loopPointStart = BE32((*(uint32_t*)soundData));
+							soundData += 4;
+							uint32_t	loopPointEnd = BE32((*(uint32_t*)soundData));
+							soundData += 4;
+							uint8_t		standardSampleEncoding = (*(uint8_t*)soundData);
+							soundData += 1;
+							uint8_t		baseFrequency = (*(uint8_t*)soundData);
+							soundData += 1;
+							printf( "Sound Header:\n\toffset: %u\n\tsample length: %u\n\trate: %u\n\tloop from %u to %u\n\tstandardSampleEncoding: %u\n\tbaseFrequency: %u\n", soundHeaderOffset, numBytesInSample,sampleRate,loopPointStart,loopPointEnd,(unsigned)standardSampleEncoding,(unsigned)baseFrequency);
+							
+							snprintf( fname, sizeof(fname), "snd_%d.aiff", theID );
+							fpath.append(1,'/');
+							fpath.append(fname);
+							
+							FILE	*	theFile = fopen( fpath.c_str(), "w" );
+							fwrite( soundData, numBytesInSample, 1, theFile );
+							fclose( theFile );
+							break;
+						}
+							
+						default:
+							fprintf( stderr, "Warning: Unknown sound command in type 2 sound file.\n" );
+							currSoundData += 8;	// A SndCommand is 8 bytes large.
+							break;
+					}
+				}
+				
+				break;
+				
+			default:	// Unknown contents for snd resource.
+			{
+				fprintf( stderr, "Warning: Unknown sound format.\n" );
+				snprintf( fname, sizeof(fname), "snd_%d.bin", theID );
+				fpath.append(1,'/');
+				fpath.append(fname);
+				
+				FILE	*	theFile = fopen( fpath.c_str(), "w" );
+				fwrite( *currSound, GetHandleSize(currSound), 1, theFile );
+				fclose( theFile );
+				break;
+			}
+		}
+	#endif
 		
 		fprintf( mXmlFile, "\t<media>\n\t\t<id>%d</id>\n\t\t<name>", theID );
 		for( int n = 1; n <= name[0]; n++ )
@@ -1401,11 +1501,13 @@ bool	CStackFile::LoadSounds()
 		if( mProgressMessages )
 			fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 	}
+	#if USE_QUICKTIME
 	ExitMovies();
+	#endif
 	
 	return true;
 }
-#endif //MAC_CODE
+#endif // MAC_CODE
 
 #if MAC_CODE
 bool	CStackFile::Load68000Resources()
