@@ -20,6 +20,16 @@ CSoundCommand::CSoundCommand( uint16_t inCommandType, uint16_t inParam1, uint32_
 	mResDataLen = inDataLen;
 	
 }
+
+
+size_t	CSoundCommand::GetSoundHeaderOffset()
+{
+	if( commandType != 0x8050 && commandType != 0x8051 )	// Neither soundCmd nor bufferCmd?
+		return 0;
+	
+	return param2;
+}
+
 	
 uint32_t	CSoundCommand::GetNumBytesInSample()
 {

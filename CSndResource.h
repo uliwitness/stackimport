@@ -30,6 +30,7 @@ public:
 	uint16_t		param1;
 	uint32_t		param2;
 	
+	size_t			GetSoundHeaderOffset();
 	uint32_t		GetNumBytesInSample();
 	uint32_t		GetSampleRate();
 	uint32_t		GetLoopPointStart();
