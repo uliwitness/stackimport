@@ -17,6 +17,7 @@
 #include "CBuf.h"
 #include "EndianStuff.h"
 #include "CSndResource.h"
+#include "CAIFFFile.h"
 
 
 // Table of C-strings for converting the non-ASCII MacRoman characters (above 127)
@@ -1407,6 +1408,12 @@ bool	CStackFile::LoadSounds()
 			snprintf( fname, sizeof(fname), "snd_%d.aiff", theID );
 			fpath.append(1,'/');
 			fpath.append(fname);
+			
+			CAIFFFile		aiffFile;
+			aiffFile.mSampleRate = sndCmd.GetSampleRate();
+			aiffFile.mSampleRate = sndCmd.GetSampleRate();
+			aiffFile.mSampleRate = sndCmd.GetSampleRate();
+			aiffFile.mSampleRate = sndCmd.GetSampleRate();
 			
 			FILE	*	theFile = fopen( fpath.c_str(), "w" );
 			fwrite( sndCmd.GetSampleData(), sndCmd.GetNumBytesInSample(), 1, theFile );
