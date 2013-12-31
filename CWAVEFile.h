@@ -1,32 +1,31 @@
 //
-//  CAIFFFile.h
+//  CWAVEFile.h
 //  stackimport
 //
 //  Created by Uli Kusterer on 2013-12-30.
 //
 //
 
-#ifndef __stackimport__CAIFFFile__
-#define __stackimport__CAIFFFile__
+#ifndef __stackimport__CWAVEFile__
+#define __stackimport__CWAVEFile__
 
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
 
 
-class CAIFFFile
+class CWAVEFile
 {
 public:
-	CAIFFFile();
+	CWAVEFile();
 	
 	void		WriteToFile( FILE* inFile );
 
 	uint16_t	mNumChannels;
-	uint32_t	mNumSampleFrames;
-	uint16_t	mSampleSize;
-	char		mSampleRate;
+	uint16_t	mBitsPerSample;
+	uint32_t	mSampleRate;
 	const char*	mSoundData;
 	uint32_t	mSoundDataLen;
 };
 
-#endif /* defined(__stackimport__CAIFFFile__) */
+#endif /* defined(__stackimport__CWAVEFile__) */

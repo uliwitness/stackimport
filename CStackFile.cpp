@@ -17,7 +17,7 @@
 #include "CBuf.h"
 #include "EndianStuff.h"
 #include "CSndResource.h"
-#include "CAIFFFile.h"
+#include "CWAVEFile.h"
 
 
 // Table of C-strings for converting the non-ASCII MacRoman characters (above 127)
@@ -1403,20 +1403,20 @@ bool	CStackFile::LoadSounds()
 		if( sndRes.GetFormat() == 2 )
 		{
 			CSoundCommand	sndCmd = sndRes.GetSoundCommandAtIndex(0);
-			printf( "Sound Header:\n\toffset: %u\n\tsample length: %u\n\trate: %u\n\tloop from %u to %u\n\tstandardSampleEncoding: %u\n\tbaseFrequency: %u\n", (unsigned)sndCmd.GetSoundHeaderOffset(), sndCmd.GetNumBytesInSample(), sndCmd.GetSampleRate(),sndCmd.GetLoopPointStart(), sndCmd.GetLoopPointEnd(),(unsigned)sndCmd.GetStandardSampleEncoding(), (unsigned)sndCmd.GetBaseFrequency() );
+			printf( "Sound Header:\n\toffset: %u\n\tsample length: %u\n\trate: %u\n\tloop from %u to %u\n\tstandardSampleEncoding: %u\n\tbaseFrequency: %u\n", (unsigned)sndCmd.GetSoundHeaderOffset(), sndCmd.GetNumBytesInSample(), sndCmd.GetSampleRate(), sndCmd.GetLoopPointStart(), sndCmd.GetLoopPointEnd(),(unsigned)sndCmd.GetStandardSampleEncoding(), (unsigned)sndCmd.GetBaseFrequency() );
 			
-			snprintf( fname, sizeof(fname), "snd_%d.aiff", theID );
+			snprintf( fname, sizeof(fname), "snd_%d.wav", theID );
 			fpath.append(1,'/');
 			fpath.append(fname);
 			
-			CAIFFFile		aiffFile;
-			aiffFile.mSampleRate = sndCmd.GetSampleRate();
-			aiffFile.mSampleRate = sndCmd.GetSampleRate();
-			aiffFile.mSampleRate = sndCmd.GetSampleRate();
-			aiffFile.mSampleRate = sndCmd.GetSampleRate();
+			CWAVEFile		waveFile;
+			waveFile.mSampleRate = sndCmd.GetSampleRate();
+			waveFile.mBitsPerSample = sndCmd.GetNumBytesInSample() * 8;
+			waveFile.mSoundData = sndCmd.GetSampleData();
+			waveFile.mSoundDataLen = sndCmd.GetNumBytesInSample();
 			
 			FILE	*	theFile = fopen( fpath.c_str(), "w" );
-			fwrite( sndCmd.GetSampleData(), sndCmd.GetNumBytesInSample(), 1, theFile );
+			waveFile.WriteToFile( theFile );
 			fclose( theFile );
 		}
 		else
