@@ -1403,14 +1403,14 @@ bool	CStackFile::LoadSounds()
 		if( sndRes.GetFormat() == 2 )
 		{
 			CSoundCommand	sndCmd = sndRes.GetSoundCommandAtIndex(0);
-			printf( "Sound Header:\n\toffset: %u\n\tsample length: %u\n\trate: %u\n\tloop from %u to %u\n\tstandardSampleEncoding: %u\n\tbaseFrequency: %u\n", (unsigned)sndCmd.GetSoundHeaderOffset(), sndCmd.GetNumBytesInSample(), sndCmd.GetSampleRate(), sndCmd.GetLoopPointStart(), sndCmd.GetLoopPointEnd(),(unsigned)sndCmd.GetStandardSampleEncoding(), (unsigned)sndCmd.GetBaseFrequency() );
+			printf( "Sound Header:\n\toffset: %u\n\tsample length: %u\n\trate: %u\n\tloop from %u to %u\n\tstandardSampleEncoding: %u\n\tbaseFrequency: %u\n", (unsigned)sndCmd.GetSoundHeaderOffset(), sndCmd.GetNumBytesInSample(), (sndCmd.GetSampleRate() >> 16), sndCmd.GetLoopPointStart(), sndCmd.GetLoopPointEnd(),(unsigned)sndCmd.GetStandardSampleEncoding(), (unsigned)sndCmd.GetBaseFrequency() );
 			
 			snprintf( fname, sizeof(fname), "snd_%d.wav", theID );
 			fpath.append(1,'/');
 			fpath.append(fname);
 			
 			CWAVEFile		waveFile;
-			waveFile.mSampleRate = sndCmd.GetSampleRate();
+			waveFile.mSampleRate = sndCmd.GetSampleRate() >> 16;	// Truncate fixed-point number.
 			waveFile.mBitsPerSample = sndCmd.GetNumBytesInSample() * 8;
 			waveFile.mSoundData = sndCmd.GetSampleData();
 			waveFile.mSoundDataLen = sndCmd.GetNumBytesInSample();

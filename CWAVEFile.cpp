@@ -29,7 +29,7 @@ void	CWAVEFile::WriteToFile( FILE* inFile )
 	fwrite( "WAVE", 4, 1, inFile );
 	fileSize += 4;
 	
-	// COMM block:
+	// 'fmt ' block:
 	fwrite( "fmt ", 4, 1, inFile );
 	fileSize += 4;
 	uint32_t	commonChunkSize = 16;

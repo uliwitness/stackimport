@@ -32,7 +32,7 @@ public:
 	
 	size_t			GetSoundHeaderOffset();
 	uint32_t		GetNumBytesInSample();
-	uint32_t		GetSampleRate();
+	uint32_t		GetSampleRate();	// Fixed-point number, 2 bytes fractional.
 	uint32_t		GetLoopPointStart();
 	uint32_t		GetLoopPointEnd();
 	uint8_t			GetStandardSampleEncoding();
