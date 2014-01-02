@@ -124,7 +124,20 @@ bool	CStackFile::LoadStackBlock( int32_t stackID, CBuf& blockData )
 	if( mStatusMessages )
 		fprintf( stdout, "Status: Processing 'STAK' #-1 (%lu bytes)\n", blockData.size() );
 
-	fprintf( mXmlFile, "\t<stack id=\"%d\" file=\"stack_%d.xml\" />\n", stackID, stackID );
+	fprintf( mXmlFile, "\t<stack id=\"%d\" file=\"stack_%d.xml\" name=\"", stackID, stackID );
+	for( int x = 0; mFileName[x] != 0; x++ )
+	{
+		char currCh = mFileName[x];
+		if( currCh == '"' )
+			fprintf( mXmlFile, "%%22" );
+		else if( currCh == '\n' )
+			fprintf( mXmlFile, "%%0A;" );
+		else if( currCh == '\r' )
+			fprintf( mXmlFile, "%%0D" );
+		else
+			fputc( currCh, mXmlFile );	// mFileName comes from POSIX, should already be UTF8, is *definitely* not MacRoman.
+	}
+	fprintf( mXmlFile, "\" />\n" );
 	
 	if( mDumpRawBlockData )
 	{
@@ -143,11 +156,11 @@ bool	CStackFile::LoadStackBlock( int32_t stackID, CBuf& blockData )
 	int16_t	userLevel = BIG_ENDIAN_16(blockData.int16at( 60 ));
 	fprintf( mXmlFile, "\t<userLevel>%d</userLevel>\n", userLevel );
 	int16_t	flags = BIG_ENDIAN_16(blockData.int16at( 64 ));
-	fprintf( mStackXmlFile, "\t<cantModify> %s </cantModify>\n", (flags & (1 << 15)) ? "<true />" : "<false />" );
-	fprintf( mStackXmlFile, "\t<cantDelete> %s </cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
-	fprintf( mXmlFile, "\t<privateAccess> %s </privateAccess>\n", (flags & (1 << 13)) ? "<true />" : "<false />" );
-	fprintf( mStackXmlFile, "\t<cantAbort> %s </cantAbort>\n", (flags & (1 << 11)) ? "<true />" : "<false />" );
-	fprintf( mXmlFile, "\t<cantPeek> %s </cantPeek>\n", (flags & (1 << 10)) ? "<true />" : "<false />" );
+	fprintf( mStackXmlFile, "\t<cantModify>%s</cantModify>\n", (flags & (1 << 15)) ? "<true />" : "<false />" );
+	fprintf( mStackXmlFile, "\t<cantDelete>%s</cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
+	fprintf( mXmlFile, "\t<privateAccess>%s</privateAccess>\n", (flags & (1 << 13)) ? "<true />" : "<false />" );
+	fprintf( mStackXmlFile, "\t<cantAbort>%s</cantAbort>\n", (flags & (1 << 11)) ? "<true />" : "<false />" );
+	fprintf( mXmlFile, "\t<cantPeek>%s</cantPeek>\n", (flags & (1 << 10)) ? "<true />" : "<false />" );
 	char		versStr[16] = { 0 };
 	int32_t	version0 = blockData.int32at( 84 );
 	NumVersionToStr( (unsigned char*) &version0, versStr );
@@ -392,11 +405,6 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 	
 	if( mStatusMessages )
 		fprintf( stdout, "Status: Processing '%4s' #%d %X (%d bytes)\n", vBlockType, blockID, blockID, vBlockSize );
-
-	if( !isCard )
-		fprintf( mStackXmlFile, "\t<background id=\"%d\" file=\"%s\" />\n", blockID, vFileName +1 );
-	else
-		fprintf( mStackXmlFile, "\t<card id=\"%d\" file=\"%s\" marked=\"%s\"/>\n", blockID, vFileName +1, ((inFlags & 16) ? "true" : "false") );
 	
 	fprintf( vFile, "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n" );
 	if( !isCard )
@@ -858,6 +866,26 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 			fprintf( vFile, "%s", UniCharFromMacRoman(currCh) );
 	}
 	fprintf( vFile, "</name>\n" );
+
+	if( !isCard )
+		fprintf( mStackXmlFile, "\t<background id=\"%d\" file=\"%s\" name=\"", blockID, vFileName +1 );
+	else
+		fprintf( mStackXmlFile, "\t<card id=\"%d\" file=\"%s\" marked=\"%s\" name=\"", blockID, vFileName +1, ((inFlags & 16) ? "true" : "false") );
+	
+	for( x = startOffs; blockData[x] != 0; x++ )
+	{
+		char currCh = blockData[x];
+		if( currCh == '"' )
+			fprintf( mStackXmlFile, "%%22" );
+		else if( currCh == '\n' )
+			fprintf( mStackXmlFile, "%%0A;" );
+		else if( currCh == '\r' )
+			fprintf( mStackXmlFile, "%%0D" );
+		else
+			fprintf( mStackXmlFile, "%s", UniCharFromMacRoman(currCh) );
+	}
+	
+	fprintf( mStackXmlFile, "\" />\n" );
 	
 	startOffs = x +1;
 	fprintf( vFile, "\t<script>" );
@@ -1618,6 +1646,12 @@ bool	CStackFile::LoadPowerPCResources()
 
 bool	CStackFile::LoadFile( const std::string& fpath )
 {
+	size_t		slashPos = fpath.rfind('/');
+	if( slashPos == std::string::npos )
+		slashPos = 0;
+	else
+		slashPos += 1;
+	mFileName = fpath.substr(slashPos, std::string::npos);
 	std::ifstream		theFile( fpath.c_str() );
 	if( !theFile.is_open() )
 	{
@@ -1682,7 +1716,21 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 	
 	fprintf( mStackXmlFile, "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n"
 					"<!DOCTYPE stack PUBLIC \"-//Apple, Inc.//DTD stack V 2.0//EN\" \"\" >\n" );
-	fprintf( mStackXmlFile, "<stack>\n" );
+	fprintf( mStackXmlFile, "<stack>\n\t<name>" );
+	
+	for( int x = 0; mFileName[x] != 0; x++ )
+	{
+		char currCh = mFileName[x];
+		if( currCh == '<' )
+			fprintf( mStackXmlFile, "&lt;" );
+		else if( currCh == '>' )
+			fprintf( mStackXmlFile, "&gt;" );
+		else if( currCh == '&' )
+			fprintf( mStackXmlFile, "&amp;" );
+		else
+			fputc( currCh, mStackXmlFile );	// mFileName comes from POSIX, should already be UTF8, is *definitely* not MacRoman.
+	}
+	fprintf( mStackXmlFile, "</name>\n" );
 	
 	char		vBlockType[5] = { 0 };
 	u_int32_t	vBlockSize = 0;

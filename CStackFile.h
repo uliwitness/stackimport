@@ -13,7 +13,7 @@
 
 // If you're compiling for 64 bit, you don't have access to QuickTime, which
 //	we use to create AIFF files from 'snd ' resources. So turn this off.
-#define USE_QUICKTIME	0
+#define USE_QUICKTIME	(!__LP64__)
 
 
 #include <map>
@@ -23,7 +23,9 @@
 
 #if MAC_CODE
 #include <Carbon/Carbon.h>
+#if USE_QUICKTIME
 #include <QuickTime/QuickTime.h>
+#endif
 #endif
 
 
@@ -157,6 +159,7 @@ protected:
 	int				mMaxProgress;		// Maximum value for progress output.
 	CBtnIDsPerBgMap	mButtonIDsPerBg;	// Table that holds the IDs of all BG buttons on each background. Used to detect what card-level button contents entries are actually sharedHighlight entries for a bg button.
 	std::string		mBasePath;			// Path to package folder, in which we'll put all the XML files and graphics'n stuff.
+	std::string		mFileName;			// Name of the original stack file, w/o the path.
 	CFontTable		mFontTable;			// Actual, parsed font ID -> name mappings from FTBL block.
 #if MAC_CODE
 	SInt16			mResRefNum;
