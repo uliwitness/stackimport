@@ -244,6 +244,15 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 	int32_t		styleCount = BIG_ENDIAN_32(blockData.int32at( currOffs ));
 	currOffs += 4;
 	fprintf( mXmlFile, "\t<!-- 'STBL' #%d (%d styles) -->\n", blockID, styleCount );
+
+	std::string	vLayerFilePath = mBasePath;
+	char		vFileName[256] = { 0 };
+	snprintf( vFileName, 255, "stylesheet_%d.css", blockID );
+	mStyleSheetName = vFileName;
+	vLayerFilePath.append( 1, '/' );
+	vLayerFilePath.append( vFileName );
+	
+	FILE*		vStylesheetFile = fopen( vLayerFilePath.c_str(), "w" );
 	
 	currOffs += 2;
 	int16_t	nextStyleID = BIG_ENDIAN_16(blockData.int16at( currOffs ));
@@ -251,14 +260,14 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 	currOffs += 2;
 	currOffs += 2;
 	
+	fprintf( mXmlFile, "\t<link rel=\"stylesheet\" type=\"text/css\" href=\"stylesheet_%d.css\" />\n", blockID );
+	
 	for( int s = 0; s < styleCount; s++ )
 	{
 		CStyleEntry		style;
 		
-		fprintf( mXmlFile, "\t<styleentry>\n" );
-		
 		style.mStyleID = BIG_ENDIAN_16(blockData.int16at( currOffs ));
-		fprintf( mXmlFile, "\t\t<id>%d</id>\n", style.mStyleID );
+		fprintf( vStylesheetFile, "\t\tstyle%d\n\t\t{\n", style.mStyleID );
 		currOffs += 2;
 		currOffs += 8;
 		
@@ -266,7 +275,7 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 		if( style.mFontID != -1 )
 		{
 			style.mFontName = mFontTable[style.mFontID];
-			fprintf( mXmlFile, "\t\t<font>%s</font>\n", style.mFontName.c_str() );
+			fprintf( vStylesheetFile, "\t\t\tfont-family: \"%s\";\n", style.mFontName.c_str() );
 		}
 		currOffs += 2;
 		
@@ -274,64 +283,66 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 		currOffs += 2;
 		
 		if( textStyleFlags == 0 )
-			fprintf( mXmlFile, "\t\t<textStyle>plain</textStyle>\n" );
+			fprintf( vStylesheetFile, "\t\t\tfont-style: normal;\n" );
 		else if( textStyleFlags != -1 )	// -1 means use field style.
 		{
 			if( textStyleFlags & (1 << 15) )
 			{
-				fprintf( mXmlFile, "\t\t<textStyle>group</textStyle>\n" );
+				fprintf( vStylesheetFile, "\t\t<textStyle>group</textStyle>\n" );
 				style.mGroup = true;
 			}
 			if( textStyleFlags & (1 << 14) )
 			{
-				fprintf( mXmlFile, "\t\t<textStyle>extend</textStyle>\n" );
+				fprintf( vStylesheetFile, "\t\t\tletter-spacing: 0.1em;\n" );
 				style.mExtend = true;
 			}
 			if( textStyleFlags & (1 << 13) )
 			{
-				fprintf( mXmlFile, "\t\t<textStyle>condense</textStyle>\n" );
+				fprintf( vStylesheetFile, "\t\t\tletter-spacing: -0.1em;\n" );
 				style.mCondense = true;
 			}
 			if( textStyleFlags & (1 << 12) )
 			{
-				fprintf( mXmlFile, "\t\t<textStyle>shadow</textStyle>\n" );
+				fprintf( vStylesheetFile, "\t\t\ttext-shadow: 1px 1px #000000;\n" );
 				style.mShadow = true;
 			}
 			if( textStyleFlags & (1 << 11) )
 			{
-				fprintf( mXmlFile, "\t\t<textStyle>outline</textStyle>\n" );
+				fprintf( vStylesheetFile, "\t\t\tcolor: white; -webkit-text-stroke-width: 1pt; -webkit-text-stroke-color: #000;\n" );
 				style.mOutline = true;
 			}
 			if( textStyleFlags & (1 << 10) )
 			{
-				fprintf( mXmlFile, "\t\t<textStyle>underline</textStyle>\n" );
+				fprintf( vStylesheetFile, "\t\t\ttext-decoration: underline;\n" );
 				style.mUnderline = true;
 			}
 			if( textStyleFlags & (1 << 9) )
 			{
-				fprintf( mXmlFile, "\t\t<textStyle>italic</textStyle>\n" );
+				fprintf( vStylesheetFile, "\t\t\ttext-style: italic;\n" );
 				style.mItalic = true;
 			}
 			if( textStyleFlags & (1 << 8) )
 			{
-				fprintf( mXmlFile, "\t\t<textStyle>bold</textStyle>\n" );
+				fprintf( vStylesheetFile, "\t\t\tfont-weight: bold;\n" );
 				style.mBold = true;
 			}
 		}
 		int16_t	fontSize = BIG_ENDIAN_16(blockData.int16at( currOffs ));
 		if( fontSize != -1 )
 		{
-			fprintf( mXmlFile, "\t\t<size>%d</size>\n", fontSize );
+			fprintf( vStylesheetFile, "\t\t\tfont-size: %dpt;\n", fontSize );
 			style.mFontSize = fontSize;
 		}
 		currOffs += 2;
 		currOffs += 8;	// 2 bytes padding?
 		
-		fprintf( mXmlFile, "\t</styleentry>\n" );
+		fprintf( vStylesheetFile, "\t\t}\n" );
 		
 		mStyles[style.mStyleID] = style;
 	}
-
+	
+	fclose( vStylesheetFile );
+	
 	if( mProgressMessages )
 		fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );
 	
@@ -386,6 +397,9 @@ bool	CStackFile::LoadFontTable( int32_t blockID, CBuf& blockData )
 	
 	return true;
 }
+
+
+struct	CStyleRun { int16_t startOffset; int16_t styleID; };
 
 
 bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& blockData, uint8_t inFlags )
@@ -749,6 +763,9 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 		}
 		else	// It's a bg part's contents:
 		{
+			if( blockID == 9428 && partID == 20 )
+				printf("\n");	// Help debug missing characters in Power Tools.
+			
 			fprintf( vFile, "\t\t<layer>background</layer>\n" );
 			fprintf( vFile, "\t\t<id>%d</id>\n", partID );
 			
@@ -783,11 +800,54 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 		
 		if( !isBgButtonContents )	// Bg buttons have no per-card contents in HC.
 		{
+			std::vector<CStyleRun>		styleRuns;
+			if( theStyles.size() > 0 )
+			{
+				for( size_t x = 0; x < theStyles.size(); )
+				{
+					int16_t	startOffset = BIG_ENDIAN_16(theStyles.int16at( x ));
+					x += sizeof(int16_t);
+					int16_t	styleID = BIG_ENDIAN_16(theStyles.int16at( x ));
+					x += sizeof(int16_t);
+					
+					styleRuns.push_back( (CStyleRun){ startOffset, styleID } );
+				}
+			}
+			int16_t		currStyleID = -1;
+			size_t		currOffset = 1;
 			fprintf( vFile, "\t\t<text>" );
 			size_t	numChars = theText.size();
-			for( int x = 1; x < numChars && theText[x] != 0; x++ )	// Skip leading 0 byte.
+			
+			if( styleRuns.size() > 0 )
 			{
-				char currCh = theText[x];
+				fprintf( vFile, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\" />", mStyleSheetName.c_str() );
+			}
+			
+			for( auto currRun : styleRuns )
+			{
+				if( currOffset < currRun.startOffset )	// Characters before this style run?
+				{	// Write them all out.
+					for( ; currOffset < currRun.startOffset; currOffset++ )
+					{
+						char currCh = theText[currOffset];
+						if( currCh == '<' )
+							fprintf( vFile, "&lt;" );
+						else if( currCh == '>' )
+							fprintf( vFile, "&gt;" );
+						else if( currCh == '&' )
+							fprintf( vFile, "&amp;" );
+						else
+							fprintf( vFile, "%s", UniCharFromMacRoman(currCh) );
+					}
+				}
+				if( currStyleID >= 0 )	// If this isn't our first style run, close previous run:
+					fprintf( vFile, "</span>" );
+				currStyleID = currRun.styleID;
+				fprintf( vFile, "<span class=\"style%d\">", currStyleID );
+			}
+			for( ; currOffset < numChars; currOffset++ )
+			{
+				char currCh = theText[currOffset];
 				if( currCh == '<' )
 					fprintf( vFile, "&lt;" );
 				else if( currCh == '>' )
@@ -797,48 +857,9 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 				else
 					fprintf( vFile, "%s", UniCharFromMacRoman(currCh) );
 			}
+			if( currStyleID >= 0 )	// If we had any style runs before this text, close it now:
+				fprintf( vFile, "</span>" );
 			fprintf( vFile, "</text>\n" );
-			if( theStyles.size() > 0 )
-			{
-	//			char sfn[256] = { 0 };
-	//			snprintf( sfn, sizeof(sfn), "style_runs_%d_%d.styl", blockID, partID );
-	//			theStyles.tofile( sfn );
-				
-				for( size_t x = 0; x < theStyles.size(); )
-				{
-					int16_t	startOffset = BIG_ENDIAN_16(theStyles.int16at( x ));
-					x += sizeof(int16_t);
-					int16_t	styleID = BIG_ENDIAN_16(theStyles.int16at( x ));
-					x += sizeof(int16_t);
-					
-					fprintf( vFile, "\t\t<stylerun>\n" );
-					fprintf( vFile, "\t\t\t<offset>%u</offset>\n", startOffset );
-					fprintf( vFile, "\t\t\t<id>%u</id>\n", styleID );
-					const CStyleEntry&	style = mStyles[styleID];
-					fprintf( vFile, "\t\t\t<font>%s</font>\n", style.mFontName.c_str() );
-					if( style.mGroup )
-						fprintf( vFile, "\t\t\t<textStyle>group</textStyle>\n" );
-					if( style.mExtend )
-						fprintf( vFile, "\t\t\t<textStyle>extend</textStyle>\n" );
-					if( style.mCondense )
-						fprintf( vFile, "\t\t\t<textStyle>condense</textStyle>\n" );
-					if( style.mShadow )
-						fprintf( vFile, "\t\t\t<textStyle>shadow</textStyle>\n" );
-					if( style.mOutline )
-						fprintf( vFile, "\t\t\t<textStyle>outline</textStyle>\n" );
-					if( style.mUnderline )
-						fprintf( vFile, "\t\t\t<textStyle>underline</textStyle>\n" );
-					if( style.mItalic )
-						fprintf( vFile, "\t\t\t<textStyle>italic</textStyle>\n" );
-					if( style.mBold )
-						fprintf( vFile, "\t\t\t<textStyle>bold</textStyle>\n" );
-					if( !style.mGroup && !style.mExtend && !style.mCondense && !style.mShadow
-						&& !style.mOutline && !style.mUnderline && !style.mItalic && !style.mBold )
-						fprintf( vFile, "\t\t\t<textStyle>plain</textStyle>\n" );
-					fprintf( vFile, "\t\t\t<size>%d</size>\n", style.mFontSize );
-					fprintf( vFile, "\t\t</stylerun>\n" );
-				}
-			}
 		}
 		else	// Bg button? May have highlight on the card:
 		{

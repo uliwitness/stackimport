@@ -160,6 +160,7 @@ protected:
 	CBtnIDsPerBgMap	mButtonIDsPerBg;	// Table that holds the IDs of all BG buttons on each background. Used to detect what card-level button contents entries are actually sharedHighlight entries for a bg button.
 	std::string		mBasePath;			// Path to package folder, in which we'll put all the XML files and graphics'n stuff.
 	std::string		mFileName;			// Name of the original stack file, w/o the path.
+	std::string		mStyleSheetName;	// Name of CSS file containing our styles table.
 	CFontTable		mFontTable;			// Actual, parsed font ID -> name mappings from FTBL block.
 #if MAC_CODE
 	SInt16			mResRefNum;
