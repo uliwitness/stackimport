@@ -267,7 +267,7 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 		CStyleEntry		style;
 		
 		style.mStyleID = BIG_ENDIAN_16(blockData.int16at( currOffs ));
-		fprintf( vStylesheetFile, "\t\tstyle%d\n\t\t{\n", style.mStyleID );
+		fprintf( vStylesheetFile, "\t\t.style%d\n\t\t{\n", style.mStyleID );
 		currOffs += 2;
 		currOffs += 8;
 		
@@ -288,7 +288,7 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 		{
 			if( textStyleFlags & (1 << 15) )
 			{
-				fprintf( vStylesheetFile, "\t\t<textStyle>group</textStyle>\n" );
+				fprintf( vStylesheetFile, "\t\t\t/* group text style */\n" );
 				style.mGroup = true;
 			}
 			if( textStyleFlags & (1 << 14) )
@@ -816,7 +816,8 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 			int16_t		currStyleID = -1;
 			size_t		currOffset = 1;
 			fprintf( vFile, "\t\t<text>" );
-			size_t	numChars = theText.size();
+			size_t		numChars = theText.size();
+			bool		currentlyGroup = false;
 			
 			if( styleRuns.size() > 0 )
 			{
@@ -840,10 +841,20 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 							fprintf( vFile, "%s", UniCharFromMacRoman(currCh) );
 					}
 				}
+				if( currentlyGroup )
+				{
+					fprintf( vFile, "</a>" );
+					currentlyGroup = false;
+				}
 				if( currStyleID >= 0 )	// If this isn't our first style run, close previous run:
 					fprintf( vFile, "</span>" );
 				currStyleID = currRun.styleID;
 				fprintf( vFile, "<span class=\"style%d\">", currStyleID );
+				if( mStyles[currStyleID].mGroup )
+				{
+					fprintf( vFile, "<a href=\"#\" class=\"group\">" );
+					currentlyGroup = true;
+				}
 			}
 			for( ; currOffset < numChars; currOffset++ )
 			{
@@ -856,6 +867,11 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 					fprintf( vFile, "&amp;" );
 				else
 					fprintf( vFile, "%s", UniCharFromMacRoman(currCh) );
+			}
+			if( currentlyGroup )
+			{
+				fprintf( vFile, "</a>" );
+				currentlyGroup = false;
 			}
 			if( currStyleID >= 0 )	// If we had any style runs before this text, close it now:
 				fprintf( vFile, "</span>" );
