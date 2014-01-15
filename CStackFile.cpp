@@ -260,8 +260,6 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 	currOffs += 2;
 	currOffs += 2;
 	
-	fprintf( mXmlFile, "\t<link rel=\"stylesheet\" type=\"text/css\" href=\"stylesheet_%d.css\" />\n", blockID );
-	
 	for( int s = 0; s < styleCount; s++ )
 	{
 		CStyleEntry		style;
@@ -464,6 +462,9 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 		if( inFlags & 16 )
 			fprintf( vFile, "\t<marked><true /></marked>\n" );
 	}
+
+	fprintf( vFile, "\t<link rel=\"stylesheet\" type=\"text/css\" name=\"%s\" />\n", mStyleSheetName.c_str() );
+
 	int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
 	currOffsIntoData += 2;
 	currOffsIntoData += 6;	// Unknown filler.
@@ -818,11 +819,6 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 			fprintf( vFile, "\t\t<text>" );
 			size_t		numChars = theText.size();
 			bool		currentlyGroup = false;
-			
-			if( styleRuns.size() > 0 )
-			{
-				fprintf( vFile, "<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\" />", mStyleSheetName.c_str() );
-			}
 			
 			for( auto currRun : styleRuns )
 			{
