@@ -186,7 +186,6 @@ bool	CStackFile::LoadStackBlock( int32_t stackID, CBuf& blockData )
 		width = 512;
 	fprintf( mStackXmlFile, "\t<cardSize>\n\t\t<width>%d</width>\n\t\t<height>%d</height>\n\t</cardSize>\n", width, height );
 
-	fprintf( mXmlFile, "\t<patterns>\n" );
 	char			pattern[8] = { 0 };
 	int				offs = 692;
 	for( int n = 0; n < 40; n++ )
@@ -198,9 +197,8 @@ bool	CStackFile::LoadStackBlock( int32_t stackID, CBuf& blockData )
 		thePicture.memcopyin( pattern, 0, 8 );
 		thePicture.writebitmaptopbm( fname );
 		offs += 8;
-		fprintf(mXmlFile,"\t\t<pattern>PAT_%u.pbm</pattern>\n", n+1);
+		fprintf(mXmlFile,"\t<media>\n\t\t<id>%u</id>\n\t\t<type>pattern</type>\n\t\t<file>PAT_%u.pbm</file>\n\t</media>\n", n+1, n+1);
 	}
-	fprintf( mXmlFile, "\t</patterns>\n" );
 	
 	int x = 0, startOffs = 1524;
 	fprintf( mStackXmlFile, "\t<script>" );
@@ -1744,8 +1742,8 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		fprintf( stdout, "Status: Output package name is '%s'\n", packagePath.c_str() );
 	
 	fprintf( mXmlFile, "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n"
-					"<!DOCTYPE stackfile PUBLIC \"-//Apple, Inc.//DTD stackfile V 2.0//EN\" \"\" >\n"
-					"<stackfile>\n" );
+					"<!DOCTYPE project PUBLIC \"-//Apple, Inc.//DTD project V 2.0//EN\" \"\" >\n"
+					"<project>\n" );
 	
 	fprintf( mStackXmlFile, "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n"
 					"<!DOCTYPE stack PUBLIC \"-//Apple, Inc.//DTD stack V 2.0//EN\" \"\" >\n" );
@@ -1896,7 +1894,7 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 	}
   #endif // MAC_CODE
 	
-	fprintf( mXmlFile, "</stackfile>\n" );
+	fprintf( mXmlFile, "</project>\n" );
 	if( mXmlFile != stdout )
 		fclose( mXmlFile );
 
