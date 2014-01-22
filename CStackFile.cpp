@@ -1700,11 +1700,11 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 	
 	mBasePath = packagePath;
 	
-	packagePath.append( "/toc.xml" );
+	packagePath.append( "/project.xml" );
 	mXmlFile = fopen( packagePath.c_str(), "w" );
 	if( !mXmlFile )
 	{
-		fprintf( stderr, "Error: Couldn't create file TOC at '%s'\n", packagePath.c_str() );
+		fprintf( stderr, "Error: Couldn't create project file at '%s'\n", packagePath.c_str() );
 		return false;
 	}
 	

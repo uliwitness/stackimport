@@ -148,7 +148,7 @@ protected:
 	bool			mDumpRawBlockData;	// Create .data files with the contents of each block.
 	bool			mStatusMessages;	// Output "Status: blah" messages to stdout.
 	bool			mProgressMessages;	// Output "Progress: 1 of N" messages to stdout.
-	FILE*			mXmlFile;			// FILE* for writing to output XML file (toc.xml)
+	FILE*			mXmlFile;			// FILE* for writing to output XML file (project.xml)
 	FILE*			mStackXmlFile;		// FILE* for writing to output XML file (stack_1.xml)
 	int32_t			mListBlockID;		// ID of the LIST block, read from STAK block.
 	int32_t			mFontTableBlockID;	// ID of the FTBL block, read from STAK block.
