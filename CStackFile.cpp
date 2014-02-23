@@ -461,7 +461,7 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 			fprintf( vFile, "\t<marked><true /></marked>\n" );
 	}
 
-	fprintf( vFile, "\t<link rel=\"stylesheet\" type=\"text/css\" name=\"%s\" />\n", mStyleSheetName.c_str() );
+	fprintf( vFile, "\t<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\" />\n", mStyleSheetName.c_str() );
 
 	int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
 	currOffsIntoData += 2;
