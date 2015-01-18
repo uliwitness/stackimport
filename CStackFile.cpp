@@ -916,7 +916,10 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 			fprintf( mStackXmlFile, "%s", UniCharFromMacRoman(currCh) );
 	}
 	
-	fprintf( mStackXmlFile, "\" />\n" );
+	fprintf( mStackXmlFile, "\" " );
+	if( isCard )
+		fprintf( mStackXmlFile, "owner=\"%d\" ", owner );
+	fprintf( mStackXmlFile, "/>\n" );
 	
 	startOffs = x +1;
 	fprintf( vFile, "\t<script>" );
