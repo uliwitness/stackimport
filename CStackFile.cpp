@@ -113,7 +113,7 @@ void	NumVersionToStr( unsigned char numVersion[4], char outStr[16] )
 CStackFile::CStackFile()
 	: mDumpRawBlockData(false), mStatusMessages(true), mXmlFile(NULL),
 	mCardBlockSize(-1), mListBlockID(-1), mMaxProgress(0), mCurrentProgress(0),
-	mFontTableBlockID(-1), mStyleTableBlockID(-1), mProgressMessages(true)
+	mFontTableBlockID(-1), mStyleTableBlockID(-1), mProgressMessages(true), mDecodeGraphics(true)
 {
 	
 }
@@ -1847,12 +1847,35 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 				if( mStatusMessages )
 					fprintf( stdout, "Status: Processing 'BMAP' #%d %X (%lu bytes)\n", blockID, blockID, blockData.size() );
 				fprintf( mXmlFile, "\t<!-- Processed 'BMAP' #%d (%lu bytes) -->\n", blockID, blockData.size() );
-				picture		thePicture;
-				woba_decode( thePicture, blockData.buf() );
 				
 				char		fname[256];
 				sprintf( fname, "BMAP_%u.pbm", blockID );
-				thePicture.writebitmapandmasktopbm( fname );
+				
+				if( mDecodeGraphics )
+				{
+					char		fname[256];
+					sprintf( fname, "BMAP_%u.pbm", blockID );
+					
+					picture		thePicture;
+					woba_decode( thePicture, blockData.buf() );
+					
+					thePicture.writebitmapandmasktopbm( fname );
+				}
+				else
+				{
+					char		fname[256];
+					sprintf( fname, "BMAP_%u.raw", blockID );
+					
+					FILE*	theFile = fopen( fname, "w" );
+					if( theFile )
+					{
+						if( blockData.size() != fwrite( blockData.buf(), 1, blockData.size(), theFile ) )
+							fprintf( stderr, "Error: Writing un-decoded BMAP #%u.\n", blockID );
+						fclose( theFile );
+					}
+					else
+						fprintf( stderr, "Error: Creating file for un-decoded BMAP #%u.\n", blockID );
+				}
 				
 				if( mProgressMessages )
 					fprintf( stdout, "Progress: %d of %d\n", ++mCurrentProgress, mMaxProgress );

@@ -126,6 +126,7 @@ public:
 	void	SetDumpRawBlockData( bool inDumpToFiles ) 			{ mDumpRawBlockData = inDumpToFiles; };
 	void	SetStatusMessages( bool inPrintStatusMessages ) 	{ mStatusMessages = inPrintStatusMessages; };
 	void	SetProgressMessages( bool inPrintProgressMessages ) { mProgressMessages = inPrintProgressMessages; };
+	void	SetDecodeGraphics( bool inDecodeGraphics ) 			{ mDecodeGraphics = inDecodeGraphics; };
 
 protected:
 	bool	LoadStackBlock( int32_t stackID, CBuf& blockData );
@@ -148,6 +149,7 @@ protected:
 	bool			mDumpRawBlockData;	// Create .data files with the contents of each block.
 	bool			mStatusMessages;	// Output "Status: blah" messages to stdout.
 	bool			mProgressMessages;	// Output "Progress: 1 of N" messages to stdout.
+	bool			mDecodeGraphics;	// WOBA-decode the graphics into readable PBM, don't just dump out the raw compressed data.
 	FILE*			mXmlFile;			// FILE* for writing to output XML file (project.xml)
 	FILE*			mStackXmlFile;		// FILE* for writing to output XML file (stack_1.xml)
 	int32_t			mListBlockID;		// ID of the LIST block, read from STAK block.

@@ -6,7 +6,7 @@ void	RunTests();
 
 
 // Arguments as string for syntax info
-#define SYNTAXSTR "[--dumprawblocks] [--nostatus] [--noprogress] <originalStackPath>"
+#define SYNTAXSTR "[--dumprawblocks] [--nostatus] [--noprogress] [--rawgraphics] <originalStackPath>"
 
 
 int main( int argc, char * const argv[] )
@@ -34,6 +34,8 @@ int main( int argc, char * const argv[] )
 				theStack.SetStatusMessages( false );
 			else if( strcmp(argv[x],"--noprogress") == 0 )
 				theStack.SetProgressMessages( false );
+			else if( strcmp(argv[x],"--rawgraphics") == 0 )
+				theStack.SetDecodeGraphics( false );
 			else if( argv[x][0] == '-' )
 			{
 				fprintf( stderr, "Error: Unknown option %s, syntax is %s " SYNTAXSTR "\n", argv[x], argv[0] );
