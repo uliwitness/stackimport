@@ -53,6 +53,16 @@ int main( int argc, char * const argv[] )
 	}
 	
 	const char*	fpath = argv[x];
+    char        fullpath[PATH_MAX +1] = {0};    // Outside so we can assign it to fpath and it stays alive.
+    if( fpath[0] != '/' )
+    {
+        getcwd( fullpath, PATH_MAX );
+        size_t  len = strlen(fullpath);
+        if( fullpath[len-1] != '/' )
+            fullpath[len++] = '/';
+        strncat( fullpath, fpath, PATH_MAX );
+        fpath = fullpath;
+    }
 	if( !theStack.LoadFile( fpath ) )
 	{
 		fprintf( stderr, "Error: Conversion of '%s' incomplete/failed.\n", fpath );
