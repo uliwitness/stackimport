@@ -314,7 +314,7 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 			}
 			if( textStyleFlags & (1 << 9) )
 			{
-				fprintf( vStylesheetFile, "\t\t\ttext-style: italic;\n" );
+				fprintf( vStylesheetFile, "\t\t\tfont-style: italic;\n" );
 				style.mItalic = true;
 			}
 			if( textStyleFlags & (1 << 8) )
