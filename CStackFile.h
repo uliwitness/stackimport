@@ -13,7 +13,7 @@
 
 // If you're compiling for 64 bit, you don't have access to QuickTime, which
 //	we use to create AIFF files from 'snd ' resources. So turn this off.
-#define USE_QUICKTIME	(!__LP64__)
+#define USE_QUICKTIME	0
 
 
 #include <map>
