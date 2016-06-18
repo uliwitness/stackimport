@@ -1,0 +1,3 @@
+[submodule "snd2wav"]
+	path = snd2wav
+	url = https://github.com/uliwitness/snd2wav.git

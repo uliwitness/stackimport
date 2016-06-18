@@ -1,0 +1,17 @@
+//
+//  StackimportPrefixMac.pch
+//  stackimport
+//
+//  Created by Uli Kusterer on 18/06/16.
+//
+
+// MacOS resource loading code pre-flips 'snd ' resources.
+//	Our snd2wav code flips them as well. Until we switch to
+//	the res fork reading code from ReClassicfication that
+//	doesn't do this flipping anymore, we turn snd2wav's
+//	byte-flipping macros into no-ops to prevent them from
+//	being flipped back:
+
+#define	S2W_FLIP_16(n)		(n)
+#define	S2W_FLIP_32(n)		(n)
+#define	S2W_FLIP_64(n)		(n)

@@ -16,8 +16,7 @@
 #include "woba.h"
 #include "CBuf.h"
 #include "EndianStuff.h"
-#include "CSndResource.h"
-#include "CWAVEFile.h"
+#include "snd2wav.h"
 
 
 // Table of C-strings for converting the non-ASCII MacRoman characters (above 127)
@@ -1453,44 +1452,26 @@ bool	CStackFile::LoadSounds()
 		DisposeMovie( theMovie );
 	#else	// !USE_QUICKTIME
 		
-		// Undef this for now, as the Resource Manager pre-swaps the 'snd ' resource for us:
-		//	But once we're using our own res-fork-reading code, map these to BIG_ENDIAN_xx.
-		#define BE16(n)		n
-		#define BE32(n)		n
+		std::string		srcpath( mBasePath );
+		snprintf( fname, sizeof(fname), "snd_%d.bin", theID );
+		srcpath.append(1,'/');
+		srcpath.append(fname);
 		
+		FILE	*	theFile = fopen( srcpath.c_str(), "w" );
+		fwrite( *currSound, GetHandleSize(currSound), 1, theFile );
+		fclose( theFile );
+
 		std::string		fpath( mBasePath );
+		snprintf( fname, sizeof(fname), "snd_%d.wav", theID );
+		fpath.append(1,'/');
+		fpath.append(fname);
 		
-		CSndResource	sndRes( *currSound, GetHandleSize(currSound) );
-		
-		if( sndRes.GetFormat() == 2 )
+		snd2wav		converter( srcpath, fpath );
+		int	status = converter.convert();
+		if( status != 0 )
 		{
-			CSoundCommand	sndCmd = sndRes.GetSoundCommandAtIndex(0);
-			printf( "Sound Header:\n\toffset: %u\n\tsample length: %u\n\trate: %u\n\tloop from %u to %u\n\tstandardSampleEncoding: %u\n\tbaseFrequency: %u\n", (unsigned)sndCmd.GetSoundHeaderOffset(), sndCmd.GetNumBytesInSample(), (sndCmd.GetSampleRate() >> 16), sndCmd.GetLoopPointStart(), sndCmd.GetLoopPointEnd(),(unsigned)sndCmd.GetStandardSampleEncoding(), (unsigned)sndCmd.GetBaseFrequency() );
-			
-			snprintf( fname, sizeof(fname), "snd_%d.wav", theID );
-			fpath.append(1,'/');
-			fpath.append(fname);
-			
-			CWAVEFile		waveFile;
-			waveFile.mSampleRate = sndCmd.GetSampleRate() >> 16;	// Truncate fixed-point number.
-			waveFile.mBitsPerSample = sndCmd.GetNumBytesInSample() * 8;
-			waveFile.mSoundData = sndCmd.GetSampleData();
-			waveFile.mSoundDataLen = sndCmd.GetNumBytesInSample();
-			
-			FILE	*	theFile = fopen( fpath.c_str(), "w" );
-			waveFile.WriteToFile( theFile );
-			fclose( theFile );
-		}
-		else
-		{
-			fprintf( stderr, "Warning: Sound is format %d, can't do that yet.\n", sndRes.GetFormat() );
-			snprintf( fname, sizeof(fname), "snd_%d.bin", theID );
-			fpath.append(1,'/');
-			fpath.append(fname);
-			
-			FILE	*	theFile = fopen( fpath.c_str(), "w" );
-			fwrite( *currSound, GetHandleSize(currSound), 1, theFile );
-			fclose( theFile );
+			fprintf( stderr, "Error: Error %d converting 'snd ' %d to WAVE.\n", (int)status, theID );
+			return false;
 		}
 	#endif
 		

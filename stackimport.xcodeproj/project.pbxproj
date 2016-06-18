@@ -19,8 +19,7 @@
 		55C68B071163C0F800D8B44C /* CBuf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55C68B061163C0F800D8B44C /* CBuf.cpp */; };
 		55C68B0D1163C18B00D8B44C /* byteutils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55C68B0C1163C18B00D8B44C /* byteutils.cpp */; };
 		55C68BF41164062A00D8B44C /* Tests.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55C68BF31164062A00D8B44C /* Tests.cpp */; };
-		55CD60A818721F6A002450E2 /* CSndResource.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55CD60A618721F69002450E2 /* CSndResource.cpp */; };
-		55CD60AB18722A34002450E2 /* CWAVEFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55CD60A918722A34002450E2 /* CWAVEFile.cpp */; };
+		55C76D471D15D0A500A07B65 /* snd2wav.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55C76D461D15D0A500A07B65 /* snd2wav.cpp */; };
 		8DD76F650486A84900D96B5E /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 08FB7796FE84155DC02AAC07 /* main.cpp */; settings = {ATTRIBUTES = (); }; };
 /* End PBXBuildFile section */
 
@@ -56,10 +55,9 @@
 		55C68B0B1163C18B00D8B44C /* byteutils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = byteutils.h; sourceTree = "<group>"; };
 		55C68B0C1163C18B00D8B44C /* byteutils.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = byteutils.cpp; sourceTree = "<group>"; };
 		55C68BF31164062A00D8B44C /* Tests.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = Tests.cpp; sourceTree = "<group>"; };
-		55CD60A618721F69002450E2 /* CSndResource.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CSndResource.cpp; sourceTree = "<group>"; };
-		55CD60A718721F6A002450E2 /* CSndResource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CSndResource.h; sourceTree = "<group>"; };
-		55CD60A918722A34002450E2 /* CWAVEFile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CWAVEFile.cpp; sourceTree = "<group>"; };
-		55CD60AA18722A34002450E2 /* CWAVEFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CWAVEFile.h; sourceTree = "<group>"; };
+		55C76D461D15D0A500A07B65 /* snd2wav.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = snd2wav.cpp; path = snd2wav/snd2wav/snd2wav.cpp; sourceTree = "<group>"; };
+		55C76D4B1D15D25700A07B65 /* snd2wav.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = snd2wav.h; path = snd2wav/snd2wav/snd2wav.h; sourceTree = "<group>"; };
+		55C76D4C1D15D40500A07B65 /* StackimportPrefixMac.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = StackimportPrefixMac.pch; sourceTree = "<group>"; };
 		8DD76F6C0486A84900D96B5E /* stackimport */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = stackimport; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -90,16 +88,15 @@
 		08FB7795FE84155DC02AAC07 /* Source */ = {
 			isa = PBXGroup;
 			children = (
+				55C76D4C1D15D40500A07B65 /* StackimportPrefixMac.pch */,
 				08FB7796FE84155DC02AAC07 /* main.cpp */,
 				3D0EA7460AD6F65700A66EA1 /* CStackFile.h */,
 				3D0EA7470AD6F65700A66EA1 /* CStackFile.cpp */,
 				55C68B051163C0F800D8B44C /* CBuf.h */,
 				55C68B061163C0F800D8B44C /* CBuf.cpp */,
-				55CD60A718721F6A002450E2 /* CSndResource.h */,
-				55CD60A618721F69002450E2 /* CSndResource.cpp */,
-				55CD60AA18722A34002450E2 /* CWAVEFile.h */,
-				55CD60A918722A34002450E2 /* CWAVEFile.cpp */,
 				3D0EA7E10AD6FE8100A66EA1 /* EndianStuff.h */,
+				55C76D4B1D15D25700A07B65 /* snd2wav.h */,
+				55C76D461D15D0A500A07B65 /* snd2wav.cpp */,
 				3D0EA8160AD7028800A66EA1 /* Rebeccas Wobadecode */,
 				55C68BF31164062A00D8B44C /* Tests.cpp */,
 			);
@@ -178,10 +175,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				8DD76F650486A84900D96B5E /* main.cpp in Sources */,
-				55CD60A818721F6A002450E2 /* CSndResource.cpp in Sources */,
-				55CD60AB18722A34002450E2 /* CWAVEFile.cpp in Sources */,
 				3D0EA7490AD6F65700A66EA1 /* CStackFile.cpp in Sources */,
 				3D0EA80D0AD7027F00A66EA1 /* picture.cpp in Sources */,
+				55C76D471D15D0A500A07B65 /* snd2wav.cpp in Sources */,
 				3D0EA80F0AD7027F00A66EA1 /* woba.cpp in Sources */,
 				55C68B071163C0F800D8B44C /* CBuf.cpp in Sources */,
 				55C68B0D1163C18B00D8B44C /* byteutils.cpp in Sources */,
@@ -195,14 +191,17 @@
 		1DEB923208733DC60010E9CD /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
 				COPY_PHASE_STRIP = NO;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_MODEL_TUNING = G5;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREFIX_HEADER = StackimportPrefixMac.pch;
 				GCC_PREPROCESSOR_DEFINITIONS = "DEBUG=1";
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				INSTALL_PATH = "$(HOME)/bin";
 				PRODUCT_NAME = stackimport;
+				VALID_ARCHS = x86_64;
 				WARNING_CFLAGS = "-Wno-deprecated-declarations";
 				ZERO_LINK = YES;
 			};
@@ -211,11 +210,14 @@
 		1DEB923308733DC60010E9CD /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = "$(ARCHS_STANDARD)";
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_MODEL_TUNING = G5;
+				GCC_PREFIX_HEADER = StackimportPrefixMac.pch;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				INSTALL_PATH = "$(HOME)/bin";
 				PRODUCT_NAME = stackimport;
+				VALID_ARCHS = x86_64;
 				WARNING_CFLAGS = "-Wno-deprecated-declarations";
 			};
 			name = Release;
