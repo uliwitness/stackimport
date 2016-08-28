@@ -14,7 +14,6 @@
 		3D0EA80E0AD7027F00A66EA1 /* picture.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3D0EA80A0AD7027F00A66EA1 /* picture.h */; };
 		3D0EA80F0AD7027F00A66EA1 /* woba.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3D0EA80B0AD7027F00A66EA1 /* woba.cpp */; };
 		3D0EA8100AD7027F00A66EA1 /* woba.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3D0EA80C0AD7027F00A66EA1 /* woba.h */; };
-		552FEF5F113F002A005742C8 /* QuickTime.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 552FEF5E113F002A005742C8 /* QuickTime.framework */; };
 		5542D08D113B159300555C64 /* Carbon.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5542D08C113B159300555C64 /* Carbon.framework */; };
 		55C68B071163C0F800D8B44C /* CBuf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55C68B061163C0F800D8B44C /* CBuf.cpp */; };
 		55C68B0D1163C18B00D8B44C /* byteutils.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 55C68B0C1163C18B00D8B44C /* byteutils.cpp */; };
@@ -67,7 +66,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				5542D08D113B159300555C64 /* Carbon.framework in Frameworks */,
-				552FEF5F113F002A005742C8 /* QuickTime.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
