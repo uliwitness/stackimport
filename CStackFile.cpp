@@ -12,15 +12,12 @@
 #include <iostream>
 #include <fstream>
 #include <sys/stat.h>
+#include <unistd.h>
 #include "picture.h"
 #include "woba.h"
 #include "CBuf.h"
 #include <arpa/inet.h>
 #include "snd2wav/snd2wav/snd2wav.h"
-
-#if !MAC_CODE
-#include <unistd.h>
-#endif
 
 
 // Table of C-strings for converting the non-ASCII MacRoman characters (above 127)

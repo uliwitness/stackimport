@@ -26,9 +26,8 @@
 #if USE_QUICKTIME
 #include <QuickTime/QuickTime.h>
 #endif
-#else
-#include <cstring>
 #endif
+#include <cstring>
 
 
 class CStackBlockIdentifier
