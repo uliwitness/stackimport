@@ -1,8 +1,6 @@
 #include "CStackFile.h"
 #include <iostream>
-#if __linux__
-#include <linux/limits.h>
-#endif
+#include <climits>
 #include <unistd.h>
 
 
