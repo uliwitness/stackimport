@@ -37,7 +37,7 @@
 #endif
 #include "picture.h"
 #include "woba.h"
-#include "EndianStuff.h"
+#include <arpa/inet.h>
 #include "CBuf.h"
 #include "byteutils.h"
 
@@ -101,8 +101,8 @@ void woba_decode(picture & p, char * woba)
 		52 64 - start of mask (or bitmap if mask length == 0)
 	*/
 		#define MASK_START	52
-		#define INT16_AT(woba,pos)	BIG_ENDIAN_16(*(u_int16_t*)(woba+pos))
-		#define INT32_AT(woba,pos)	BIG_ENDIAN_32(*(u_int32_t*)(woba+pos))
+		#define INT16_AT(woba,pos)	ntohs(*(u_int16_t*)(woba+pos))
+		#define INT32_AT(woba,pos)	ntohl(*(u_int32_t*)(woba+pos))
 		
 		totalRectTop = INT16_AT(woba,12);
 		totalRectLeft = INT16_AT(woba,14);

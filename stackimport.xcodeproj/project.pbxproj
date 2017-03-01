@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		3D0EA7480AD6F65700A66EA1 /* CStackFile.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3D0EA7460AD6F65700A66EA1 /* CStackFile.h */; };
 		3D0EA7490AD6F65700A66EA1 /* CStackFile.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3D0EA7470AD6F65700A66EA1 /* CStackFile.cpp */; };
-		3D0EA7E20AD6FE8100A66EA1 /* EndianStuff.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3D0EA7E10AD6FE8100A66EA1 /* EndianStuff.h */; };
 		3D0EA80D0AD7027F00A66EA1 /* picture.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3D0EA8090AD7027F00A66EA1 /* picture.cpp */; };
 		3D0EA80E0AD7027F00A66EA1 /* picture.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3D0EA80A0AD7027F00A66EA1 /* picture.h */; };
 		3D0EA80F0AD7027F00A66EA1 /* woba.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3D0EA80B0AD7027F00A66EA1 /* woba.cpp */; };
@@ -30,7 +29,6 @@
 			dstSubfolderSpec = 0;
 			files = (
 				3D0EA7480AD6F65700A66EA1 /* CStackFile.h in CopyFiles */,
-				3D0EA7E20AD6FE8100A66EA1 /* EndianStuff.h in CopyFiles */,
 				3D0EA80E0AD7027F00A66EA1 /* picture.h in CopyFiles */,
 				3D0EA8100AD7027F00A66EA1 /* woba.h in CopyFiles */,
 			);
@@ -42,7 +40,6 @@
 		08FB7796FE84155DC02AAC07 /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		3D0EA7460AD6F65700A66EA1 /* CStackFile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CStackFile.h; sourceTree = "<group>"; };
 		3D0EA7470AD6F65700A66EA1 /* CStackFile.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = CStackFile.cpp; sourceTree = "<group>"; };
-		3D0EA7E10AD6FE8100A66EA1 /* EndianStuff.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = EndianStuff.h; sourceTree = "<group>"; };
 		3D0EA8090AD7027F00A66EA1 /* picture.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = picture.cpp; sourceTree = "<group>"; };
 		3D0EA80A0AD7027F00A66EA1 /* picture.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = picture.h; sourceTree = "<group>"; };
 		3D0EA80B0AD7027F00A66EA1 /* woba.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; path = woba.cpp; sourceTree = "<group>"; };
@@ -92,7 +89,6 @@
 				3D0EA7470AD6F65700A66EA1 /* CStackFile.cpp */,
 				55C68B051163C0F800D8B44C /* CBuf.h */,
 				55C68B061163C0F800D8B44C /* CBuf.cpp */,
-				3D0EA7E10AD6FE8100A66EA1 /* EndianStuff.h */,
 				55C76D4B1D15D25700A07B65 /* snd2wav.h */,
 				55C76D461D15D0A500A07B65 /* snd2wav.cpp */,
 				3D0EA8160AD7028800A66EA1 /* Rebeccas Wobadecode */,

@@ -15,7 +15,7 @@
 #include "picture.h"
 #include "woba.h"
 #include "CBuf.h"
-#include "EndianStuff.h"
+#include <arpa/inet.h>
 #include "snd2wav/snd2wav/snd2wav.h"
 
 #if !MAC_CODE
@@ -150,15 +150,15 @@ bool	CStackFile::LoadStackBlock( int32_t stackID, CBuf& blockData )
 	}
 	
 	fprintf( mStackXmlFile, "\t<id>%d</id>\n", stackID );
-	int32_t	numberOfCards = BIG_ENDIAN_32(blockData.int32at( 32 ));
+	int32_t	numberOfCards = ntohl(blockData.int32at( 32 ));
 	fprintf( mStackXmlFile, "\t<cardCount>%d</cardCount>\n", numberOfCards );
-	int32_t	cardID = BIG_ENDIAN_32(blockData.int32at( 36 ));
+	int32_t	cardID = ntohl(blockData.int32at( 36 ));
 	fprintf( mStackXmlFile, "\t<cardID>%d</cardID>\n", cardID );
-	mListBlockID = BIG_ENDIAN_32(blockData.int32at( 40 ));
+	mListBlockID = ntohl(blockData.int32at( 40 ));
 	fprintf( mStackXmlFile, "\t<listID>%d</listID>\n", mListBlockID );
-	int16_t	userLevel = BIG_ENDIAN_16(blockData.int16at( 60 ));
+	int16_t	userLevel = ntohs(blockData.int16at( 60 ));
 	fprintf( mXmlFile, "\t<userLevel>%d</userLevel>\n", userLevel );
-	int16_t	flags = BIG_ENDIAN_16(blockData.int16at( 64 ));
+	int16_t	flags = ntohs(blockData.int16at( 64 ));
 	fprintf( mStackXmlFile, "\t<cantModify>%s</cantModify>\n", (flags & (1 << 15)) ? "<true />" : "<false />" );
 	fprintf( mStackXmlFile, "\t<cantDelete>%s</cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
 	fprintf( mXmlFile, "\t<privateAccess>%s</privateAccess>\n", (flags & (1 << 13)) ? "<true />" : "<false />" );
@@ -177,14 +177,14 @@ bool	CStackFile::LoadStackBlock( int32_t stackID, CBuf& blockData )
 	int32_t	version3 = blockData.int32at( 96 );
 	NumVersionToStr( (unsigned char*) &version3, versStr );
 	fprintf( mXmlFile, "\t<firstEditedVersion>HyperCard %s</firstEditedVersion>\n", versStr );
-	mFontTableBlockID = BIG_ENDIAN_32(blockData.int32at( 420 ));
+	mFontTableBlockID = ntohl(blockData.int32at( 420 ));
 	fprintf( mXmlFile, "\t<fontTableID>%d</fontTableID>\n", mFontTableBlockID );
-	mStyleTableBlockID = BIG_ENDIAN_32(blockData.int32at( 424 ));
+	mStyleTableBlockID = ntohl(blockData.int32at( 424 ));
 	fprintf( mXmlFile, "\t<styleTableID>%d</styleTableID>\n", mStyleTableBlockID );
-	int16_t	height = BIG_ENDIAN_16(blockData.int16at( 428 ));
+	int16_t	height = ntohs(blockData.int16at( 428 ));
 	if( height == 0 )
 		height = 342;
-	int16_t	width = BIG_ENDIAN_16(blockData.int16at( 430 ));
+	int16_t	width = ntohs(blockData.int16at( 430 ));
 	if( width == 0 )
 		width = 512;
 	fprintf( mStackXmlFile, "\t<cardSize>\n\t\t<width>%d</width>\n\t\t<height>%d</height>\n\t</cardSize>\n", width, height );
@@ -242,7 +242,7 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 	std::vector<struct CStyleEntry>	styles;
 	
 	size_t		currOffs = 4;
-	int32_t		styleCount = BIG_ENDIAN_32(blockData.int32at( currOffs ));
+	int32_t		styleCount = ntohl(blockData.int32at( currOffs ));
 	currOffs += 4;
 	fprintf( mXmlFile, "\t<!-- 'STBL' #%d (%d styles) -->\n", blockID, styleCount );
 
@@ -256,7 +256,7 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 	FILE*		vStylesheetFile = fopen( vLayerFilePath.c_str(), "w" );
 	
 	currOffs += 2;
-	int16_t	nextStyleID = BIG_ENDIAN_16(blockData.int16at( currOffs ));
+	int16_t	nextStyleID = ntohs(blockData.int16at( currOffs ));
 	fprintf( mXmlFile, "\t<nextStyleID>%d</nextStyleID>\n", nextStyleID );
 	currOffs += 2;
 	currOffs += 2;
@@ -265,12 +265,12 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 	{
 		CStyleEntry		style;
 		
-		style.mStyleID = BIG_ENDIAN_16(blockData.int16at( currOffs ));
+		style.mStyleID = ntohs(blockData.int16at( currOffs ));
 		fprintf( vStylesheetFile, "\t\t.style%d\n\t\t{\n", style.mStyleID );
 		currOffs += 2;
 		currOffs += 8;
 		
-		style.mFontID = BIG_ENDIAN_16(blockData.int16at( currOffs ));
+		style.mFontID = ntohs(blockData.int16at( currOffs ));
 		if( style.mFontID != -1 )
 		{
 			style.mFontName = mFontTable[style.mFontID];
@@ -278,7 +278,7 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 		}
 		currOffs += 2;
 		
-		int16_t	textStyleFlags = BIG_ENDIAN_16(blockData.int16at( currOffs ));
+		int16_t	textStyleFlags = ntohs(blockData.int16at( currOffs ));
 		currOffs += 2;
 		
 		if( textStyleFlags == 0 )
@@ -326,7 +326,7 @@ bool	CStackFile::LoadStyleTable( int32_t blockID, CBuf& blockData )
 				style.mBold = true;
 			}
 		}
-		int16_t	fontSize = BIG_ENDIAN_16(blockData.int16at( currOffs ));
+		int16_t	fontSize = ntohs(blockData.int16at( currOffs ));
 		if( fontSize != -1 )
 		{
 			fprintf( vStylesheetFile, "\t\t\tfont-size: %dpt;\n", fontSize );
@@ -355,7 +355,7 @@ bool	CStackFile::LoadFontTable( int32_t blockID, CBuf& blockData )
 		fprintf( stdout, "Status: Processing 'FTBL' #%d %X (%d bytes)\n", blockID, blockID, vBlockSize );
 
 	fprintf( mXmlFile, "\t<!-- 'FTBL' #%d (%d bytes) -->\n", blockID, vBlockSize );
-	int16_t	numFonts = BIG_ENDIAN_16(blockData.int16at( 6 ));
+	int16_t	numFonts = ntohs(blockData.int16at( 6 ));
 	size_t	currOffsIntoData = 8;
 	currOffsIntoData += 4;	// Reserved?
 	for( int n = 0; n < numFonts; n++ )
@@ -363,7 +363,7 @@ bool	CStackFile::LoadFontTable( int32_t blockID, CBuf& blockData )
 		std::string		fontName;
 		
 		fprintf( mXmlFile, "\t<font>\n" );
-		int16_t	fontID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
+		int16_t	fontID = ntohs(blockData.int16at( currOffsIntoData ));
 		fprintf( mXmlFile, "\t\t<id>%d</id>\n", fontID );
 		
 		int x = 0, startOffs = currOffsIntoData +2;
@@ -440,14 +440,14 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 	}
 
 	size_t	currOffsIntoData = 0;
-	int32_t	unknownFiller = BIG_ENDIAN_32(blockData.int32at( currOffsIntoData ));
+	int32_t	unknownFiller = ntohl(blockData.int32at( currOffsIntoData ));
 	currOffsIntoData += 4;
 	fprintf( vFile, "\t<filler1>%d</filler1>\n", unknownFiller );
-	int32_t	bitmapID = BIG_ENDIAN_32(blockData.int32at( currOffsIntoData ));
+	int32_t	bitmapID = ntohl(blockData.int32at( currOffsIntoData ));
 	currOffsIntoData += 4;
 	if( bitmapID != 0 )
 		fprintf( vFile, "\t<bitmap>BMAP_%u.pbm</bitmap>\n", bitmapID );
-	int16_t	flags = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
+	int16_t	flags = ntohs(blockData.int16at( currOffsIntoData ));
 	currOffsIntoData += 2;
 	fprintf( vFile, "\t<cantDelete> %s </cantDelete>\n", (flags & (1 << 14)) ? "<true />" : "<false />" );
 	fprintf( vFile, "\t<showPict> %s </showPict>\n", (flags & (1 << 13)) ? "<false />" : "<true />" );	// showPict is stored reversed.
@@ -456,7 +456,7 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 	int32_t	owner = -1;
 	if( isCard )
 	{
-		owner = BIG_ENDIAN_32(blockData.int32at( currOffsIntoData ));
+		owner = ntohl(blockData.int32at( currOffsIntoData ));
 		fprintf( vFile, "\t<owner>%d</owner>\n", owner );
 		currOffsIntoData += 4;
 		
@@ -466,21 +466,21 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 
 	fprintf( vFile, "\t<link rel=\"stylesheet\" type=\"text/css\" href=\"%s\" />\n", mStyleSheetName.c_str() );
 
-	int16_t	numParts = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
+	int16_t	numParts = ntohs(blockData.int16at( currOffsIntoData ));
 	currOffsIntoData += 2;
 	currOffsIntoData += 6;	// Unknown filler.
-	int16_t	numContents = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
+	int16_t	numContents = ntohs(blockData.int16at( currOffsIntoData ));
 	currOffsIntoData += 2;
 	currOffsIntoData += 4;	// Unknown filler.
 	std::vector<int32_t>	buttonIDs;
 	for( int n = 0; n < numParts; n++ )
 	{
-		int16_t	partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
+		int16_t	partLength = ntohs(blockData.int16at( currOffsIntoData ));
 		
 		fprintf( vFile, "\t<part>\n" );
-		int16_t	partID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +2 ));
+		int16_t	partID = ntohs(blockData.int16at( currOffsIntoData +2 ));
 		fprintf( vFile, "\t\t<id>%d</id>\n", partID );
-		int16_t	flagsAndType = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +4 ));
+		int16_t	flagsAndType = ntohs(blockData.int16at( currOffsIntoData +4 ));
 		int16_t	partType = flagsAndType >> 8;
 		bool	isButton = partType == 1;
 		fprintf( vFile, "\t\t<type>%s</type>\n", isButton ? "button" : "field" );
@@ -512,11 +512,11 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 		else
 			fprintf( vFile, "\t\t<lockText> %s </lockText>\n", (flagsAndType & (1 << 0)) ? "<true />" : "<false />" );	// Same as enabled on buttons.
 		fprintf( vFile, "\t\t<rect>\n\t\t\t<left>%d</left>\n\t\t\t<top>%d</top>\n\t\t\t<right>%d</right>\n\t\t\t<bottom>%d</bottom>\n\t\t</rect>\n",
-					BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +8 )),
-					BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +6 )),
-					BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +12 )),
-					BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +10 )) );
-		int16_t	moreFlags = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +14 ));
+					ntohs(blockData.int16at( currOffsIntoData +8 )),
+					ntohs(blockData.int16at( currOffsIntoData +6 )),
+					ntohs(blockData.int16at( currOffsIntoData +12 )),
+					ntohs(blockData.int16at( currOffsIntoData +10 )) );
+		int16_t	moreFlags = ntohs(blockData.int16at( currOffsIntoData +14 ));
 		int8_t	styleFromLowNibble = moreFlags & 15;
 		const char*		styleStr = "unknown";
 		if( isButton )
@@ -606,8 +606,8 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 		// titleWidth & iconID are list fields' lastSelectedLine and firstSelectedLine
 		// 	We generate a list containing each selected line so users of the file
 		//	format can add multiple selection easily.
-		int16_t	titleWidth = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +16 ));
-		int16_t	iconID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +18 ));
+		int16_t	titleWidth = ntohs(blockData.int16at( currOffsIntoData +16 ));
+		int16_t	iconID = ntohs(blockData.int16at( currOffsIntoData +18 ));
 		if( !isButton && iconID > 0 )
 		{
 			if( titleWidth <= 0 )
@@ -633,7 +633,7 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 			fprintf( vFile, "\t\t<titleWidth>%d</titleWidth>\n", titleWidth );
 			fprintf( vFile, "\t\t<icon>%d</icon>\n", iconID );
 		}
-		int16_t	textAlign = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +20 ));
+		int16_t	textAlign = ntohs(blockData.int16at( currOffsIntoData +20 ));
 		const char*		textAlignStr = "unknown";
 		switch( textAlign )
 		{
@@ -651,11 +651,11 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 				break;
 		}
 		fprintf( vFile, "\t\t<textAlign>%s</textAlign>\n", textAlignStr );
-		int16_t	textFontID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +22 ));
+		int16_t	textFontID = ntohs(blockData.int16at( currOffsIntoData +22 ));
 		fprintf( vFile, "\t\t<font>%s</font>\n", mFontTable[textFontID].c_str() );
-		int16_t	textSize = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +24 ));
+		int16_t	textSize = ntohs(blockData.int16at( currOffsIntoData +24 ));
 		fprintf( vFile, "\t\t<textSize>%d</textSize>\n", textSize );
-		int16_t	textStyleFlags = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +26 ));
+		int16_t	textStyleFlags = ntohs(blockData.int16at( currOffsIntoData +26 ));
 		if( textStyleFlags & (1 << 15) )
 			fprintf( vFile, "\t\t<textStyle>group</textStyle>\n" );
 		if( textStyleFlags & (1 << 14) )
@@ -675,7 +675,7 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 		if( textStyleFlags == 0 )
 			fprintf( vFile, "\t\t<textStyle>plain</textStyle>\n" );
 		
-		int16_t	textHeight = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +28 ));
+		int16_t	textHeight = ntohs(blockData.int16at( currOffsIntoData +28 ));
 		if( !isButton )
 			fprintf( vFile, "\t\t<textHeight>%d</textHeight>\n", textHeight );
 		
@@ -736,8 +736,8 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 			the button is highlighted and sharedHighlight is FALSE.
 		*/
 		
-		int16_t		partID = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData ));
-		int16_t		partLength = BIG_ENDIAN_16(blockData.int16at( currOffsIntoData +2 ));
+		int16_t		partID = ntohs(blockData.int16at( currOffsIntoData ));
+		int16_t		partLength = ntohs(blockData.int16at( currOffsIntoData +2 ));
 		bool		isBgButtonContents = false;
 		
 		fprintf( vFile, "\t<content>\n" );
@@ -749,7 +749,7 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 			fprintf( vFile, "\t\t<layer>card</layer>\n" );
 			fprintf( vFile, "\t\t<id>%d</id>\n", partID );
 			
-			uint16_t	stylesLength = BIG_ENDIAN_16(blockData.uint16at( currOffsIntoData +4 ));
+			uint16_t	stylesLength = ntohs(blockData.uint16at( currOffsIntoData +4 ));
 			if( stylesLength > 32767 )
 			{
 				stylesLength = stylesLength -32768;
@@ -771,7 +771,7 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 			fprintf( vFile, "\t\t<layer>background</layer>\n" );
 			fprintf( vFile, "\t\t<id>%d</id>\n", partID );
 			
-			uint16_t	stylesLength = BIG_ENDIAN_16(blockData.uint16at( currOffsIntoData +4 ));
+			uint16_t	stylesLength = ntohs(blockData.uint16at( currOffsIntoData +4 ));
 			if( stylesLength > 32767 )
 			{
 				stylesLength = stylesLength -32768;
@@ -807,9 +807,9 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 			{
 				for( size_t x = 0; x < theStyles.size(); )
 				{
-					int16_t	startOffset = BIG_ENDIAN_16(theStyles.int16at( x ));
+					int16_t	startOffset = ntohs(theStyles.int16at( x ));
 					x += sizeof(int16_t);
-					int16_t	styleID = BIG_ENDIAN_16(theStyles.int16at( x ));
+					int16_t	styleID = ntohs(theStyles.int16at( x ));
 					x += sizeof(int16_t);
 					
 					styleRuns.push_back( (CStyleRun){ startOffset, styleID } );
@@ -974,20 +974,20 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 					fprintf( vFile, "\t\t<type>button</type>\n" );
 					int16_t		buttonID = 0, bevelDepth = 0;
 					uint16_t	r = 0, g = 0, b = 0;
-					buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					buttonID = ntohs(theData.int16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t<id>%d</id>\n", buttonID );
-					bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					bevelDepth = ntohs(theData.int16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t<bevel>%d</bevel>\n", bevelDepth );
 					fprintf( vFile, "\t\t<color>\n" );
-					r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					r = ntohs(theData.uint16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t\t<red>%d</red>\n", r );
-					g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					g = ntohs(theData.uint16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t\t<green>%d</green>\n", g );
-					b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					b = ntohs(theData.uint16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t\t<blue>%d</blue>\n", b );
 					fprintf( vFile, "\t\t</color>\n" );
@@ -999,20 +999,20 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 					fprintf( vFile, "\t\t<type>field</type>\n" );
 					int16_t		buttonID = 0, bevelDepth = 0;
 					uint16_t	r = 0, g = 0, b = 0;
-					buttonID = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					buttonID = ntohs(theData.int16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t<id>%d</id>\n", buttonID );
-					bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					bevelDepth = ntohs(theData.int16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t<bevel>%d</bevel>\n", bevelDepth );
 					fprintf( vFile, "\t\t<color>\n" );
-					r = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					r = ntohs(theData.uint16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t\t<red>%d</red>\n", r );
-					g = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					g = ntohs(theData.uint16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t\t<green>%d</green>\n", g );
-					b = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					b = ntohs(theData.uint16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t\t<blue>%d</blue>\n", b );
 					fprintf( vFile, "\t\t</color>\n" );
@@ -1026,30 +1026,30 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 					int16_t		bevelDepth = 0;
 					int16_t		l, t, r, b;
 					fprintf( vFile, "\t\t<rect>\n" );
-					t = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					t = ntohs(theData.int16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t\t<top>%d</top>\n", t );
-					l = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					l = ntohs(theData.int16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t\t<left>%d</left>\n", l );
-					b = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					b = ntohs(theData.int16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t\t<bottom>%d</bottom>\n", b );
-					r = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					r = ntohs(theData.int16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t\t<right>%d</right>\n", r );
 					fprintf( vFile, "\t\t</rect>\n" );
-					bevelDepth = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					bevelDepth = ntohs(theData.int16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t<bevel>%d</bevel>\n", bevelDepth );
 					fprintf( vFile, "\t\t<color>\n" );
-					rc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					rc = ntohs(theData.uint16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t\t<red>%d</red>\n", rc );
-					gc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					gc = ntohs(theData.uint16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t\t<green>%d</green>\n", gc );
-					bc = BIG_ENDIAN_16(theData.uint16at( currOffs ));
+					bc = ntohs(theData.uint16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t\t<blue>%d</blue>\n", bc );
 					fprintf( vFile, "\t\t</color>\n" );
@@ -1062,16 +1062,16 @@ bool	CStackFile::LoadLayerBlock( const char* vBlockType, int32_t blockID, CBuf& 
 					fprintf( vFile, "\t\t<type>picture</type>\n" );
 					int16_t		l, t, r, b;
 					fprintf( vFile, "\t\t<rect>\n" );
-					t = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					t = ntohs(theData.int16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t\t<top>%d</top>\n", t );
-					l = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					l = ntohs(theData.int16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t\t<left>%d</left>\n", l );
-					b = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					b = ntohs(theData.int16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t\t<bottom>%d</bottom>\n", b );
-					r = BIG_ENDIAN_16(theData.int16at( currOffs ));
+					r = ntohs(theData.int16at( currOffs ));
 					currOffs += 2;
 					fprintf( vFile, "\t\t\t<right>%d</right>\n", r );
 					fprintf( vFile, "\t\t</rect>\n" );
@@ -1158,7 +1158,7 @@ bool	CStackFile::LoadPageTable( int32_t blockID, CBuf& blockData )
 				break;
 			}
 			
-			int32_t		currCardID = BIG_ENDIAN_32( blockData.int32at( currDataOffs ) );
+			int32_t		currCardID = ntohl( blockData.int32at( currDataOffs ) );
 			if( currCardID == 0 )
 				break;	// End of page list. (Sentinel)
 			uint8_t		cardFlags = blockData[currDataOffs +4];
@@ -1191,9 +1191,9 @@ bool	CStackFile::LoadListBlock( CBuf& blockData )
 	}
 
 	size_t		currDataOffs = 4;
-	int32_t		numPageTables = BIG_ENDIAN_32(blockData.int32at(currDataOffs));
+	int32_t		numPageTables = ntohl(blockData.int32at(currDataOffs));
 	currDataOffs += 12;
-	mCardBlockSize = BIG_ENDIAN_16(blockData.int16at(currDataOffs));
+	mCardBlockSize = ntohs(blockData.int16at(currDataOffs));
 	currDataOffs += 18;
 	for( int32_t r = 0; r < numPageTables; r++ )
 	{
@@ -1204,7 +1204,7 @@ bool	CStackFile::LoadListBlock( CBuf& blockData )
 			break;
 		}
 		
-		int32_t		currPagetableID = BIG_ENDIAN_32( blockData.int32at( currDataOffs ) );
+		int32_t		currPagetableID = ntohl( blockData.int32at( currDataOffs ) );
 		
 		LoadPageTable( currPagetableID, mBlockMap[CStackBlockIdentifier("PAGE",currPagetableID)] );
 		
@@ -1764,10 +1764,10 @@ bool	CStackFile::LoadFile( const std::string& fpath )
 		if( theFile.eof() )	// Couldn't read because we hit end of file.
 			break;
 		
-		vBlockSize = BIG_ENDIAN_32(vBlockSize);
+		vBlockSize = ntohl(vBlockSize);
 		theFile.read( vBlockType, 4 );
 		theFile.read( (char*) &vBlockID, sizeof(vBlockID) );
-		vBlockID = BIG_ENDIAN_32(vBlockID);
+		vBlockID = ntohl(vBlockID);
 		
 		numBlocks++;
 		
