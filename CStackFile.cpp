@@ -16,7 +16,7 @@
 #include "woba.h"
 #include "CBuf.h"
 #include "EndianStuff.h"
-#include "snd2wav.h"
+#include "snd2wav/snd2wav/snd2wav.h"
 
 #if !MAC_CODE
 #include <unistd.h>
