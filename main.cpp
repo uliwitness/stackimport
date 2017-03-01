@@ -1,9 +1,9 @@
+#include "CStackFile.h"
 #include <iostream>
 #if !MAC_CODE
 #include <linux/limits.h>
 #include <unistd.h>
 #endif
-#include "CStackFile.h"
 
 
 void	RunTests();
