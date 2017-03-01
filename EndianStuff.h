@@ -9,7 +9,9 @@
 
 #pragma once
 
+#if MAC_CODE
 #include <Carbon/Carbon.h>	// For Endian.h
+#endif
 #include <stdint.h>
 
 #if TARGET_RT_BIG_ENDIAN

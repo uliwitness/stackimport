@@ -7,6 +7,9 @@
  *
  */
 
+#if !MAC_CODE
+#include <cstring>
+#endif
 #include "CBuf.h"
 #include "byteutils.h"
 #include "assert.h"

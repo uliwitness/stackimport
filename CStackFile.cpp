@@ -18,6 +18,10 @@
 #include "EndianStuff.h"
 #include "snd2wav.h"
 
+#if !MAC_CODE
+#include <unistd.h>
+#endif
+
 
 // Table of C-strings for converting the non-ASCII MacRoman characters (above 127)
 //	into the requisite UTF8 byte sequences:
