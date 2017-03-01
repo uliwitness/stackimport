@@ -1,6 +1,6 @@
 #include "CStackFile.h"
 #include <iostream>
-#if !MAC_CODE
+#if __linux__
 #include <linux/limits.h>
 #endif
 #include <unistd.h>
