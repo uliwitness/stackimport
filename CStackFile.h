@@ -166,7 +166,7 @@ protected:
 	std::string		mStyleSheetName;	// Name of CSS file containing our styles table.
 	CFontTable		mFontTable;			// Actual, parsed font ID -> name mappings from FTBL block.
 #if MAC_CODE
-	SInt16			mResRefNum;
+	ResFileRefNum	mResRefNum;
 #endif
 	std::map<int16_t,CStyleEntry>	mStyles;
 };
