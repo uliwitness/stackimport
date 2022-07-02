@@ -6,8 +6,10 @@ namespace stackimport {
     using namespace std;
 
     void Picture::set_size(size_t width, size_t height) {
-        assert((width % 8) == 0);
-        mRowBytes = (width / 8);
+        mWidth = width;
+        mHeight = height;
+        size_t partialPixels = (width % 8);
+        mRowBytes = (width / 8) + ((partialPixels != 0) ? 1 : 0);
         if (width != 0 && height != 0) {
             mPixels.resize(mRowBytes * mHeight, 0);
         }

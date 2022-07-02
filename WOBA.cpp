@@ -265,13 +265,14 @@ namespace stackimport {
         }
 
         // Image data
-        mPicture.set_size(right, bottom);
         mCurrPictureByte = 0;
         mDH = mDV = 0;
 
         if (imageDataSize == 0 && (imageLeft != 0 || imageTop != 0 || imageRight != 0 || imageBottom != 0)) {
+            mPicture.set_size(right - left, bottom - top);
             mPicture.fill_rect(imageTop, imageLeft, imageBottom, imageRight);
         } else if (imageDataSize > 0) {
+            mPicture.set_size(imageRight - imageLeft, imageBottom - imageTop);
             size_t imageEnd = currOffset + imageDataSize;
             while (currOffset < imageEnd) {
                 ApplyNextOpcode(currOffset, imageEnd, mPicture);
