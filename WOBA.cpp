@@ -16,12 +16,15 @@ namespace stackimport {
     }
 
     void WOBA::PrintByte(uint8_t byte) {
+        char str[9] = {};
         for (size_t y = 0; y < 8; ++y) {
-            cout << (byte & (1 << y)) ? " " : "*";
+            str[y] = (byte & (1 << y)) ? ' ' : '*';
         }
+
+        cout << str;
     }
 
-    void WOBA::ApplyNextOpcode(size_t &currOffset, size_t endByte) {
+    void WOBA::ApplyNextOpcode(size_t &currOffset, size_t endByte, Picture &picture) {
         uint8_t type = *(uint8_t*)(mWOBAData.data() + currOffset);
         ++currOffset;
         if (type <= 0x7f) {
@@ -32,12 +35,12 @@ namespace stackimport {
             for (size_t x = 0; x < numZeroes; ++x) {
                 cout << " ";
                 PrintByte(0);
-                mPicture.set_byte(mCurrPictureByte++, 0);
+                picture.set_byte(mCurrPictureByte++, 0);
             }
             for (size_t x = 0; x < numData; ++x) {
                 cout << " ";
                 PrintByte(mWOBAData[currOffset]);
-                mPicture.set_byte(mCurrPictureByte++, mWOBAData[currOffset++]);
+                picture.set_byte(mCurrPictureByte++, mWOBAData[currOffset++]);
             }
             cout << endl;
         } else if ((type & 0b11100000) == 0b10100000) {
@@ -46,7 +49,7 @@ namespace stackimport {
             size_t wobaStartOffs = currOffset;
             for (size_t x = 0; x < numRepetitions; ++x) {
                 currOffset = wobaStartOffs;
-                ApplyNextOpcode(currOffset, endByte);
+                ApplyNextOpcode(currOffset, endByte, picture);
             }
         } else if ((type & 0b11100000) == 0b11000000) {
             // data in blocks of 8:
@@ -55,7 +58,7 @@ namespace stackimport {
             for (size_t x = 0; x < numData; ++x) {
                 cout << " ";
                 PrintByte(mWOBAData[currOffset]);
-                mPicture.set_byte(mCurrPictureByte++, mWOBAData[currOffset++]);
+                picture.set_byte(mCurrPictureByte++, mWOBAData[currOffset++]);
             }
             cout << endl;
         } else if ((type & 0b11100000) == 0b11100000) {
@@ -65,7 +68,7 @@ namespace stackimport {
             for (size_t x = 0; x < numZeroes; ++x) {
                 cout << " ";
                 PrintByte(0);
-                mPicture.set_byte(mCurrPictureByte++, 0);
+                picture.set_byte(mCurrPictureByte++, 0);
             }
             cout << endl;
         } else {
@@ -73,37 +76,37 @@ namespace stackimport {
                 case 0x80:
                     // One row of uncompressed data:
                     cout << "{DATAROW}";
-                    for (size_t x = 0; x < mPicture.row_bytes(); ++x) {
+                    for (size_t x = 0; x < picture.row_bytes(); ++x) {
                         cout << " ";
                         PrintByte(mWOBAData[currOffset]);
-                        mPicture.set_byte(mCurrPictureByte++, mWOBAData[currOffset++]);
+                        picture.set_byte(mCurrPictureByte++, mWOBAData[currOffset++]);
                     }
                     cout << endl;
                     break;
                 case 0x81:
                     // One white row:
                     cout << "{WHITEROW}";
-                    for (size_t x = 0; x < mPicture.row_bytes(); ++x) {
+                    for (size_t x = 0; x < picture.row_bytes(); ++x) {
                         cout << " ";
                         PrintByte(0);
-                        mPicture.set_byte(mCurrPictureByte++, 0);
+                        picture.set_byte(mCurrPictureByte++, 0);
                     }
                     cout << endl;
                     break;
                 case 0x82:
                     // One black row:
                     cout << "{BLACKROW}";
-                    for (size_t x = 0; x < mPicture.row_bytes(); ++x) {
+                    for (size_t x = 0; x < picture.row_bytes(); ++x) {
                         cout << " ";
                         PrintByte(0xff);
-                        mPicture.set_byte(mCurrPictureByte++, 0xff);
+                        picture.set_byte(mCurrPictureByte++, 0xff);
                     }
                     cout << endl;
                     break;
 
                 case 0x83: {
                     // Set repeat buffer byte:
-                    size_t saveIndex = (mCurrPictureByte / mPicture.row_bytes()) % sizeof(mRepeatBuffer);
+                    size_t saveIndex = (mCurrPictureByte / picture.row_bytes()) % sizeof(mRepeatBuffer);
                     cout << "{SETREP," << saveIndex << "} ";
                     PrintByte(mWOBAData[currOffset]);
                     cout << endl;
@@ -113,20 +116,96 @@ namespace stackimport {
 
                 case 0x84: {
                     // Fill row with repeat buffer byte:
-                    // TODO: Stop at end of row instead of filling one row?
-                    size_t saveIndex = (mCurrPictureByte / mPicture.row_bytes()) % sizeof(mRepeatBuffer);
+                    // TODO: Stop at end of row instead of adding a full row?
+                    size_t saveIndex = (mCurrPictureByte / picture.row_bytes()) % sizeof(mRepeatBuffer);
                     cout << "{REPROW," << saveIndex << "}";
-                    for (size_t x = 0; x < mPicture.row_bytes(); ++x) {
+                    for (size_t x = 0; x < picture.row_bytes(); ++x) {
                         cout << " ";
                         PrintByte(mRepeatBuffer[saveIndex]);
-                        mPicture.set_byte(mCurrPictureByte++, mRepeatBuffer[saveIndex]);
+                        picture.set_byte(mCurrPictureByte++, mRepeatBuffer[saveIndex]);
                     }
                     cout << endl;
                     break;
                 }
+
+                case 0x85: {
+                    // Copy previous row:
+                    size_t endByte = mCurrPictureByte;
+                    size_t startByte = endByte - picture.row_bytes();
+                    for (size_t x = startByte; x < endByte; ++x) {
+                        cout << " ";
+                        PrintByte(picture.get_byte(x));
+                        picture.set_byte(mCurrPictureByte++, picture.get_byte(x));
+                    }
+                    break;
+                }
+                case 0x86: {
+                    // Copy row before previous row:
+                    size_t endByte = mCurrPictureByte - picture.row_bytes();
+                    size_t startByte = endByte - picture.row_bytes();
+                    for (size_t x = startByte; x < endByte; ++x) {
+                        cout << " ";
+                        PrintByte(picture.get_byte(x));
+                        picture.set_byte(mCurrPictureByte++, picture.get_byte(x));
+                    }
+                    break;
+                }
+
+                case 0x87:
+                    assert(false); // Unused opcode.
+                    break;
+
+                case 0x88:
+                    mDH = 16;
+                    mDV = 0;
+                    break;
+
+                case 0x89:
+                    mDH = 0;
+                    mDV = 0;
+                    break;
+
+                case 0x8A:
+                    mDH = 0;
+                    mDV = 1;
+                    break;
+
+                case 0x8B:
+                    mDH = 0;
+                    mDV = 2;
+                    break;
+
+                case 0x8C:
+                    mDH = 1;
+                    mDV = 0;
+                    break;
+
+                case 0x8D:
+                    mDH = 1;
+                    mDV = 1;
+                    break;
+
+                case 0x8E:
+                    mDH = 2;
+                    mDV = 2;
+                    break;
+
+                case 0x8F:
+                    mDH = 8;
+                    mDV = 0;
+                    break;
             }
         }
 
+        if (type < 0x80 || type > 0x87) {
+            if(mDH != 0) {
+
+            }
+
+            if (mDV != 0) {
+
+            }
+        }
     }
 
     void WOBA::Decode() {
@@ -171,26 +250,31 @@ namespace stackimport {
 
         cout << "Mask: " << maskDataSize << " bytes | Image: " << imageDataSize << " bytes" << endl;
 
-        mPicture.set_size(right, bottom);
-        mCurrPictureByte = 0;
-
         // Mask data
+        mMask.set_size(right, bottom);
+        mCurrPictureByte = 0;
+        mDH = mDV = 0;
+
         if (maskDataSize == 0 && (maskLeft != 0 || maskTop != 0 || maskRight != 0 || maskBottom != 0)) {
-            mPicture.fill_mask_rect(maskTop, maskLeft, maskBottom, maskRight);
+            mMask.fill_rect(maskTop, maskLeft, maskBottom, maskRight);
         } else if (maskDataSize > 0) {
             size_t maskEnd = currOffset + maskDataSize;
             while (currOffset < maskEnd) {
-                ApplyNextOpcode(currOffset, maskEnd);
+                ApplyNextOpcode(currOffset, maskEnd, mMask);
             }
         }
 
         // Image data
+        mPicture.set_size(right, bottom);
+        mCurrPictureByte = 0;
+        mDH = mDV = 0;
+
         if (imageDataSize == 0 && (imageLeft != 0 || imageTop != 0 || imageRight != 0 || imageBottom != 0)) {
             mPicture.fill_rect(imageTop, imageLeft, imageBottom, imageRight);
         } else if (imageDataSize > 0) {
             size_t imageEnd = currOffset + imageDataSize;
             while (currOffset < imageEnd) {
-                ApplyNextOpcode(mWOBAData, currOffset, imageEnd, mPicture);
+                ApplyNextOpcode(currOffset, imageEnd, mPicture);
             }
         }
     }
