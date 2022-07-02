@@ -27,6 +27,8 @@ namespace stackimport {
 
         void write_to_pbm_with_mask(const Picture& mask, const string& filePath);
 
+        uint8_t* data_at(size_t offset) { return mPixels.data() + offset; }
+
     protected:
         size_t mWidth;
         size_t mHeight;

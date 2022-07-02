@@ -18,10 +18,25 @@ namespace stackimport {
     void WOBA::PrintByte(uint8_t byte) {
         char str[9] = {};
         for (size_t y = 0; y < 8; ++y) {
-            str[y] = (byte & (1 << y)) ? ' ' : '*';
+            str[y] = (byte & (1 << y)) ? '*' : ' ';
         }
 
         cout << str;
+    }
+
+    * * * *  | ******** |  * *****
+      * * *  | * ****** | ** * ***
+
+    void bitshift_bytes(size_t amount, uint8_t * buf, size_t len) {
+        size_t bytesToMove = amount / 8;
+        size_t bitsToMove = amount % 8;
+        uint8_t lastByte = 0;
+        if (bitsToMove != 0) {
+            ;
+        }
+        if (bytesToMove != 0) {
+            memmove(buf + bytesToMove, buf, len - bytesToMove);
+        }
     }
 
     void WOBA::ApplyNextOpcode(size_t &currOffset, size_t endByte, Picture &picture) {
@@ -42,7 +57,6 @@ namespace stackimport {
                 PrintByte(mWOBAData[currOffset]);
                 picture.set_byte(mCurrPictureByte++, mWOBAData[currOffset++]);
             }
-            cout << endl;
         } else if ((type & 0b11100000) == 0b10100000) {
             // Repeat the following command several times:
             size_t numRepetitions = type & 0b00011111;
@@ -60,7 +74,6 @@ namespace stackimport {
                 PrintByte(mWOBAData[currOffset]);
                 picture.set_byte(mCurrPictureByte++, mWOBAData[currOffset++]);
             }
-            cout << endl;
         } else if ((type & 0b11100000) == 0b11100000) {
             // zeroes in blocks of 16:
             size_t numZeroes = (type & 0b00011111) * 16;
@@ -70,38 +83,34 @@ namespace stackimport {
                 PrintByte(0);
                 picture.set_byte(mCurrPictureByte++, 0);
             }
-            cout << endl;
         } else {
             switch (type) {
                 case 0x80:
                     // One row of uncompressed data:
                     cout << "{DATAROW}";
-                    for (size_t x = 0; x < picture.row_bytes(); ++x) {
+                    for (size_t x = (currOffset % picture.width()); x < picture.row_bytes(); ++x) {
                         cout << " ";
                         PrintByte(mWOBAData[currOffset]);
                         picture.set_byte(mCurrPictureByte++, mWOBAData[currOffset++]);
                     }
-                    cout << endl;
                     break;
                 case 0x81:
                     // One white row:
                     cout << "{WHITEROW}";
-                    for (size_t x = 0; x < picture.row_bytes(); ++x) {
+                    for (size_t x = (currOffset % picture.width()); x < picture.row_bytes(); ++x) {
                         cout << " ";
                         PrintByte(0);
                         picture.set_byte(mCurrPictureByte++, 0);
                     }
-                    cout << endl;
                     break;
                 case 0x82:
                     // One black row:
                     cout << "{BLACKROW}";
-                    for (size_t x = 0; x < picture.row_bytes(); ++x) {
+                    for (size_t x = (currOffset % picture.width()); x < picture.row_bytes(); ++x) {
                         cout << " ";
                         PrintByte(0xff);
                         picture.set_byte(mCurrPictureByte++, 0xff);
                     }
-                    cout << endl;
                     break;
 
                 case 0x83: {
@@ -109,7 +118,6 @@ namespace stackimport {
                     size_t saveIndex = (mCurrPictureByte / picture.row_bytes()) % sizeof(mRepeatBuffer);
                     cout << "{SETREP," << saveIndex << "} ";
                     PrintByte(mWOBAData[currOffset]);
-                    cout << endl;
                     mRepeatBuffer[saveIndex] = mWOBAData[currOffset++];
                     break;
                 }
@@ -119,16 +127,16 @@ namespace stackimport {
                     // TODO: Stop at end of row instead of adding a full row?
                     size_t saveIndex = (mCurrPictureByte / picture.row_bytes()) % sizeof(mRepeatBuffer);
                     cout << "{REPROW," << saveIndex << "}";
-                    for (size_t x = 0; x < picture.row_bytes(); ++x) {
+                    for (size_t x = (currOffset % picture.width()); x < picture.row_bytes(); ++x) {
                         cout << " ";
                         PrintByte(mRepeatBuffer[saveIndex]);
                         picture.set_byte(mCurrPictureByte++, mRepeatBuffer[saveIndex]);
                     }
-                    cout << endl;
                     break;
                 }
 
                 case 0x85: {
+                    cout << "{COPYROW}";
                     // Copy previous row:
                     size_t endByte = mCurrPictureByte;
                     size_t startByte = endByte - picture.row_bytes();
@@ -140,6 +148,7 @@ namespace stackimport {
                     break;
                 }
                 case 0x86: {
+                    cout << "{COPYPREVROW}";
                     // Copy row before previous row:
                     size_t endByte = mCurrPictureByte - picture.row_bytes();
                     size_t startByte = endByte - picture.row_bytes();
@@ -156,49 +165,62 @@ namespace stackimport {
                     break;
 
                 case 0x88:
+                    cout << "{dh = 16}";
                     mDH = 16;
                     mDV = 0;
                     break;
 
                 case 0x89:
+                    cout << "{dh = 0}";
                     mDH = 0;
                     mDV = 0;
                     break;
 
                 case 0x8A:
+                    cout << "{dv = 1}";
                     mDH = 0;
                     mDV = 1;
                     break;
 
                 case 0x8B:
+                    cout << "{dv = 2}";
                     mDH = 0;
                     mDV = 2;
                     break;
 
                 case 0x8C:
+                    cout << "{dh = 1}";
                     mDH = 1;
                     mDV = 0;
                     break;
 
                 case 0x8D:
+                    cout << "{dh = 1, dv = 1}";
                     mDH = 1;
                     mDV = 1;
                     break;
 
                 case 0x8E:
+                    cout << "{dh = 2, dv = 2}";
                     mDH = 2;
                     mDV = 2;
                     break;
 
                 case 0x8F:
+                    cout << "{dh = 8}";
                     mDH = 8;
                     mDV = 0;
                     break;
             }
         }
 
+        if ((currOffset % picture.row_bytes()) == 0) {
+            cout << endl;
+        }
+
         if (type < 0x80 || type > 0x87) {
-            if(mDH != 0) {
+            memcpy(mRowBuffer.data(), picture.data_at(currOffset - picture.row_bytes()), picture.row_bytes());
+            if (mDH != 0) {
 
             }
 
@@ -206,6 +228,8 @@ namespace stackimport {
 
             }
         }
+
+        cout << endl;
     }
 
     void WOBA::Decode() {
